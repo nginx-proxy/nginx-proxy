@@ -1,0 +1,22 @@
+{{ range $host, $containers := groupBy $ "Env.VIRTUAL_HOST" }}
+upstream {{ $host }} {
+
+{{ range $index, $value := $containers }}
+	{{ with $address := index $value.Addresses 0 }}
+	server {{ $value.Gateway }}:{{ $address.HostPort }};
+	{{ end }}
+{{ end }}
+
+}
+
+server {
+	gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
+
+	server_name {{ $host }};
+
+	location / {
+	    proxy_pass http://{{ $host }};
+	    include /etc/nginx/proxy_params;
+	}
+}
+{{ end }}
