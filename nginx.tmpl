@@ -13,6 +13,7 @@ server {
 	gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 
 	server_name {{ $host }};
+        proxy_buffering off;
 
 	location / {
 	    proxy_pass http://{{ $host }};
