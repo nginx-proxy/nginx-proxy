@@ -2,9 +2,12 @@
 upstream {{ $host }} {
 
 {{ range $index, $value := $containers }}
-	{{ with $address := index $value.Addresses 0 }}
+	{{ range $address := $value.Addresses }}
+	{{ if eq $address.Port "80" }}
 	server {{ $value.Gateway }}:{{ $address.HostPort }};
 	{{ end }}
+	{{ end }}
+
 {{ end }}
 
 }
