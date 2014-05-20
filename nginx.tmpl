@@ -2,11 +2,34 @@
 upstream {{ $host }} {
 
 {{ range $index, $value := $containers }}
-	{{ with $address := index $value.Addresses 0 }}
-	server {{ $value.Gateway }}:{{ $address.HostPort }};
-	{{ end }}
-{{ end }}
 
+	{{ $addrLen := len $value.Addresses }}
+	{{/* If only 1 port exposed, use that */}}
+	{{ if eq $addrLen 1 }}
+		{{ with $address := index $value.Addresses 0 }}
+		   # {{$value.Name}}
+		   server {{ $address.IP }}:{{ $address.Port }};
+		{{ end }}
+
+	{{/* If more than one port exposed, use the one matching VIRTUAL_PORT env var */}}
+	{{ else if $value.Env.VIRTUAL_PORT }}
+		{{ range $i, $address := $value.Addresses }}
+		   {{ if eq $address.Port $value.Env.VIRTUAL_PORT }}
+		   # {{$value.Name}}
+		   server {{ $address.IP }}:{{ $address.Port }};
+		   {{ end }}
+		{{ end }}
+
+	{{/* Else default to standard web port 80 */}}
+	{{ else }}
+		{{ range $i, $address := $value.Addresses }}
+		   {{ if eq $address.Port "80" }}
+		   # {{$value.Name}}
+		   server {{ $address.IP }}:{{ $address.Port }};
+		   {{ end }}
+		{{ end }}
+    {{ end }}
+{{ end }}
 }
 
 server {
