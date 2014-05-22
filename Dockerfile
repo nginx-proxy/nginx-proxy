@@ -22,7 +22,7 @@ RUN tar xvzf docker-gen-linux-amd64-0.2.1.tar.gz
 RUN mkdir -p /var/log/supervisor
 ADD supervisor.conf /etc/supervisor/conf.d/supervisor.conf
 
-EXPOSE 443
+EXPOSE 80
 ENV DOCKER_HOST unix:///tmp/docker.sock
 
 CMD ["/usr/bin/supervisord"]
