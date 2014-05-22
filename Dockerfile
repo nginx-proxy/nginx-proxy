@@ -10,8 +10,7 @@ RUN apt-get update
 RUN apt-get install -y nginx
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 
-RUN echo "server_names_hash_bucket_size 64;" >> /etc/nginx/nginx.conf
-
+RUN sed -i 's/# server_names_hash_bucket/server_names_hash_bucket/g' /etc/nginx/nginx.conf
 
 RUN mkdir /app
 WORKDIR /app
