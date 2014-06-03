@@ -33,7 +33,7 @@ upstream {{ $host }} {
 		   server {{ $address.IP }}:{{ $address.Port }};
 		   {{ end }}
 		{{ end }}
-    {{ end }}
+        {{ end }}
 {{ end }}
 }
 
@@ -53,3 +53,46 @@ server {
 	}
 }
 {{ end }}
+
+{{ range $host, $containers := groupBy $ "Env.VIRTUAL_SSL_HOST" }}
+upstream ssl-{{ $host }} {
+
+{{ range $index, $value := $containers }}
+        {{ if $value.Env.VIRTUAL_SSL_PORT }}
+                {{ range $i, $address := $value.Addresses }}
+                   {{ if eq $address.Port $value.Env.VIRTUAL_SSL_PORT }}
+                   # {{$value.Name}}
+                   server {{ $address.IP }}:{{ $address.Port }};
+                   {{end}}
+                {{end}}
+        {{ else }}
+                {{ range $i, $address := $value.Addresses }}
+                   {{ if eq $address.Port "443" }}
+                   # {{$value.Name}}
+                   server {{ $address.IP }}:{{ $address.Port }};
+                   {{ end }}
+                {{ end }}
+        {{ end }}
+{{ end }}
+}
+
+server {
+        listen 443 ssl;
+
+        server_name {{ $host }};
+        proxy_buffering off;
+
+        location / {
+            proxy_pass https://ssl-{{ $host }};
+            include /etc/nginx/proxy_params;
+        }
+}
+{{ end }}
+
+{{/* Should consider retrieving proper certs from a remote server, keyed by $VIRTUAL_SSL_HOST */}}
+ssl_certificate /etc/nginx/ssl/server.crt;
+ssl_certificate_key /etc/nginx/ssl/server.key;
+ssl_session_timeout  5m;
+ssl_protocols        SSLv3 TLSv1;
+ssl_ciphers          ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+EXP;
+ssl_prefer_server_ciphers   on;
