@@ -1,8 +1,11 @@
 server {
-    listen 80 default_server;
-    server_name _; # This is just an invalid value which will never trigger on a real hostname.
-    return 503;
+	listen 80 default_server;
+	server_name _; # This is just an invalid value which will never trigger on a real hostname.
+	error_log /proc/self/fd/2;
+	access_log /proc/self/fd/1;
+	return 503;
 }
+
 {{ range $host, $containers := groupBy $ "Env.VIRTUAL_HOST" }}
 upstream {{ $host }} {
 
@@ -28,12 +31,12 @@ upstream {{ $host }} {
 	{{/* Else default to standard web port 80 */}}
 	{{ else }}
 		{{ range $i, $address := $value.Addresses }}
-		   {{ if eq $address.Port "80" }}
-		   # {{$value.Name}}
-		   server {{ $address.IP }}:{{ $address.Port }};
-		   {{ end }}
+			{{ if eq $address.Port "80" }}
+			# {{$value.Name}}
+			server {{ $address.IP }}:{{ $address.Port }};
+			{{ end }}
 		{{ end }}
-    {{ end }}
+	{{ end }}
 {{ end }}
 }
 
@@ -41,15 +44,17 @@ server {
 	gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 
 	server_name {{ $host }};
-        proxy_buffering off;
+	proxy_buffering off;
+	error_log /proc/self/fd/2;
+	access_log /proc/self/fd/1;
 
 	location / {
-	    proxy_pass http://{{ $host }};
-	    include /etc/nginx/proxy_params;
-	    
-	    # HTTP 1.1 support
-	    proxy_http_version 1.1;
-	    proxy_set_header Connection "";
+		proxy_pass http://{{ $host }};
+		include /etc/nginx/proxy_params;
+
+		# HTTP 1.1 support
+		proxy_http_version 1.1;
+		proxy_set_header Connection "";
 	}
 }
 {{ end }}
