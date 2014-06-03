@@ -1,3 +1,8 @@
+server {
+    listen 80 default_server;
+    server_name _; # This is just an invalid value which will never trigger on a real hostname.
+    return 503;
+}
 {{ range $host, $containers := groupBy $ "Env.VIRTUAL_HOST" }}
 upstream {{ $host }} {
 
