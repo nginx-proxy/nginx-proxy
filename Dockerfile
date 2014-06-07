@@ -10,6 +10,9 @@ RUN apt-get update
 RUN apt-get install -y nginx
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 
+#fix for long server names
+RUN sed -i 's/# server_names_hash_bucket/server_names_hash_bucket/g' /etc/nginx/nginx.conf
+
 RUN mkdir /app
 WORKDIR /app
 ADD . /app
