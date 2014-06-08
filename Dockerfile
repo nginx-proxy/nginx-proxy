@@ -17,8 +17,8 @@ RUN mkdir /app
 WORKDIR /app
 ADD . /app
 
-RUN wget https://github.com/jwilder/forego/releases/download/v0.8.3-p2/forego-v0.8.3-p2-linux-amd64.tar.gz
-RUN tar xvzf forego-v0.8.3-p2-linux-amd64.tar.gz && mv forego /usr/local/bin && rm forego-v0.8.3-p2-linux-amd64.tar.gz
+RUN wget -P /usr/local/bin https://godist.herokuapp.com/projects/ddollar/forego/releases/current/linux-amd64/forego
+RUN chmod u+x /usr/local/bin/forego
 
 RUN wget https://github.com/jwilder/docker-gen/releases/download/0.2.1/docker-gen-linux-amd64-0.2.1.tar.gz
 RUN tar xvzf docker-gen-linux-amd64-0.2.1.tar.gz
