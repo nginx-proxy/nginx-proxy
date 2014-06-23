@@ -24,6 +24,7 @@ RUN wget https://github.com/jwilder/docker-gen/releases/download/0.3.0/docker-ge
 RUN tar xvzf docker-gen-linux-amd64-0.3.0.tar.gz
 
 EXPOSE 80
+EXPOSE 443
 ENV DOCKER_HOST unix:///tmp/docker.sock
 
 CMD ["forego", "start", "-r"]
