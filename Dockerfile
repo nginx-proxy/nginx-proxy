@@ -17,8 +17,9 @@ RUN sed -i 's/# server_names_hash_bucket/server_names_hash_bucket/g' /etc/nginx/
 RUN wget -P /usr/local/bin https://godist.herokuapp.com/projects/ddollar/forego/releases/current/linux-amd64/forego
 RUN chmod u+x /usr/local/bin/forego
 
-RUN wget https://github.com/jwilder/docker-gen/releases/download/0.3.3/docker-gen-linux-amd64-0.3.3.tar.gz
-RUN tar -C /usr/local/bin -xvzf docker-gen-linux-amd64-0.3.3.tar.gz
+ENV DOCKER_GEN_VERSION 0.3.4
+RUN wget https://github.com/jwilder/docker-gen/releases/download/$DOCKER_GEN_VERSION/docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz
+RUN tar -C /usr/local/bin -xvzf docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz
 
 RUN mkdir /app
 WORKDIR /app
