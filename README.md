@@ -44,7 +44,7 @@ Then start the docker-gen container with the shared volume and template:
 ```
 $ docker run --volumes-from nginx \
     -v /var/run/docker.sock:/tmp/docker.sock \
-    -v $(pwd)/templates:/etc/docker-gen/templates
+    -v $(pwd):/etc/docker-gen/templates \
     -t docker-gen -notify-sighup nginx -watch --only-published /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
 ```
 
