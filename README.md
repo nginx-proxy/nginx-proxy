@@ -8,7 +8,7 @@ To run it:
 
     $ docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock jwilder/nginx-proxy
 
-Then start any containers you want proxied with an env var `IRTUAL_HOST=subdomain.youdomain.com`
+Then start any containers you want proxied with an env var `VIRTUAL_HOST=subdomain.youdomain.com`
 
     $ docker run -e VIRTUAL_HOST=foo.bar.com  ...
 
