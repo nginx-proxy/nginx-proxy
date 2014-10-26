@@ -33,30 +33,30 @@ server {
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
 upstream {{ $host }} {
 
-{{ range $index, $value := $containers }}
+{{ range $index, $container := $containers }}
 
-	{{ $addrLen := len $value.Addresses }}
+	{{ $addrLen := len $container.Addresses }}
 	{{/* If only 1 port exposed, use that */}}
 	{{ if eq $addrLen 1 }}
-		{{ with $address := index $value.Addresses 0 }}
-		   # {{$value.Name}}
+		{{ with $address := index $container.Addresses 0 }}
+		   # {{$container.Name}}
 		   server {{ $address.IP }}:{{ $address.Port }};
 		{{ end }}
 
 	{{/* If more than one port exposed, use the one matching VIRTUAL_PORT env var */}}
-	{{ else if $value.Env.VIRTUAL_PORT }}
-		{{ range $i, $address := $value.Addresses }}
-		   {{ if eq $address.Port $value.Env.VIRTUAL_PORT }}
-		   # {{$value.Name}}
+	{{ else if $container.Env.VIRTUAL_PORT }}
+		{{ range $index, $address := $container.Addresses }}
+		   {{ if eq $address.Port $container.Env.VIRTUAL_PORT }}
+		   # {{$container.Name}}
 		   server {{ $address.IP }}:{{ $address.Port }};
 		   {{ end }}
 		{{ end }}
 
 	{{/* Else default to standard web port 80 */}}
 	{{ else }}
-		{{ range $i, $address := $value.Addresses }}
+		{{ range $index, $address := $container.Addresses }}
 			{{ if eq $address.Port "80" }}
-			# {{$value.Name}}
+			# {{$container.Name}}
 			server {{ $address.IP }}:{{ $address.Port }};
 			{{ end }}
 		{{ end }}
