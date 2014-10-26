@@ -5,6 +5,13 @@ map $http_x_forwarded_proto $proxy_x_forwarded_proto {
   ''      $scheme;
 }
 
+# If we receive Upgrade, set Connection to "upgrade"; otherwise, delete any
+# Connection header that may have been passed to this server
+map $http_upgrade $proxy_connection {
+  default upgrade;
+  ''      '';
+}
+
 server {
 	listen 80 default_server;
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
@@ -64,7 +71,8 @@ server {
 
 		# HTTP 1.1 support
 		proxy_http_version 1.1;
-		proxy_set_header Connection "";
+		proxy_set_header Upgrade $http_upgrade;
+		proxy_set_header Connection $proxy_connection;
 	}
 }
 {{ end }}
