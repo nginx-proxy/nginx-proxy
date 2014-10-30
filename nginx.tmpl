@@ -1,6 +1,15 @@
+# If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
+# scheme used to connect to this server
 map $http_x_forwarded_proto $proxy_x_forwarded_proto {
   default $http_x_forwarded_proto;
   ''      $scheme;
+}
+
+# If we receive Upgrade, set Connection to "upgrade"; otherwise, delete any
+# Connection header that may have been passed to this server
+map $http_upgrade $proxy_connection {
+  default upgrade;
+  ''      '';
 }
 
 server {
@@ -62,7 +71,8 @@ server {
 
 		# HTTP 1.1 support
 		proxy_http_version 1.1;
-		proxy_set_header Connection "";
+		proxy_set_header Upgrade $http_upgrade;
+		proxy_set_header Connection $proxy_connection;
 	}
 }
 {{ end }}
