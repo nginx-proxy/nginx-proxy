@@ -51,3 +51,47 @@ $ docker run --volumes-from nginx \
 Finally, start your containers with `VIRTUAL_HOST` environment variables.
 
     $ docker run -e VIRTUAL_HOST=foo.bar.com  ...
+
+### SSL Support
+
+SSL is supported single host, wildcards and SNI certificates using naming conventions for
+certificates or optionally specify a cert name (for SNI) as an environment variable.
+
+To enable SSL:
+
+    $ docker run -d -p 80:80 -p 443:443 -v /path/to/certs:/etc/nginx/certs -v /var/run/docker.sock:/tmp/docker.sock jwilder/nginx-proxy
+
+The contents of `/path/to/certs` should contain the certificates and private keys for any virtual
+hosts in use.  The certificate and keys should be named after the virtual host with a `.crt` and
+`.key` extension.  For example, a container with `VIRTUAL_HOST=foo.bar.com` should have a
+`foo.bar.com.crt` and 'foo.bar.com.key' file in the certs directory.
+
+#### Wildcard Certificates
+
+Wildcard certificate and keys should be name after the domain name with a `.crt` and `.key` extension.
+For example `VIRTUAL_HOST=foo.bar.com` could also use cert name `bar.com.crt` and `bar.com.key`.
+
+#### SNI
+
+If your certificate(s) supports multiple domain names, you can start a container with `CERT_NAME=<name>`
+to identify the certificate to be used.  For example, a certificate for `*.foo.com` and `*.bar.com`
+could be name `shared.crt` and `shared.key`.  A container running with `VIRTUAL_HOST=foo.bar.com`
+and `CERT_NAME=shared` will then use this shared cert.
+
+#### How SSL Support Works
+
+The SSL cipher configuration is based on [mozilla nginx intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Nginx) which
+should provide compatibility with clients back to Firefox 1, Chrome 1, IE 7, Opera 5, Safari 1,
+Windows XP IE8, Android 2.3, Java 7.  The configuration also enables OCSP stapling, HSTS, and SSL
+session caches.
+
+The behavior for the proxy when port 80 and 443 are exposed is as follows:
+
+* If a container has a usable cert, port 80 will redirect to 443 for that container so that HTTPS
+is always preferred when available.
+* If the container does not have a usable cert, a 503 will be returned.
+
+Note that in the latter case, a browser may get an connection error as no certificate is available
+to establish a connection.  A self-signed or generic cert can be defined as "default.crt" and "default.key"
+which will allow a client browser to make a SSL connection (likely w/ a warning) and subsequently receive
+a 503.
