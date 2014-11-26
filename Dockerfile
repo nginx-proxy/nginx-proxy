@@ -33,4 +33,6 @@ WORKDIR /app/
 EXPOSE 80 443
 ENV DOCKER_HOST unix:///tmp/docker.sock
 
+VOLUME ["/etc/nginx/certs"]
+
 CMD ["forego", "start", "-r"]
