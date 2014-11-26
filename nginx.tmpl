@@ -37,7 +37,7 @@ server {
 
 {{ define "upstream" }}
 upstream {{ .Host }}{{ .Suffix }} {
-{{ range $index, $container := .Containers }}
+{{ range $container := .Containers }}
 	{{ $addrLen := len $container.Addresses }}
 	{{/* If only 1 port exposed, use that */}}
 	{{ if eq $addrLen 1 }}
