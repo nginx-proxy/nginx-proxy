@@ -49,7 +49,7 @@ upstream {{ $host }} {
 		   server {{ $address.IP }}:{{ $address.Port }};
 		{{ end }}
 	{{/* If more than one port exposed, use the one matching after the colon in VIRTUAL_HOST env var */}}
-	{{ else if $port }}
+	{{ else if (and ($port ) (ne $port $host) ) }}
 		{{ range $address := .Addresses }}
 		   {{ if eq $address.Port $port }}
 		   # {{$container.Name}}
