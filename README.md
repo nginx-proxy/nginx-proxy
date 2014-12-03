@@ -82,7 +82,7 @@ and `CERT_NAME=shared` will then use this shared cert.
 
 The SSL cipher configuration is based on [mozilla nginx intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Nginx) which
 should provide compatibility with clients back to Firefox 1, Chrome 1, IE 7, Opera 5, Safari 1,
-Windows XP IE8, Android 2.3, Java 7.  The configuration also enables OCSP stapling, HSTS, and SSL
+Windows XP IE8, Android 2.3, Java 7.  The configuration also enables HSTS, and SSL
 session caches.
 
 The behavior for the proxy when port 80 and 443 are exposed is as follows:

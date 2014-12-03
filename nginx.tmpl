@@ -96,8 +96,6 @@ server {
 	ssl_prefer_server_ciphers on;
 	ssl_session_timeout 5m;
 	ssl_session_cache shared:SSL:50m;
-	ssl_stapling on;
-	ssl_stapling_verify on;
 
 	ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $cert) }};
 	ssl_certificate_key /etc/nginx/certs/{{ (printf "%s.key" $cert) }};
