@@ -115,7 +115,7 @@ server {
 	location / {
 		 {{ if $sslVerifyClient }}
 		 proxy_set_header Subject-Name $ssl_client_s_dn;
-		 {{ end }
+		 {{ end }}
 		 proxy_pass http://{{ $host }};
 	}
 }
