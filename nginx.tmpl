@@ -71,6 +71,9 @@ upstream {{ $host }} {
 {{/* Get the first cert name defined by containers w/ the same vhost */}}
 {{ $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
 
+{{/* Get the first SSL_VERIFY_CLIENT defined by containers w/ the same vhost */}}
+{{ $sslVerifyClient := (first (groupByKeys $containers "Env.SSL_VERIFY_CLIENT")) }}
+
 {{/* Get the best matching cert  by name for the vhost. */}}
 {{ $vhostCert := (closest (dir "/etc/nginx/certs") (printf "%s.crt" $host))}}
 
@@ -102,10 +105,18 @@ server {
 	ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $cert) }};
 	ssl_certificate_key /etc/nginx/certs/{{ (printf "%s.key" $cert) }};
 
+	{{ if $sslVerifyClient }}
+	ssl_verify_client {{ (printf "%s" $sslVerifyClient) }};
+	ssl_client_certificate /etc/nginx/certs/{{ (printf "%s.cacert.pem" $cert) }};
+	{{ end }}
+
 	add_header Strict-Transport-Security "max-age=31536000; includeSubdomains";
 
 	location / {
-		proxy_pass http://{{ $host }};
+		 {{ if $sslVerifyClient }}
+		 proxy_set_header Subject-Name $ssl_client_s_dn;
+		 {{ end }
+		 proxy_pass http://{{ $host }};
 	}
 }
 {{ else }}
