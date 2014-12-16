@@ -95,3 +95,12 @@ Note that in the latter case, a browser may get an connection error as no certif
 to establish a connection.  A self-signed or generic cert named `default.crt` and `default.key`
 will allow a client browser to make a SSL connection (likely w/ a warning) and subsequently receive
 a 503.
+
+### Basic Authentication Support
+
+In order to be able to securize your virtual host, you have to create a file named as its equivalent VIRTUAL_HOST variable on directory
+/etc/nginx/htpasswd/$VIRTUAL_HOST
+
+    $ docker run -d -p 80:80 -p 443:443 -v /path/to/htpasswd:/etc/nginx/htpasswd -v /path/to/certs:/etc/nginx/certs -v /var/run/docker.sock:/tmp/docker.sock jwilder/nginx-proxy
+
+You'll need apache2-utils on the machine you plan to create de htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
