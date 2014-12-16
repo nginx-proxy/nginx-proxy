@@ -68,9 +68,6 @@ upstream {{ $host }} {
 {{ end }}
 }
 
-{{/* Get the htpasswd file defined by containers w/ the same vhost */}}
-{{ $htpasswdFile := (first (groupByKeys $containers "Env.HTPASSWD_FILE”)) }}
-
 {{/* Get the first cert name defined by containers w/ the same vhost */}}
 {{ $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
 
@@ -109,10 +106,6 @@ server {
 
 	location / {
 		proxy_pass http://{{ $host }};
-		{{ if (exists (printf "/etc/nginx/htpasswd/$s" $host)) }}
-		auth_basic	"Restricted {{ $host }}";
-		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/$s" $host }};
-		{{ end }}
 	}
 }
 {{ else }}
@@ -122,10 +115,6 @@ server {
 
 	location / {
 		proxy_pass http://{{ $host }};
-		{{ if (exists (printf "/etc/nginx/htpasswd/$s" $host)) }}
-		auth_basic	"Restricted {{ $host }}";
-		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/$s" $host }};
-		{{ end }}
 	}
 }
 
