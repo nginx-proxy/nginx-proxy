@@ -66,6 +66,15 @@ hosts in use.  The certificate and keys should be named after the virtual host w
 `.key` extension.  For example, a container with `VIRTUAL_HOST=foo.bar.com` should have a
 `foo.bar.com.crt` and `foo.bar.com.key` file in the certs directory.
 
+#### Further Nginx configuration
+
+In order to enable SSL client verification, start the containers with `SSL_VERIFY_CLIENT` environment variable and use
+`CLIENT_CA_NAME` to specify the name of the SSL Client Certificate Authority file to use.
+
+You can also specify additional configuration information to be used within the location declaration, by specifying the
+`LOCATION_OPTIONS` environment variable. Directives are separated with commas. 
+
+
 #### Wildcard Certificates
 
 Wildcard certificates and keys should be name after the domain name with a `.crt` and `.key` extension.
