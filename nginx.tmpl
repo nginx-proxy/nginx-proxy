@@ -72,7 +72,7 @@ upstream {{ $host }} {
 {{ $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
 {{ $clientCAName := (first (groupByKeys $containers "Env.CLIENT_CA_NAME")) }}
 
-{{ $locationOptions := (split (trimSuffix "]" (trimPrefix "[" (first (groupByKeys $containers "Env.SSL_LOCATION_OPTIONS")))) ",") }}
+{{ $locationOptions := (split (trimSuffix "]" (trimPrefix "[" (first (groupByKeys $containers "Env.LOCATION_OPTIONS")))) ",") }}
 
 {{/* Get the first SSL_VERIFY_CLIENT defined by containers w/ the same vhost */}}
 {{ $sslVerifyClient := (first (groupByKeys $containers "Env.SSL_VERIFY_CLIENT")) }}
