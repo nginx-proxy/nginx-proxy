@@ -25,6 +25,13 @@ If your container exposes multiple ports, nginx-proxy will default to the servic
 
 If you need to support multipe virtual hosts for a container, you can separate each entry with commas.  For example, `foo.bar.com,baz.bar.com,bar.com` and each host will be setup the same.
 
+### Default Host
+
+To set the default host for nginx use the env var `DEFAULT_HOST=foo.bar.com` for example
+
+    $ docker run -d -p 80:80 -e DEFAULT_HOST=foo.bar.com -v /var/run/docker.sock:/tmp/docker.sock jwilder/nginx-proxy
+
+
 ### Separate Containers
 
 nginx-proxy can also be run as two separate containers using the [jwilder/docker-gen](https://index.docker.io/u/jwilder/docker-gen/)
