@@ -1,0 +1,13 @@
+<h1>Nginx Reverse Proxy for Docker</h1>
+
+{{ with groupByMulti $ "Env.VIRTUAL_HOST" "," }}
+<ul>
+	{{ range $host, $containers := . }}
+		<li><a href="http://{{ $host }}">{{ (first $containers).Name }}</a></li>
+	{{ end }}
+</ul>
+{{ else }}
+	<p>The Nginx Reverse Proxy for Docker is started but no virtual hosts have been found. Try starting one with the <em>VIRTUAL_HOST</em> environement variable set.</p>
+	<pre>$ docker run --rm --name helloworld --expose 8080 -e VIRTUAL_HOST=helloworld.127.0.0.1.xip.io adejonge/helloworld</pre>
+	<p><a href="https://github.com/jwilder/nginx-proxy#usage">More information on Github</a></p>
+{{ end }}
