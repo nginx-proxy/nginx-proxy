@@ -34,7 +34,10 @@ proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 server {
 	listen 80 default_server;
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
-	return 503;
+	location / {
+		root /app/www/;
+	}
+	error_page 404 /;
 }
 
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
