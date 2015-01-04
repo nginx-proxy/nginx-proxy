@@ -5,25 +5,18 @@ MAINTAINER Jason Wilder jwilder@litl.com
 RUN apt-get update \
  && apt-get install -y -q --no-install-recommends \
     ca-certificates \
-    wget \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/*
 
-# Configure Nginx and apply fix for long server names
-RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
- && sed -i 's/^http {/&\n    server_names_hash_bucket_size 64;/g' /etc/nginx/nginx.conf
-
- # Install Forego
-RUN wget -P /usr/local/bin https://godist.herokuapp.com/projects/ddollar/forego/releases/current/linux-amd64/forego \
- && chmod u+x /usr/local/bin/forego
+# fix for long server names in Nginx
+RUN sed -i 's/^http {/&\n    server_names_hash_bucket_size 64;/g' /etc/nginx/nginx.conf
 
 ENV DOCKER_GEN_VERSION 0.3.6
 
-RUN wget https://github.com/jwilder/docker-gen/releases/download/$DOCKER_GEN_VERSION/docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz \
- && tar -C /usr/local/bin -xvzf docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz \
- && rm /docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz
+# Install docker-gen
+ADD docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz /usr/local/bin
 
-COPY . /app/
+COPY ./root/ /
 WORKDIR /app/
 
 ENV DOCKER_HOST unix:///tmp/docker.sock
