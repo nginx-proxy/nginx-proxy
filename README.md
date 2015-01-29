@@ -60,8 +60,8 @@ Finally, start your containers with `VIRTUAL_HOST` environment variables.
 
 ### SSL Support
 
-SSL is supported single host, wildcards and SNI certificates using naming conventions for
-certificates or optionally specify a cert name (for SNI) as an environment variable.
+SSL is supported using single host, wildcard and SNI certificates using naming conventions for
+certificates or optionally specifying a cert name (for SNI) as an environment variable.
 
 To enable SSL:
 
