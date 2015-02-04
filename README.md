@@ -110,3 +110,12 @@ In order to be able to securize your virtual host, you have to create a file nam
     $ docker run -d -p 80:80 -p 443:443 -v /path/to/htpasswd:/etc/nginx/htpasswd -v /path/to/certs:/etc/nginx/certs -v /var/run/docker.sock:/tmp/docker.sock jwilder/nginx-proxy
 
 You'll need apache2-utils on the machine you plan to create de htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
+
+### Setting the maximum upload size for a virtual host.
+
+Some virtual hosts may require upload sizes that are larger than the default nginx [client_max_body_size](http://nginx.org/en/docs/http/ngx_http_core_module.html#client_max_body_size) of 1 MB.
+To achieve that, set the `MAX_UPLOAD_SIZE` variable on at least one of the containers that serve the `VIRTUAL_HOST`:
+
+    $ docker run -e VIRTUAL_HOST=foo.bar.com -e MAX_UPLOAD_SIZE=512m ...
+
+Please note that if a virtual host is served by multiple containers with conflicting values of `MAX_UPLOAD_SIZE` then only the first value will be used.
