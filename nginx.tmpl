@@ -68,6 +68,9 @@ upstream {{ $host }} {
 {{ end }}
 }
 
+{{/* Get the VIRTUAL_PROTO defined by containers w/ the same vhost, falling back to "http" */}}
+{{ $proto := or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http" }}
+
 {{/* Get the first cert name defined by containers w/ the same vhost */}}
 {{ $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
 
@@ -105,7 +108,7 @@ server {
 	add_header Strict-Transport-Security "max-age=31536000; includeSubdomains";
 
 	location / {
-		proxy_pass http://{{ $host }};
+		proxy_pass {{ $proto }}://{{ $host }};
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
@@ -118,7 +121,7 @@ server {
 	server_name {{ $host }};
 
 	location / {
-		proxy_pass http://{{ $host }};
+		proxy_pass {{ $proto }}://{{ $host }};
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
