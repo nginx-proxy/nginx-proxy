@@ -1,7 +1,7 @@
 FROM nginx:1.7.8
-MAINTAINER Jason Wilder jwilder@litl.com
+MAINTAINER https://m-ko-x.de Markus Kosmal <code@m-ko-x.de>
 
-# Install wget and install/updates certificates
+# install packages
 RUN apt-get update \
  && apt-get install -y -q --no-install-recommends \
     ca-certificates \
@@ -12,7 +12,8 @@ RUN apt-get update \
 # Configure Nginx and apply fix for very long server names
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
  && sed -i 's/^http {/&\n    server_names_hash_bucket_size 128;/g' /etc/nginx/nginx.conf
-
+ && sed -i 's/^http {/&\n    client_max_body_size 10m;/g' /etc/nginx/nginx.conf 
+ 
  # Install Forego
 RUN wget -P /usr/local/bin https://godist.herokuapp.com/projects/ddollar/forego/releases/current/linux-amd64/forego \
  && chmod u+x /usr/local/bin/forego
