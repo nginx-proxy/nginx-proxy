@@ -12,7 +12,7 @@ RUN apt-get update \
 # Configure Nginx and apply fix for very long server names
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
  && sed -i 's/^http {/&\n    server_names_hash_bucket_size 128;/g' /etc/nginx/nginx.conf
- && sed -i 's/^http {/&\n    client_max_body_size 10m;/g' /etc/nginx/nginx.conf 
+ && sed -i 's/#gzip  on;/&\n    client_max_body_size 10m;/g' /etc/nginx/nginx.conf 
  
  # Install Forego
 RUN wget -P /usr/local/bin https://godist.herokuapp.com/projects/ddollar/forego/releases/current/linux-amd64/forego \
