@@ -21,6 +21,8 @@ log_format vhost '$host $remote_addr - $remote_user [$time_local] '
 access_log /proc/self/fd/1 vhost;
 error_log /proc/self/fd/2;
 
+client_max_body_size {{ "Env.MAX_BODY_SIZE" }};
+
 # HTTP 1.1 support
 proxy_http_version 1.1;
 proxy_buffering off;
@@ -34,7 +36,7 @@ proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 server {
 	listen 80 default_server;
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
-	return 503;
+	return "Env.GLOB_HTTP_NO_SERVICE";
 }
 
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
@@ -83,20 +85,34 @@ upstream {{ $host }} {
 
 {{ if (and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) }}
 
-server {
-    client_max_body_size 1000m;
-    server_name  www.{{ $host }};
-    rewrite ^(.*) https://{{ $host }}$1 permanent;
-}
+
+{{ if (eq "Env.AUTO_REDIRECT_WITH_PREFIX_ENABLED" true) }}
 
 server {
-    client_max_body_size 1000m;
+
+{{ if (eq "Env.AUTO_REDIRECT_DIRECTION" 0) }}
+
+    server_name  {{ "Env.AUTO_REDIRECT_PREFIX" }}.{{ $host }};
+    rewrite ^(.*) https://{{ $host }}$1 permanent;
+    
+{{ else }}
+
+    server_name {{ $host }};
+    rewrite ^(.*) https://{{ "Env.AUTO_REDIRECT_PREFIX" }}.{{ $host }}$1 permanent;
+    
+{{ end }} # AUTO_REDIRECT_DIRECTION end
+
+}
+
+{{ end }} # AUTO_REDIRECT_TARGET end
+
+# enforce ssl if enabled
+server {
 	server_name {{ $host }};
 	rewrite ^(.*) https://{{ $host }}$1 permanent;
 }
 
 server {
-    client_max_body_size 1000m;
 	server_name {{ $host }};
 	listen 443 ssl;
 
@@ -104,7 +120,7 @@ server {
 	ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA;
 
 	ssl_prefer_server_ciphers on;
-	ssl_session_timeout 5m;
+	ssl_session_timeout {{ "Env.GLOB_SSL_SESSION_TIMEOUT" }};
 	ssl_session_cache shared:SSL:50m;
 
 	ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $cert) }};
@@ -115,27 +131,34 @@ server {
 	location / {
 		proxy_pass http://{{ $host }};
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
-		auth_basic	"Restricted {{ $host }}";
+		auth_basic	'{{ "Env.GLOB_AUTH_MSG" }} {{ $host }}';
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
 		{{ end }}
 	}
 }
 {{ else }}
 
-server {
-    client_max_body_size 1000m;
-    server_name  www.{{ $host }};
-    rewrite ^(.*) http://{{ $host }}$1 permanent;
-}
+{{ if (eq "Env.AUTO_REDIRECT_WITH_PREFIX_ENABLED" true) }}
 
 server {
-    client_max_body_size 1000m;
+    {{ if (eq "Env.AUTO_REDIRECT_DIRECTION" 0) }}
+    server_name  {{ "Env.AUTO_REDIRECT_PREFIX" }}.{{ $host }};
+    rewrite ^(.*) http://{{ $host }}$1 permanent;
+    {{ else }}
+    server_name {{ $host }};
+    rewrite ^(.*) http://{{ "Env.AUTO_REDIRECT_PREFIX" }}.{{ $host }}$1 permanent;
+    {{ end }} # AUTO_REDIRECT_DIRECTION end
+}
+
+{{ end }} # AUTO_REDIRECT_WITH_PREFIX_ENABLED end
+
+server {
 	server_name {{ $host }};
 
 	location / {
 		proxy_pass http://{{ $host }};
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
-		auth_basic	"Restricted {{ $host }}";
+		auth_basic	'{{ "Env.GLOB_AUTH_MSG" }} {{ $host }}';
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
 		{{ end }}
 	}
@@ -144,7 +167,7 @@ server {
 server {
 	server_name {{ $host }};
 	listen 443 ssl;
-	return 503;
+	return "Env.GLOB_HTTP_NO_SERVICE";
 
 	{{ if (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 	ssl_certificate /etc/nginx/certs/default.crt;
