@@ -1,5 +1,13 @@
 ![nginx 1.7.8](https://img.shields.io/badge/nginx-1.7.8-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 
+##Modifications
+
+To make Jason's nginx-proxy work for me, I changed:
+
+- added rewrite of 'www'-prefixed domains to 301 without prefix for both https and http protocol
+
+##Original 
+
 nginx-proxy sets up a container running nginx and [docker-gen][1].  docker-gen generates reverse proxy configs for nginx and reloads nginx when containers are started and stopped.
 
 See [Automated Nginx Reverse Proxy for Docker][2] for why you might want to use this.

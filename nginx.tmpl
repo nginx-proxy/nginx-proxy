@@ -87,11 +87,19 @@ upstream {{ $host }} {
 {{ if (and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) }}
 
 server {
+    client_max_body_size 1000m;
+    server_name  www.{{ $host }};
+    rewrite ^(.*) https://{{ $host }}$1 permanent;
+}
+
+server {
+    client_max_body_size 1000m;
 	server_name {{ $host }};
 	rewrite ^(.*) https://{{ $host }}$1 permanent;
 }
 
 server {
+    client_max_body_size 1000m;
 	server_name {{ $host }};
 	listen 443 ssl;
 
@@ -122,6 +130,13 @@ server {
 {{ else }}
 
 server {
+    client_max_body_size 1000m;
+    server_name  www.{{ $host }};
+    rewrite ^(.*) http://{{ $host }}$1 permanent;
+}
+
+server {
+    client_max_body_size 1000m;
 	server_name {{ $host }};
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
