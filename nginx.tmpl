@@ -107,6 +107,10 @@ server {
 
 	add_header Strict-Transport-Security "max-age=31536000; includeSubdomains";
 
+	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
+	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
+	{{ end }}
+
 	location / {
 		proxy_pass {{ $proto }}://{{ $host }};
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
@@ -119,6 +123,10 @@ server {
 
 server {
 	server_name {{ $host }};
+
+	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
+	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
+	{{ end }}
 
 	location / {
 		proxy_pass {{ $proto }}://{{ $host }};
