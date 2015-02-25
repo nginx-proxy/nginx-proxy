@@ -88,7 +88,7 @@ upstream {{ $host }} {
 
 server {
 	server_name {{ $host }};
-	rewrite ^(.*) https://{{ $host }}$1 permanent;
+	return 301 https://$host$request_uri;
 }
 
 server {
