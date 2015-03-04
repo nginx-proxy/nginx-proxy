@@ -105,7 +105,7 @@ server {
 	ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $cert) }};
 	ssl_certificate_key /etc/nginx/certs/{{ (printf "%s.key" $cert) }};
 
-	add_header Strict-Transport-Security "max-age=31536000; includeSubdomains";
+	add_header Strict-Transport-Security "max-age=31536000";
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
