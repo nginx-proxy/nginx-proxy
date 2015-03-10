@@ -37,6 +37,12 @@ server {
 	return 503;
 }
 
+server {
+	listen 443 default_server;
+	server_name _;
+	return 503;
+}
+
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
 
 upstream {{ $host }} {
