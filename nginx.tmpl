@@ -70,8 +70,9 @@ server {
 {{ end }}
 
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
+{{ $upstream := queryEscape $host }}
 
-upstream {{ $host }} {
+upstream {{ $upstream }} {
 {{ range $container := $containers }}
 	{{ $addrLen := len $container.Addresses }}
 	{{/* If only 1 port exposed, use that */}}
@@ -97,7 +98,7 @@ upstream {{ $host }} {
 {{ $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
 
 {{/* Get the best matching cert  by name for the vhost. */}}
-{{ $vhostCert := (closest (dir "/etc/nginx/certs") (printf "%s.crt" $host))}}
+{{ $vhostCert := (closest (dir "/etc/nginx/certs") (printf "%s.crt" $upstream))}}
 
 {{/* vhostCert is actually a filename so remove any suffixes since they are added later */}}
 {{ $vhostCert := replace $vhostCert ".crt" "" -1 }}
@@ -136,20 +137,20 @@ server {
 
 	add_header Strict-Transport-Security "max-age=31536000";
 
-	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
-	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
+	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $upstream)) }}
+	include {{ printf "/etc/nginx/vhost.d/%s" $upstream }};
 	{{ else if (exists "/etc/vhost.d/default") }}
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
 	location / {
-		proxy_pass {{ $proto }}://{{ $host }};
-		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
-		auth_basic	"Restricted {{ $host }}";
-		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
+		proxy_pass {{ $proto }}://{{ $upstream }};
+		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $upstream)) }}
+		auth_basic	"Restricted {{ $upstream }}";
+		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $upstream) }};
 		{{ end }}
-                {{ if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
-                include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
+                {{ if (exists (printf "/etc/nginx/vhost.d/%s_location" $upstream)) }}
+                include {{ printf "/etc/nginx/vhost.d/%s_location" $upstream}};
                 {{ else if (exists "/etc/vhost.d/default_location") }}
                 include /etc/nginx/vhost.d/default_location;
                 {{ end }}
@@ -162,20 +163,20 @@ server {
 	listen 80 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
 
-	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
-	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
+	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $upstream)) }}
+	include {{ printf "/etc/nginx/vhost.d/%s" $upstream }};
 	{{ else if (exists "/etc/vhost.d/default") }}
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
 	location / {
-		proxy_pass {{ $proto }}://{{ $host }};
-		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
-		auth_basic	"Restricted {{ $host }}";
-		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
+		proxy_pass {{ $proto }}://{{ $upstream }};
+		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $upstream)) }}
+		auth_basic	"Restricted {{ $upstream }}";
+		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $upstream) }};
 		{{ end }}
-                {{ if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
-                include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
+                {{ if (exists (printf "/etc/nginx/vhost.d/%s_location" $upstream)) }}
+                include {{ printf "/etc/nginx/vhost.d/%s_location" $upstream}};
                 {{ else if (exists "/etc/vhost.d/default_location") }}
                 include /etc/nginx/vhost.d/default_location;
                 {{ end }}
