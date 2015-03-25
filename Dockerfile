@@ -28,6 +28,6 @@ WORKDIR /app/
 
 ENV DOCKER_HOST unix:///tmp/docker.sock
 
-VOLUME ["/etc/nginx/certs"]
+VOLUME ["/etc/nginx/certs", "/etc/nginx/htpasswd", "/etc/nginx/vhost.d"]
 
 CMD ["forego", "start", "-r"]
