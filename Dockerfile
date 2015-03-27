@@ -1,4 +1,4 @@
-FROM nginx:1.7.10
+FROM nginx:1.7.11
 MAINTAINER Jason Wilder jwilder@litl.com
 
 # Install wget and install/updates certificates
