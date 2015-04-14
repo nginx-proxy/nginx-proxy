@@ -138,7 +138,7 @@ server {
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
 	{{ end }}
 
-	@rev / {
+	location @rev {
 		proxy_pass {{ $proto }}://{{ $host }};
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
