@@ -97,7 +97,7 @@ session caches.
 
 The behavior for the proxy when port 80 and 443 are exposed is as follows:
 
-* If a container has a usable cert, port 80 will redirect to 443 for that container so that HTTPS
+* If a container has a usable cert and not SSL_REDIRECT=no is set, port 80 will redirect to 443 for that container so that HTTPS
 is always preferred when available.
 * If the container does not have a usable cert, a 503 will be returned.
 
