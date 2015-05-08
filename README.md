@@ -142,6 +142,15 @@ RUN { \
 Or it can be done by mounting in your custom configuration in your `docker run` command:
 
     $ docker run -d -p 80:80 -p 443:443 -v /path/to/my_proxy.conf:/etc/nginx/conf.d/my_proxy.conf:ro -v /var/run/docker.sock:/tmp/docker.sock jwilder/nginx-proxy
+    
+> Notice: Hot-fix ahead! There are use-cases, eg. on a PaaS-system, where you have to modify the nginx config, but you are not able to build a new image or use host volumes. But you can - *and please be advised, that is a non-standard approach and should only be used as a temporary solution* - modify your startup command to write the configuration values before the proxy starts, like so:
+> 
+>     sh -c 'echo "server_tokens off; client_max_body_size 512m;" > /etc/nginx/conf.d/my_proxy.conf; forego start -r'
+> 
+> If you use a `docker-compose.yml` file, make sure to esacape the double quotes:
+> 
+>     reverseproxy:
+>         command: "sh -c 'echo \"server_tokens off; client_max_body_size 512m;\" > /etc/nginx/conf.d/my_proxy.conf; forego start -r'"
 
 #### Per-VIRTUAL_HOST
 
