@@ -9,7 +9,7 @@ map $http_x_forwarded_proto $proxy_x_forwarded_proto {
 # Connection header that may have been passed to this server
 map $http_upgrade $proxy_connection {
   default upgrade;
-  ''      '';
+  '' close;
 }
 
 gzip_types text/plain text/css application/javascript application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
