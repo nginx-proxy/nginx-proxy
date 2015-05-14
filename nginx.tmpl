@@ -32,7 +32,7 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 
 server {
-	listen 80 default_server;
+	listen 80;
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
 	return 503;
 }
@@ -122,7 +122,16 @@ server {
 {{ else }}
 
 server {
-	server_name {{ $host }};
+	{{ if $.Env.DEFAULT_HOST }}
+	  {{ if eq $.Env.DEFAULT_HOST $host }}
+	    listen 80 default_server;
+	    server_name {{ $host }};
+	  {{ else }}
+	    server_name {{ $host }};
+          {{ end }}
+	{{ else }}
+	  server_name {{ $host }};
+	{{ end }}
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};

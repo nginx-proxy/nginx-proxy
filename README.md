@@ -35,6 +35,13 @@ You can also use wildcards at the beginning and the end of host name, like `*.ba
 
 If you would like to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_PROTO=https` on the backend container.
 
+### Default Host
+
+To set the default host for nginx use the env var `DEFAULT_HOST=foo.bar.com` for example
+
+    $ docker run -d -p 80:80 -e DEFAULT_HOST=foo.bar.com -v /var/run/docker.sock:/tmp/docker.sock jwilder/nginx-proxy
+
+
 ### Separate Containers
 
 nginx-proxy can also be run as two separate containers using the [jwilder/docker-gen](https://index.docker.io/u/jwilder/docker-gen/)
