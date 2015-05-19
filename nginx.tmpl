@@ -139,6 +139,8 @@ server {
 
 	location / {
 		proxy_pass {{ $proto }}://{{ $host }};
+		proxy_redirect  {{ $proto }}://{{ $host }}/ /;
+        proxy_read_timeout 60s;
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
