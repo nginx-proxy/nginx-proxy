@@ -137,6 +137,8 @@ server {
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
 	{{ end }}
 
+	client_max_body_size 10M;
+
 	location / {
 		proxy_pass {{ $proto }}://{{ $host }};
 		proxy_redirect  {{ $proto }}://{{ $host }}/ /;
