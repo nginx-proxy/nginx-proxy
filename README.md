@@ -83,6 +83,12 @@ hosts in use.  The certificate and keys should be named after the virtual host w
 `.key` extension.  For example, a container with `VIRTUAL_HOST=foo.bar.com` should have a
 `foo.bar.com.crt` and `foo.bar.com.key` file in the certs directory.
 
+#### Diffie-Hellman Groups
+
+If you have Diffie-Hellman groups enabled, the files should be named after the virtual host with a
+`dhparams` suffix and `.pem` extension. For example, a container with `VIRTUAL_HOST=foo.bar.com`
+should have a `foo.bar.com.dhparams.pem` file in the certs directory.
+
 #### Wildcard Certificates
 
 Wildcard certificates and keys should be name after the domain name with a `.crt` and `.key` extension.
