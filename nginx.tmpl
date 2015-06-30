@@ -58,11 +58,13 @@ upstream {{ $host }} {
 		{{ end }}
 	{{/* Else default to standard web port 80 */}}
 	{{ else }}
-		{{ range $address := $container.Addresses }}
-			{{ if eq $address.Port "80" }}
+		{{ $address := where $container.Addresses "Port" "80" | first }}
+		{{ if $address }}
 			# {{$container.Name}}
-			server {{ $address.IP }}:{{ $address.Port }};
-			{{ end }}
+			server {{ $address.IP }}:80;
+		{{ else }}
+			# {{$container.Name}}
+			server {{ $container.IP }} down;
 		{{ end }}
 	{{ end }}
 {{ end }}
