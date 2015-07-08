@@ -8,7 +8,7 @@ See [Automated Nginx Reverse Proxy for Docker][2] for why you might want to use 
 
 To run it:
 
-    $ docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock jwilder/nginx-proxy
+    $ docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
 Then start any containers you want proxied with an env var `VIRTUAL_HOST=subdomain.youdomain.com`
 
@@ -39,7 +39,7 @@ If you would like to connect to your backend using HTTPS instead of HTTP, set `V
 
 To set the default host for nginx use the env var `DEFAULT_HOST=foo.bar.com` for example
 
-    $ docker run -d -p 80:80 -e DEFAULT_HOST=foo.bar.com -v /var/run/docker.sock:/tmp/docker.sock jwilder/nginx-proxy
+    $ docker run -d -p 80:80 -e DEFAULT_HOST=foo.bar.com -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
 
 ### Separate Containers
@@ -60,9 +60,9 @@ Then start the docker-gen container with the shared volume and template:
 
 ```
 $ docker run --volumes-from nginx \
-    -v /var/run/docker.sock:/tmp/docker.sock \
+    -v /var/run/docker.sock:/tmp/docker.sock:ro \
     -v $(pwd):/etc/docker-gen/templates \
-    -t docker-gen -notify-sighup nginx -watch -only-published /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    -t jwilder/docker-gen -notify-sighup nginx -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
 ```
 
 Finally, start your containers with `VIRTUAL_HOST` environment variables.
@@ -76,12 +76,18 @@ certificates or optionally specifying a cert name (for SNI) as an environment va
 
 To enable SSL:
 
-    $ docker run -d -p 80:80 -p 443:443 -v /path/to/certs:/etc/nginx/certs -v /var/run/docker.sock:/tmp/docker.sock jwilder/nginx-proxy
+    $ docker run -d -p 80:80 -p 443:443 -v /path/to/certs:/etc/nginx/certs -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
 The contents of `/path/to/certs` should contain the certificates and private keys for any virtual
 hosts in use.  The certificate and keys should be named after the virtual host with a `.crt` and
 `.key` extension.  For example, a container with `VIRTUAL_HOST=foo.bar.com` should have a
 `foo.bar.com.crt` and `foo.bar.com.key` file in the certs directory.
+
+#### Diffie-Hellman Groups
+
+If you have Diffie-Hellman groups enabled, the files should be named after the virtual host with a
+`dhparam` suffix and `.pem` extension. For example, a container with `VIRTUAL_HOST=foo.bar.com`
+should have a `foo.bar.com.dhparam.pem` file in the certs directory.
 
 #### Wildcard Certificates
 
@@ -115,18 +121,18 @@ a 503.
 
 ### Basic Authentication Support
 
-In order to be able to securize your virtual host, you have to create a file named as its equivalent VIRTUAL_HOST variable on directory
+In order to be able to secure your virtual host, you have to create a file named as its equivalent VIRTUAL_HOST variable on directory
 /etc/nginx/htpasswd/$VIRTUAL_HOST
 
 ```
 $ docker run -d -p 80:80 -p 443:443 \
     -v /path/to/htpasswd:/etc/nginx/htpasswd \
     -v /path/to/certs:/etc/nginx/certs \
-    -v /var/run/docker.sock:/tmp/docker.sock \
+    -v /var/run/docker.sock:/tmp/docker.sock:ro \
     jwilder/nginx-proxy
 ```
 
-You'll need apache2-utils on the machine you plan to create de htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
+You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
 
 ### Custom Nginx Configuration
 
@@ -148,7 +154,7 @@ RUN { \
 
 Or it can be done by mounting in your custom configuration in your `docker run` command:
 
-    $ docker run -d -p 80:80 -p 443:443 -v /path/to/my_proxy.conf:/etc/nginx/conf.d/my_proxy.conf:ro -v /var/run/docker.sock:/tmp/docker.sock jwilder/nginx-proxy
+    $ docker run -d -p 80:80 -p 443:443 -v /path/to/my_proxy.conf:/etc/nginx/conf.d/my_proxy.conf:ro -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
 #### Per-VIRTUAL_HOST
 
@@ -158,7 +164,7 @@ In order to allow virtual hosts to be dynamically configured as backends are add
 
 For example, if you have a virtual host named `app.example.com`, you could provide a custom configuration for that host as follows:
 
-    $ docker run -d -p 80:80 -p 443:443 -v /path/to/vhost.d:/etc/nginx/vhost.d:ro -v /var/run/docker.sock:/tmp/docker.sock jwilder/nginx-proxy
+    $ docker run -d -p 80:80 -p 443:443 -v /path/to/vhost.d:/etc/nginx/vhost.d:ro -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
     $ { echo 'server_tokens off;'; echo 'client_max_body_size 100m;'; } > /path/to/vhost.d/app.example.com
 
 If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=example.com,www.example.com`), the virtual host configuration file must exist for each hostname. If you would like to use the same configuration for multiple virtual host names, you can use a symlink:
