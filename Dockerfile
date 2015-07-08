@@ -1,6 +1,17 @@
 FROM nginx:1.9.0
 MAINTAINER Jason Wilder jwilder@litl.com
 
+# Set timezone
+# The city selections might seem arbitrary, but they incorporate daylight savings
+# time automatically based on time zone and are better then manually picking
+# using the 'Etc/GMT+0' files.
+ENV             DEBIAN_FRONTEND noninteractive
+ENV             TIMEZONE America/Argentina/Buenos_Aires
+RUN             echo $TIMEZONE > /etc/timezone &&\
+                cp /usr/share/zoneinfo/${TIMEZONE} /etc/localtime &&\
+                dpkg-reconfigure tzdata
+RUN             env --unset=DEBIAN_FRONTEND
+
 # Install wget and install/updates certificates
 RUN apt-get update \
  && apt-get install -y -q --no-install-recommends \

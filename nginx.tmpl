@@ -113,8 +113,8 @@ server {
 	{{ end }}
 
 	location / {
-		proxy_pass {{ $proto }}://{{ $host }};
-		proxy_redirect  {{ $proto }}://{{ $host }}/ /;
+		proxy_pass http://{{ $host }};
+		proxy_redirect http://{{ $host }}/ /;
 		proxy_read_timeout 60s;
 
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
