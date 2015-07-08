@@ -100,8 +100,11 @@ server {
 	ssl_protocols       SSLv3 TLSv1 TLSv1.1 TLSv1.2;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 
-	ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $cert) }};
-	ssl_certificate_key /etc/nginx/certs/{{ (printf "%s.key" $cert) }};
+	#ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $cert) }};
+	#ssl_certificate_key /etc/nginx/certs/{{ (printf "%s.key" $cert) }};
+
+	ssl_certificate /etc/nginx/certs/server.crt;
+	ssl_certificate_key /etc/nginx/certs/server.key;
 
 	client_max_body_size 1m;
 
