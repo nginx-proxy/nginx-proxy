@@ -37,7 +37,9 @@ server {
 	return 503;
 }
 
-{{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
+{{ range $hostfull, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
+{{ $host := first ( split $hostfull ":" ) }}
+{{ $port := last ( split $hostfull ":" ) }}
 
 upstream {{ $host }} {
 {{ range $container := $containers }}
@@ -48,10 +50,10 @@ upstream {{ $host }} {
 		   # {{$container.Name}}
 		   server {{ $address.IP }}:{{ $address.Port }};
 		{{ end }}
-	{{/* If more than one port exposed, use the one matching VIRTUAL_PORT env var */}}
-	{{ else if $container.Env.VIRTUAL_PORT }}
+	{{/* If more than one port exposed, use the one matching after the colon in VIRTUAL_HOST env var */}}
+	{{ else if (and ($port ) (ne $port $host) ) }}
 		{{ range $address := .Addresses }}
-		   {{ if eq $address.Port $container.Env.VIRTUAL_PORT }}
+		   {{ if eq $address.Port $port }}
 		   # {{$container.Name}}
 		   server {{ $address.IP }}:{{ $address.Port }};
 		   {{ end }}
