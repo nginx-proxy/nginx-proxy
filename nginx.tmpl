@@ -129,13 +129,10 @@ server {
 	{{ if $.Env.DEFAULT_HOST }}
 	  {{ if eq $.Env.DEFAULT_HOST $host }}
 	    listen 80 default_server;
-	    server_name {{ $host }};
-	  {{ else }}
-	    server_name {{ $host }};
           {{ end }}
-	{{ else }}
-	  server_name {{ $host }};
 	{{ end }}
+
+	server_name {{ $host }};
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
