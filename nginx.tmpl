@@ -115,11 +115,16 @@ server {
 
 	add_header Strict-Transport-Security "max-age=31536000";
 
+    location / {
+        root /srv/{{ $host }};
+		try_files $uri/index.html $uri @rev;
+	}
+
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
 	{{ end }}
 
-	location / {
+	location @rev {
 		proxy_pass {{ $proto }}://{{ $host }};
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
@@ -141,11 +146,16 @@ server {
 	  server_name {{ $host }};
 	{{ end }}
 
+    location / {
+        root /srv/{{ $host }};
+		try_files $uri/index.html $uri @rev;
+	}
+
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
 	{{ end }}
 
-	location / {
+	location @rev {
 		proxy_pass {{ $proto }}://{{ $host }};
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";

@@ -176,3 +176,19 @@ If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=e
 
     $ { echo 'server_tokens off;'; echo 'client_max_body_size 100m;'; } > /path/to/vhost.d/www.example.com
     $ ln -s www.example.com /path/to/vhost.d/example.com
+
+### Static files serving
+
+In order to server static files in conjuction with reverse proxying the virtual host simply mount the static files directory to `/srv`
+
+For example, if you have a virtual host named `app.example.com`, you can server the static files from the host folder `/home/ubuntu/app/static` using:
+
+    $ docker run -d -p 80:80 -p 443:443 -v /srv/app.example.com:/home/ubuntu/app/static:ro -v /var/run/docker.sock:/tmp/docker.sock jwilder/nginx-proxy
+
+If you need to serve multiple hosts simply mount the /srv folder and use symlinks on the host:
+
+    $ mkdir -p /home/ubuntu/static
+    $ cd /home/ubuntu/static
+    $ ln -s app.example.com /home/ubuntu/app/static
+    $ ln -s app2.example.com /home/ubuntu/app2/static
+    $ docker run -d -p 80:80 -p 443:443 -v /srv:/home/ubuntu/static:ro -v /var/run/docker.sock:/tmp/docker.sock jwilder/nginx-proxy
