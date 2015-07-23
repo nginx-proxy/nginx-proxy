@@ -113,7 +113,7 @@ server {
 
 	add_header Strict-Transport-Security "max-age=31536000";
 
-	client_max_body_size 1m;
+	client_max_body_size 10m;
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
