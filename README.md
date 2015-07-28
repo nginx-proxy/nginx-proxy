@@ -18,8 +18,10 @@ Provided your DNS is setup to forward foo.bar.com to the a host running nginx-pr
 
 If your are using `boot2docker` start `nginx-proxy` with:
 
-    $ $(boot2docker shellinit)
-    $ docker run -p 80:80 -e DOCKER_HOST -e DOCKER_CERT_PATH -e DOCKER_TLS_VERIFY -v $DOCKER_CERT_PATH:$DOCKER_CERT_PATH -it jwilder/nginx-proxy
+    $ eval "$(boot2docker shellinit)"
+    $ docker run -d -p 80:80 -e DOCKER_HOST -e DOCKER_CERT_PATH -e DOCKER_TLS_VERIFY \
+          -v $DOCKER_CERT_PATH:$DOCKER_CERT_PATH \
+          -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
 ### Multiple Ports
 
