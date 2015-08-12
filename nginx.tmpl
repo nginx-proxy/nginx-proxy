@@ -49,8 +49,8 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 
 server {
-	listen 80;
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
+	listen 80;
 	return 503;
 }
 
@@ -72,6 +72,9 @@ upstream {{ $host }} {
 {{ end }}
 }
 
+{{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
+{{ $default_server := index (dict $host "" $default_host "default_server") $host }}
+
 {{/* Get the VIRTUAL_PROTO defined by containers w/ the same vhost, falling back to "http" */}}
 {{ $proto := or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http" }}
 
@@ -92,12 +95,13 @@ upstream {{ $host }} {
 
 server {
 	server_name {{ $host }};
+	listen 80 {{ $default_server }};
 	return 301 https://$host$request_uri;
 }
 
 server {
 	server_name {{ $host }};
-	listen 443 ssl spdy;
+	listen 443 ssl spdy {{ $default_server }};
 
 	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
 	ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA;
@@ -130,16 +134,8 @@ server {
 {{ else }}
 
 server {
-	{{ if $.Env.DEFAULT_HOST }}
-	  {{ if eq $.Env.DEFAULT_HOST $host }}
-	    listen 80 default_server;
-	    server_name {{ $host }};
-	  {{ else }}
-	    server_name {{ $host }};
-          {{ end }}
-	{{ else }}
-	  server_name {{ $host }};
-	{{ end }}
+	server_name {{ $host }};
+	listen 80 {{ $default_server }};
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
@@ -157,7 +153,7 @@ server {
 {{ if (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name {{ $host }};
-	listen 443 ssl spdy;
+	listen 443 ssl spdy {{ $default_server }};
 	return 503;
 
 	ssl_certificate /etc/nginx/certs/default.crt;
