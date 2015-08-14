@@ -192,4 +192,4 @@ For example, if you have a virtual host named `app.example.com`, you could provi
 If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=example.com,www.example.com`), the virtual host configuration file must exist for each hostname. If you would like to use the same configuration for multiple virtual host names, you can use a symlink:
 
     $ { echo 'server_tokens off;'; echo 'client_max_body_size 100m;'; } > /path/to/vhost.d/www.example.com
-    $ ln -s www.example.com /path/to/vhost.d/example.com
+    $ ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
