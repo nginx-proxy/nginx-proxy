@@ -125,8 +125,8 @@ server {
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
-	{{ else if (exists /etc/vhost.d/defaults) }}
-	include /etc/nginx/vhost.d/defaults
+	{{ else if (exists /etc/vhost.d/default) }}
+	include /etc/nginx/vhost.d/default
 	{{ end }}
 
 	location / {
@@ -137,8 +137,8 @@ server {
 		{{ end }}
 		{{ if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
 		include {{ printf "/etc/nginx/vhost.d/%s_location"}}
-		{{ else if (exists /etc/vhost.d/defaults_location) }}
-		include /etc/nginx/vhost.d/defaults_location
+		{{ else if (exists /etc/vhost.d/default_location) }}
+		include /etc/nginx/vhost.d/default_location
 		{{ end }}
 	}
 }
@@ -150,8 +150,8 @@ server {
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
-	{{ else if (exists /etc/vhost.d/defaults) }}
-	include /etc/nginx/vhost.d/defaults
+	{{ else if (exists /etc/vhost.d/default) }}
+	include /etc/nginx/vhost.d/default
 	{{ end }}
 
 	location / {
@@ -162,8 +162,8 @@ server {
 		{{ end }}
 		{{ if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
 		include {{ printf "/etc/nginx/vhost.d/%s_location"}}
-		{{ else if (exists /etc/vhost.d/defaults_location) }}
-		include /etc/nginx/vhost.d/defaults_location
+		{{ else if (exists /etc/vhost.d/default_location) }}
+		include /etc/nginx/vhost.d/default_location
 		{{ end }}
 	}
 }
