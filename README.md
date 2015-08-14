@@ -143,9 +143,9 @@ You'll need apache2-utils on the machine where you plan to create the htpasswd f
 
 If you need to configure Nginx beyond what is possible using environment variables, you can provide custom configuration files on either a proxy-wide or per-`VIRTUAL_HOST` basis.
 
-#### Overriding default proxy settings
+#### Replacing default proxy settings
 
-If you want to override the default proxy settings for the nginx container, add a configuration file at `/etc/nginx/proxy.conf`. A file with the default settings would
+If you want to replace the default proxy settings for the nginx container, add a configuration file at `/etc/nginx/proxy.conf`. A file with the default settings would
 look like this:
 
 ```Nginx
