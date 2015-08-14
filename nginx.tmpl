@@ -38,6 +38,9 @@ log_format vhost '$host $remote_addr - $remote_user [$time_local] '
 access_log /proc/self/fd/1 vhost;
 error_log /proc/self/fd/2;
 
+{{ if (exists "/etc/nginx/proxy.conf") }}
+include /etc/nginx/proxy.conf;
+{{ else }}
 # HTTP 1.1 support
 proxy_http_version 1.1;
 proxy_buffering off;
@@ -47,6 +50,7 @@ proxy_set_header Connection $proxy_connection;
 proxy_set_header X-Real-IP $remote_addr;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+{{ end }}
 
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
