@@ -193,3 +193,8 @@ If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=e
 
     $ { echo 'server_tokens off;'; echo 'client_max_body_size 100m;'; } > /path/to/vhost.d/www.example.com
     $ ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
+
+#### Per-VIRTUAL_HOST default configuration
+
+If you want most of your virtual hosts to use a default single configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default` file. This file
+will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}` file associated with it.

@@ -125,6 +125,8 @@ server {
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
+	{{ else if (exists /etc/vhost.d/defaults) }}
+	include /etc/nginx/vhost.d/defaults
 	{{ end }}
 
 	location / {
@@ -143,6 +145,8 @@ server {
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
+	{{ else if (exists /etc/vhost.d/defaults) }}
+	include /etc/nginx/vhost.d/defaults
 	{{ end }}
 
 	location / {
