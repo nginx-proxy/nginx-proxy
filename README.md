@@ -18,11 +18,6 @@ The containers being proxied must [expose](https://docs.docker.com/reference/run
 
 Provided your DNS is setup to forward foo.bar.com to the a host running nginx-proxy, the request will be routed to a container with the VIRTUAL_HOST env var set.
 
-If you are using `boot2docker` start `nginx-proxy` with:
-
-    $ $(boot2docker shellinit)
-    $ docker run -p 80:80 -e DOCKER_HOST -e DOCKER_CERT_PATH -e DOCKER_TLS_VERIFY -v $DOCKER_CERT_PATH:$DOCKER_CERT_PATH -it jwilder/nginx-proxy
-
 ### Multiple Ports
 
 If your container exposes multiple ports, nginx-proxy will default to the service running on port 80.  If you need to specify a different port, you can set a VIRTUAL_PORT env var to select a different one.  If your container only exposes one port and it has a VIRTUAL_HOST env var set, that port will be selected.
