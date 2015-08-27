@@ -88,6 +88,9 @@ upstream {{ $host }} {
 {{ $vhostCert := replace $vhostCert ".crt" "" -1 }}
 {{ $vhostCert := replace $vhostCert ".key" "" -1 }}
 
+{{/* prefer ssl by default. override by setting FORCE_SSL: !yes */}}
+{{ $force_ssl := or (first (groupByKeys $containers "Env.FORCE_SSL")) "yes" }}
+
 {{/* Use the cert specifid on the container or fallback to the best vhost match */}}
 {{ $cert := (coalesce $certName $vhostCert) }}
 
@@ -96,7 +99,25 @@ upstream {{ $host }} {
 server {
 	server_name {{ $host }};
 	listen 80 {{ $default_server }};
+
+	{{ if eq $force_ssl "yes" }} 
 	return 301 https://$host$request_uri;
+  	{{ else }}
+ 
+	{{/* TODO use a partial for :80 block */}}
+	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
+	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
+	{{ end }}
+	
+	location / {
+	  proxy_pass {{ $proto }}://{{ $host }};
+	  {{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
+	  auth_basic  "Restricted {{ $host }}";
+	  auth_basic_user_file  {{ (printf "/etc/nginx/htpasswd/%s" $host) }};
+	  {{ end }}
+	}
+	
+	{{ end }}
 }
 
 server {
