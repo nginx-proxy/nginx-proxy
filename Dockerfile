@@ -31,4 +31,4 @@ ENV DOCKER_HOST unix:///tmp/docker.sock
 VOLUME ["/etc/nginx/certs"]
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["nginx-proxy"]
+CMD ["forego", "start", "-r"]
