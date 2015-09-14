@@ -70,7 +70,7 @@ server {
 {{ end }}
 
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
-{{ $upstream := queryEscape $host }}
+{{ $upstream := replace (queryEscape $host) "%2A" "*" -1 }}
 
 upstream {{ $upstream }} {
 {{ range $container := $containers }}
