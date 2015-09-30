@@ -12,16 +12,7 @@ function setup {
 	SUT_CONTAINER=bats-nginx-proxy-${TEST_FILE}-1
 
 	# GIVEN a webserver with VIRTUAL_HOST set to web.bats
-	docker_clean bats-web
-	run docker run -d \
-		--label bats-type="web" \
-		--name bats-web \
-		-e VIRTUAL_HOST=web.bats \
-		--expose 80 \
-		-w /var/www \
-		python:3 \
-		python -m http.server 80
-	assert_success
+	prepare_web_container bats-web 80 -e VIRTUAL_HOST=web.bats
 
 	# WHEN nginx-proxy runs with DEFAULT_HOST set to web.bats
 	run nginxproxy $SUT_CONTAINER -v /var/run/docker.sock:/tmp/docker.sock:ro -e DEFAULT_HOST=web.bats
