@@ -33,15 +33,14 @@ function docker_assert_log {
 	assert_output -p "$*"
 }
 
-# wait for container $2 to contain a given text in its log
+# wait for a container to produce a given text in its log
 # $1 container
 # $2 timeout in second
 # $* text to wait for
 function docker_wait_for_log {
 	local -r container=$1
-	shift
-	local -ir timeout_sec=$1
-	shift
+	local -ir timeout_sec=$2
+	shift 2
 	retry $(( $timeout_sec * 2 )) .5s docker_assert_log $container "$*"
 }
 
