@@ -61,7 +61,7 @@ server {
 {{ if (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
-	listen 443 ssl spdy;
+	listen 443 ssl http2;
 	return 503;
 
 	ssl_certificate /etc/nginx/certs/default.crt;
@@ -117,7 +117,7 @@ server {
 
 server {
 	server_name {{ $host }};
-	listen 443 ssl spdy {{ $default_server }};
+	listen 443 ssl http2 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
 
 	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
@@ -185,7 +185,7 @@ server {
 {{ if (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name {{ $host }};
-	listen 443 ssl spdy {{ $default_server }};
+	listen 443 ssl http2 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
 
