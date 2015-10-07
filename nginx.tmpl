@@ -62,6 +62,7 @@ server {
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
 	listen 443 ssl http2;
+	access_log /var/log/nginx/access.log vhost;
 	return 503;
 
 	ssl_certificate /etc/nginx/certs/default.crt;
