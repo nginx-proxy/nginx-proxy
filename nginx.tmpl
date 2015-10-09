@@ -51,6 +51,11 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 {{ end }}
 
+proxy_pass_header Access-Control-Allow-Headers;
+proxy_pass_header Access-Control-Allow-Methods;
+proxy_pass_header Access-Control-Allow-Credentials;
+proxy_pass_header Access-Control-Allow-Origin;
+
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
 	listen 80;
@@ -145,6 +150,17 @@ server {
 
 	location / {
 		proxy_pass {{ $proto }}://{{ $host }};
+
+		if ({{"$"}}request_method = 'OPTIONS') {
+			add_header Access-Control-Allow-Origin '{{"$"}}http_origin';
+			add_header Access-Control-Allow-Methods 'GET, POST, OPTIONS, PUT, DELETE';
+			add_header Access-Control-Allow-Credentials 'true';
+			add_header Access-Control-Allow-Headers 'Origin,Content-Type,Accept';
+			add_header Content-Length 0;
+			add_header Content-Type text/plain;
+			return 204;
+		}
+
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
@@ -171,6 +187,17 @@ server {
 
 	location / {
 		proxy_pass {{ $proto }}://{{ $host }};
+
+		if ({{"$"}}request_method = 'OPTIONS') {
+			add_header Access-Control-Allow-Origin '{{"$"}}http_origin';
+			add_header Access-Control-Allow-Methods 'GET, POST, OPTIONS, PUT, DELETE';
+			add_header Access-Control-Allow-Credentials 'true';
+			add_header Access-Control-Allow-Headers 'Origin,Content-Type,Accept';
+			add_header Content-Length 0;
+			add_header Content-Type text/plain;
+			return 204;
+		}
+
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
