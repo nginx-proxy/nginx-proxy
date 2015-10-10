@@ -5,7 +5,10 @@ SUT_CONTAINER=bats-nginx-proxy-${TEST_FILE}
 function setup {
 	# make sure to stop any web container before each test so we don't
 	# have any unexpected contaiener running with VIRTUAL_HOST or VIRUTAL_PORT set
-	docker ps -q --filter "label=bats-type=web" | xargs -r docker stop >&2
+	CIDS=( $(docker ps -q --filter "label=bats-type=web") )
+	if [ ${#CIDS[@]} -gt 0 ]; then
+		docker stop ${CIDS[@]} >&2
+	fi
 }
 
 
