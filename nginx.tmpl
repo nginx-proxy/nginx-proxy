@@ -74,10 +74,7 @@ server {
 
 upstream {{ $host }} {
 {{ range $container := $containers }}
-	{{ $weight := 1 }}
-	{{ if $container.Env.VIRTUAL_WEIGHT }}
-		{{ $weight := $container.Env.VIRTUAL_WEIGHT }}
-	{{end }}
+	{{ $weight := or ($container.Env.VIRTUAL_WEIGHT) "1" }}
 	{{ $addrLen := len $container.Addresses }}
 	{{/* If only 1 port exposed, use that */}}
 	{{ if eq $addrLen 1 }}
