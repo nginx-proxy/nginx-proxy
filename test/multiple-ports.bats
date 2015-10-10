@@ -21,7 +21,7 @@ function setup {
 	# WHEN
 	prepare_web_container bats-web-${TEST_FILE}-1 "80 90" -e VIRTUAL_HOST=web.bats
 
-	# THEN 
+	# THEN
 	assert_response_is_from_port 80
 }
 
@@ -30,7 +30,7 @@ function setup {
 	# GIVEN
 	prepare_web_container bats-web-${TEST_FILE}-2 "80 90" -e VIRTUAL_HOST=web.bats -e VIRTUAL_PORT=90
 
-	# THEN 
+	# THEN
 	assert_response_is_from_port 90
 }
 
@@ -39,7 +39,7 @@ function setup {
 	# GIVEN
 	prepare_web_container bats-web-${TEST_FILE}-3 1234 -e VIRTUAL_HOST=web.bats
 
-	# THEN 
+	# THEN
 	assert_response_is_from_port 1234
 }
 
