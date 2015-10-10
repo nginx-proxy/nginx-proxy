@@ -1,7 +1,7 @@
 # Test if requirements are met
 (
 	type docker &>/dev/null || ( echo "docker is not available"; exit 1 )
-	type curl &>/dev/null || ( echo "curl is not available"; exit 1 )
+	#type curl &>/dev/null || ( echo "curl is not available"; exit 1 )
 )>&2
 
 
@@ -67,7 +67,7 @@ function curl_container {
 	local -r container=$1
 	local -r path=$2
 	shift 2
-	curl --silent \
+	docker run --rm appropriate/curl --silent \
 		--connect-timeout 5 \
 		--max-time 20 \
 		"$@" \
@@ -122,7 +122,7 @@ function prepare_web_container {
 
 	# THEN querying directly port works
 	for port in $ports; do
-		run retry 5 1s curl --silent --fail http://$(docker_ip $container_name):$port/data
+		run retry 5 1s docker run --rm appropriate/curl --silent --fail http://$(docker_ip $container_name):$port/data
 		assert_output "answer from port $port"
 	done
 }
