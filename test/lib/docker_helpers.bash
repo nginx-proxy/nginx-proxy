@@ -56,5 +56,5 @@ function docker_tcp {
 		--expose 2375 \
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		rancher/socat-docker
-	docker -H tcp://$(docker_ip $container_name):2375 version
+	docker run --rm --link "$container_name:docker" docker version
 }
