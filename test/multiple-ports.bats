@@ -39,6 +39,16 @@ function setup {
 }
 
 
+@test "[$TEST_FILE] VIRTUAL_HOST proxy syntax" {
+	# GIVEN
+	prepare_web_container bats-web-${TEST_FILE}-2 "80 90" -e VIRTUAL_HOST=web.bats=>http:80,web1.bats=>http:90
+
+	# THEN
+	assert_response_is_from_port 80 web.bats
+	assert_response_is_from_port 90 web1.bats
+}
+
+
 @test "[$TEST_FILE] single exposed port != 80" {
 	# GIVEN
 	prepare_web_container bats-web-${TEST_FILE}-3 1234 -e VIRTUAL_HOST=web.bats
@@ -58,7 +68,8 @@ function setup {
 # $1 port we are expecting an response from
 function assert_response_is_from_port {
 	local -r port=$1
-	run curl_container $SUT_CONTAINER /data --header "Host: web.bats"
+	local -r host=${2:-web.bats}
+	run curl_container $SUT_CONTAINER /data --header "Host: $host"
 	assert_output "answer from port $port"
 }
 
