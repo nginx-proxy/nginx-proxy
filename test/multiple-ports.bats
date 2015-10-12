@@ -41,7 +41,7 @@ function setup {
 
 @test "[$TEST_FILE] VIRTUAL_HOST proxy syntax" {
 	# GIVEN
-	prepare_web_container bats-web-${TEST_FILE}-2 "80 90" -e VIRTUAL_HOST=web.bats=>http:80,web1.bats=>http:90
+	prepare_web_container bats-web-${TEST_FILE}-2 "80 90" -e VIRTUAL_HOST='web.bats=>http:80,web1.bats=>http:90'
 
 	# THEN
 	assert_response_is_from_port 80 web.bats
