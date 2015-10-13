@@ -111,7 +111,7 @@ server {
 	ssl_dhparam {{ printf "/etc/nginx/certs/%s.dhparam.pem" $cert }};
 	{{ end }}
 
-	#add_header Strict-Transport-Security "max-age=31536000";
+	add_header Strict-Transport-Security "max-age=31536000";
 
 	client_max_body_size 20M;
 
