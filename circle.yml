@@ -15,7 +15,7 @@ dependencies:
     - docker pull python:3
     - docker pull rancher/socat-docker
     - docker pull appropriate/curl
-    - docker pull docker
+    - docker pull docker:1.7
 
 test:
   override:
