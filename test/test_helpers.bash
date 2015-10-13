@@ -108,15 +108,20 @@ function prepare_web_container {
 		-w /var/www/ \
 		$options \
 		-e PYTHON_PORTS="$ports" \
-		python:3 sh -c "
+		python:3 bash -c "
+			trap '[ \${#PIDS[@]} -gt 0 ] && kill -TERM \${PIDS[@]}' TERM
+			declare -a PIDS
 			for port in \$PYTHON_PORTS; do
 				echo starting a web server listening on port \$port;
 				mkdir /var/www/\$port
 				cd /var/www/\$port
 				echo \"answer from port \$port\" > data
 				python -m http.server \$port &
+				PIDS+=(\$!)
 			done
-			wait
+			wait \${PIDS[@]}
+			trap - TERM
+			wait \${PIDS[@]}
 		"
 	assert_success
 
