@@ -5,7 +5,10 @@ SUT_CONTAINER=bats-nginx-proxy-${TEST_FILE}
 function setup {
 	# make sure to stop any web container before each test so we don't
 	# have any unexpected contaiener running with VIRTUAL_HOST or VIRUTAL_PORT set
-	docker ps -q --filter "label=bats-type=web" | xargs -r docker stop >&2
+	CIDS=( $(docker ps -q --filter "label=bats-type=web") )
+	if [ ${#CIDS[@]} -gt 0 ]; then
+		docker stop ${CIDS[@]} >&2
+	fi
 }
 
 
@@ -21,7 +24,7 @@ function setup {
 	# WHEN
 	prepare_web_container bats-web-${TEST_FILE}-1 "80 90" -e VIRTUAL_HOST=web.bats
 
-	# THEN 
+	# THEN
 	assert_response_is_from_port 80
 }
 
@@ -30,7 +33,7 @@ function setup {
 	# GIVEN
 	prepare_web_container bats-web-${TEST_FILE}-2 "80 90" -e VIRTUAL_HOST=web.bats -e VIRTUAL_PORT=90
 
-	# THEN 
+	# THEN
 	assert_response_is_from_port 90
 }
 
@@ -39,7 +42,7 @@ function setup {
 	# GIVEN
 	prepare_web_container bats-web-${TEST_FILE}-3 1234 -e VIRTUAL_HOST=web.bats
 
-	# THEN 
+	# THEN
 	assert_response_is_from_port 1234
 }
 
