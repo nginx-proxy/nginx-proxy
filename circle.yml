@@ -10,12 +10,7 @@ dependencies:
     - sudo add-apt-repository ppa:duggan/bats --yes
     - sudo apt-get update -qq
     - sudo apt-get install -qq bats
-    - docker pull jwilder/docker-gen
-    - docker pull nginx
-    - docker pull python:3
-    - docker pull rancher/socat-docker
-    - docker pull appropriate/curl
-    - docker pull docker:1.7
+    - make update-dependencies
 
 test:
   override:
