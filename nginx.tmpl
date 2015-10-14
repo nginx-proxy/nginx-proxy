@@ -1,3 +1,20 @@
+{{ define "upstream" }}
+	{{ if .Address }}
+		{{/* If we got the containers from swarm and this container's port is published to host, use host IP:PORT */}}
+		{{ if and .Container.Node.ID .Address.HostPort }}
+			# {{ .Container.Node.Name }}/{{ .Container.Name }}
+			server {{ .Container.Node.Address.IP }}:{{ .Address.HostPort }};
+		{{/* If there is no swarm node or the port is not published on host, use container's IP:PORT */}}
+		{{ else }}
+			# {{ .Container.Name }}
+			server {{ .Address.IP }}:{{ .Address.Port }};
+		{{ end }}
+	{{ else }}
+		# {{ .Container.Name }}
+		server {{ .Container.IP }} down;
+	{{ end }}
+{{ end }}
+
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
 map $http_x_forwarded_proto $proxy_x_forwarded_proto {
@@ -18,24 +35,40 @@ log_format vhost '$host $remote_addr - $remote_user [$time_local] '
                  '"$request" $status $body_bytes_sent '
                  '"$http_referer" "$http_user_agent"';
 
-access_log /proc/self/fd/1 vhost;
-error_log /proc/self/fd/2;
+access_log off;
 
+{{ if (exists "/etc/nginx/proxy.conf") }}
+include /etc/nginx/proxy.conf;
+{{ else }}
 # HTTP 1.1 support
-#proxy_http_version 1.1;
-#proxy_buffering off;
+proxy_http_version 1.1;
+proxy_buffering off;
 proxy_set_header Host $http_host;
-#proxy_set_header Upgrade $http_upgrade;
-#proxy_set_header Connection $proxy_connection;
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection $proxy_connection;
 proxy_set_header X-Real-IP $remote_addr;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-#proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+{{ end }}
 
 server {
-	listen 80;
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
+	listen 80;
+	access_log /var/log/nginx/access.log vhost;
 	return 503;
 }
+
+{{ if (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
+server {
+	server_name _; # This is just an invalid value which will never trigger on a real hostname.
+	listen 443 ssl http2;
+	access_log /var/log/nginx/access.log vhost;
+	return 503;
+
+	ssl_certificate /etc/nginx/certs/default.crt;
+	ssl_certificate_key /etc/nginx/certs/default.key;
+}
+{{ end }}
 
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
 
@@ -44,31 +77,19 @@ upstream {{ $host }} {
 	{{ $addrLen := len $container.Addresses }}
 	{{/* If only 1 port exposed, use that */}}
 	{{ if eq $addrLen 1 }}
-		{{ with $address := index $container.Addresses 0 }}
-		   # {{$container.Name}}
-		   server {{ $address.IP }}:{{ $address.Port }};
-		{{ end }}
-	{{/* If more than one port exposed, use the one matching VIRTUAL_PORT env var */}}
-	{{ else if $container.Env.VIRTUAL_PORT }}
-		{{ range $address := .Addresses }}
-		   {{ if eq $address.Port $container.Env.VIRTUAL_PORT }}
-		   # {{$container.Name}}
-		   server {{ $address.IP }}:{{ $address.Port }};
-		   {{ end }}
-		{{ end }}
-	{{/* Else default to standard web port 80 */}}
+		{{ $address := index $container.Addresses 0 }}
+		{{ template "upstream" (dict "Container" $container "Address" $address) }}
+	{{/* If more than one port exposed, use the one matching VIRTUAL_PORT env var, falling back to standard web port 80 */}}
 	{{ else }}
-		{{ $address := where $container.Addresses "Port" "80" | first }}
-		{{ if $address }}
-			# {{$container.Name}}
-			server {{ $address.IP }}:80;
-		{{ else }}
-			# {{$container.Name}}
-			server {{ $container.IP }} down;
-		{{ end }}
+		{{ $port := coalesce $container.Env.VIRTUAL_PORT "80" }}
+		{{ $address := where $container.Addresses "Port" $port | first }}
+		{{ template "upstream" (dict "Container" $container "Address" $address) }}
 	{{ end }}
 {{ end }}
 }
+
+{{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
+{{ $default_server := index (dict $host "" $default_host "default_server") $host }}
 
 {{/* Get the VIRTUAL_PROTO defined by containers w/ the same vhost, falling back to "http" */}}
 {{ $proto := or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http" }}
@@ -90,17 +111,20 @@ upstream {{ $host }} {
 
 server {
 	server_name {{ $host }};
+	listen 80 {{ $default_server }};
+	access_log /var/log/nginx/access.log vhost;
 	return 301 https://$host$request_uri;
 }
 
 server {
 	server_name {{ $host }};
-	listen 443 ssl spdy;
+	listen 443 ssl http2 {{ $default_server }};
+	access_log /var/log/nginx/access.log vhost;
 
 	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
 	ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA;
 
-    ssl_prefer_server_ciphers on;
+	ssl_prefer_server_ciphers on;
 	ssl_session_timeout 5m;
 	ssl_session_cache shared:SSL:50m;
 
@@ -117,54 +141,62 @@ server {
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
+	{{ else if (exists "/etc/nginx/vhost.d/default") }}
+	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
 	location / {
-		proxy_pass {{ $proto }}://{{ $host }};
-		proxy_redirect {{ $proto }}://{{ $host }}/ /;
+		proxy_pass {{ trim $proto }}://{{ trim $host }};
+		proxy_redirect {{ trim $proto }}://{{ trim $host }}/ /;
 		proxy_read_timeout 60s;
 
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
 		{{ end }}
+                {{ if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
+                include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
+                {{ else if (exists "/etc/nginx/vhost.d/default_location") }}
+                include /etc/nginx/vhost.d/default_location;
+                {{ end }}
 	}
 }
 {{ else }}
 
 server {
-	{{ if $.Env.DEFAULT_HOST }}
-	  {{ if eq $.Env.DEFAULT_HOST $host }}
-	    listen 80 default_server;
-	    server_name {{ $host }};
-	  {{ else }}
-	    server_name {{ $host }};
-          {{ end }}
-	{{ else }}
-	  server_name {{ $host }};
-	{{ end }}
+	server_name {{ $host }};
+	listen 80 {{ $default_server }};
+	access_log /var/log/nginx/access.log vhost;
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
+	{{ else if (exists "/etc/nginx/vhost.d/default") }}
+	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
 	client_max_body_size 20M;
 
 	location / {
-		proxy_pass {{ $proto }}://{{ $host }};
-		proxy_redirect  {{ $proto }}://{{ $host }}/ /;
+		proxy_pass {{ trim $proto }}://{{ trim $host }};
+		proxy_redirect  {{ trim $proto }}://{{ trim $host }}/ /;
         proxy_read_timeout 60s;
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
 		{{ end }}
+                {{ if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
+                include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
+                {{ else if (exists "/etc/nginx/vhost.d/default_location") }}
+                include /etc/nginx/vhost.d/default_location;
+                {{ end }}
 	}
 }
 
 {{ if (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name {{ $host }};
-	listen 443 ssl spdy;
+	listen 443 ssl http2 {{ $default_server }};
+	access_log /var/log/nginx/access.log vhost;
 	return 503;
 
 	ssl_certificate /etc/nginx/certs/default.crt;

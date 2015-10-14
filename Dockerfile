@@ -1,16 +1,5 @@
-FROM nginx:1.9.2
+FROM nginx:1.9.5
 MAINTAINER Jason Wilder jwilder@litl.com
-
-# Set timezone
-# The city selections might seem arbitrary, but they incorporate daylight savings
-# time automatically based on time zone and are better then manually picking
-# using the 'Etc/GMT+0' files.
-ENV             DEBIAN_FRONTEND noninteractive
-ENV             TIMEZONE America/Argentina/Buenos_Aires
-RUN             echo $TIMEZONE > /etc/timezone &&\
-                cp /usr/share/zoneinfo/${TIMEZONE} /etc/localtime &&\
-                dpkg-reconfigure tzdata
-RUN             env --unset=DEBIAN_FRONTEND
 
 # Install wget and install/updates certificates
 RUN apt-get update \
@@ -28,7 +17,7 @@ RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
 RUN wget -P /usr/local/bin https://godist.herokuapp.com/projects/ddollar/forego/releases/current/linux-amd64/forego \
  && chmod u+x /usr/local/bin/forego
 
-ENV DOCKER_GEN_VERSION 0.4.0
+ENV DOCKER_GEN_VERSION 0.4.2
 
 RUN wget https://github.com/jwilder/docker-gen/releases/download/$DOCKER_GEN_VERSION/docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz \
  && tar -C /usr/local/bin -xvzf docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz \
@@ -41,4 +30,5 @@ ENV DOCKER_HOST unix:///tmp/docker.sock
 
 VOLUME ["/etc/nginx/certs"]
 
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]

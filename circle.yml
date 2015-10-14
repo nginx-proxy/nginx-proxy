@@ -1,0 +1,22 @@
+machine:
+  pre:
+    # install docker 1.7.1
+    - sudo curl -L -o /usr/bin/docker 'https://s3-external-1.amazonaws.com/circle-downloads/docker-1.7.1-circleci'; sudo chmod 0755 /usr/bin/docker; true
+  services:
+    - docker
+
+dependencies:
+  override:
+    - sudo add-apt-repository ppa:duggan/bats --yes
+    - sudo apt-get update -qq
+    - sudo apt-get install -qq bats
+    - docker pull jwilder/docker-gen
+    - docker pull nginx
+    - docker pull python:3
+    - docker pull rancher/socat-docker
+    - docker pull appropriate/curl
+    - docker pull docker:1.7
+
+test:
+  override:
+    - make test
