@@ -1,2 +1,6 @@
 .git
+.dockerignore
+circle.yml
+Makefile
 README.md
+test
