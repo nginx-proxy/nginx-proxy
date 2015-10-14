@@ -19,5 +19,4 @@ dependencies:
 
 test:
   override:
-    - docker build -t jwilder/nginx-proxy:bats .
-    - bats test
+    - make test
