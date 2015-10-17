@@ -81,9 +81,10 @@ To enable SSL:
     $ docker run -d -p 80:80 -p 443:443 -v /path/to/certs:/etc/nginx/certs -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
 The contents of `/path/to/certs` should contain the certificates and private keys for any virtual
-hosts in use.  The certificate and keys should be named after the virtual host with a `.crt` and
-`.key` extension.  For example, a container with `VIRTUAL_HOST=foo.bar.com` should have a
-`foo.bar.com.crt` and `foo.bar.com.key` file in the certs directory.
+hosts in use.  The certificate and keys should be named after the virtual host with either a `.pem` or
+`.crt` extension for certificates, and a `.key` extension for keys. If both `.pem` and `.crt` files
+exist, then the `.pem` file is used. For example, a container with `VIRTUAL_HOST=foo.bar.com` should have either a
+`foo.bar.com.pem` or `foo.bar.com.crt` file, and a `foo.bar.com.key` file in the certs directory.
 
 #### Diffie-Hellman Groups
 
@@ -93,14 +94,16 @@ should have a `foo.bar.com.dhparam.pem` file in the certs directory.
 
 #### Wildcard Certificates
 
-Wildcard certificates and keys should be name after the domain name with a `.crt` and `.key` extension.
-For example `VIRTUAL_HOST=foo.bar.com` would use cert name `bar.com.crt` and `bar.com.key`.
+Wildcard certificates and keys should be name after the domain name with either a `.pem` or
+`.crt` extension for certificates, and a `.key` extension for keys. If both `.pem` and `.crt` files
+exist, then the `.pem` file is used. For example `VIRTUAL_HOST=foo.bar.com` would use cert name `bar.com.pem`
+and `bar.com.key`.
 
 #### SNI
 
 If your certificate(s) supports multiple domain names, you can start a container with `CERT_NAME=<name>`
 to identify the certificate to be used.  For example, a certificate for `*.foo.com` and `*.bar.com`
-could be named `shared.crt` and `shared.key`.  A container running with `VIRTUAL_HOST=foo.bar.com`
+could be named `shared.pem` (or `shared.crt`) and `shared.key`.  A container running with `VIRTUAL_HOST=foo.bar.com`
 and `CERT_NAME=shared` will then use this shared cert.
 
 #### How SSL Support Works
@@ -117,9 +120,9 @@ is always preferred when available.
 * If the container does not have a usable cert, a 503 will be returned.
 
 Note that in the latter case, a browser may get an connection error as no certificate is available
-to establish a connection.  A self-signed or generic cert named `default.crt` and `default.key`
+to establish a connection.  A self-signed or generic cert named `default.pem` and `default.key`
 will allow a client browser to make a SSL connection (likely w/ a warning) and subsequently receive
-a 503.
+a 503. A `default.crt` file will be used if `default.pem` is not found.
 
 ### Basic Authentication Support
 
