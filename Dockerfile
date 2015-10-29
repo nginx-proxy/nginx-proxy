@@ -1,4 +1,4 @@
-FROM nginx:1.9.5
+FROM nginx:1.9.6
 MAINTAINER Jason Wilder jwilder@litl.com
 
 # Install wget and install/updates certificates
