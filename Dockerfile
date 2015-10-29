@@ -1,5 +1,5 @@
 FROM nginx:1.9.6
-MAINTAINER Jason Wilder jwilder@litl.com
+MAINTAINER Jason Wilder mail@jasonwilder.com
 
 # Install wget and install/updates certificates
 RUN apt-get update \
