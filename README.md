@@ -93,7 +93,7 @@ should have a `foo.bar.com.dhparam.pem` file in the certs directory.
 
 #### Wildcard Certificates
 
-Wildcard certificates and keys should be name after the domain name with a `.crt` and `.key` extension.
+Wildcard certificates and keys should be named after the domain name with a `.crt` and `.key` extension.
 For example `VIRTUAL_HOST=foo.bar.com` would use cert name `bar.com.crt` and `bar.com.key`.
 
 #### SNI
