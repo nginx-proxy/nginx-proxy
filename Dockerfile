@@ -6,8 +6,14 @@ RUN apt-get update \
  && apt-get install -y -q --no-install-recommends \
     ca-certificates \
     wget \
+    git \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/*
+
+# Get Let's Encrypt client
+RUN git -C /opt clone https://github.com/letsencrypt/letsencrypt
+#RUN cd /opt/letsencrypt && ./letsencrypt-auto
+COPY letsencrypt.ini /etc/letsencrypt/cli.ini
 
 # Configure Nginx and apply fix for very long server names
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
