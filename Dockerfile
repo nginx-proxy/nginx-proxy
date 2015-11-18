@@ -10,10 +10,14 @@ RUN apt-get update \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/*
 
-# Get Let's Encrypt client
+# Get Let's Encrypt client source
 RUN git -C /opt clone https://github.com/letsencrypt/letsencrypt
-#RUN cd /opt/letsencrypt && ./letsencrypt-auto
-COPY letsencrypt.ini /etc/letsencrypt/cli.ini
+# Install letsencrypt
+RUN cd /opt/letsencrypt && ./letsencrypt-auto --help
+
+# Testing directory
+RUN mkdir -p /usr/share/nginx/html/.well-known \
+ && touch /usr/share/nginx/html/.well-known/testing
 
 # Configure Nginx and apply fix for very long server names
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
@@ -35,6 +39,7 @@ WORKDIR /app/
 ENV DOCKER_HOST unix:///tmp/docker.sock
 
 VOLUME ["/etc/nginx/certs"]
+VOLUME ["/etc/letsencrypt"]
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]

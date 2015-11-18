@@ -1,0 +1,31 @@
+#!/bin/bash
+
+echo 'Waiting'
+sleep 10
+
+# Wait some amount of time
+seconds_to_wait=100;
+while true; do
+  # for each configuration file,
+  for f in "/etc/letsencrypt/*.ini"; do 
+    [[ -f "$f" ]] || continue 
+    echo "letsencrypt ${f%.ini}"
+    domain="${f%.ini}"
+    # Wait until the threshold is reached for renewing certificate
+    # cat /etc/nginx/certs/ftl3.local.crt | openssl x509 -noout -dates
+
+    # Or if the certificate doesn't exist
+
+    /opt/letsencrypt/letsencrypt-auto certonly --authenticator webroot \
+      --webroot-path /usr/share/nginx/html -d $domain
+  done
+  date
+  sleep $seconds_to_wait
+done
+
+# Date difference in days
+datediff() {
+  d1=$(date -d "$1" +%s)
+  d2=$(date -d "$2" +%s)
+  echo $(( (d1 - d2) / 86400 ))
+}
