@@ -88,6 +88,8 @@ upstream {{ $host }} {
 {{ end }}
 }
 
+{{ $https_method := or ($.Env.HTTPS_METHOD) "redirect" }}
+
 {{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
 {{ $default_server := index (dict $host "" $default_host "default_server") $host }}
 
@@ -107,14 +109,18 @@ upstream {{ $host }} {
 {{/* Use the cert specifid on the container or fallback to the best vhost match */}}
 {{ $cert := (coalesce $certName $vhostCert) }}
 
-{{ if (and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) }}
+{{ $is_https := (and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) }}
 
+{{ if $is_https }}
+
+{{ if eq $https_method "redirect" }}
 server {
 	server_name {{ $host }};
 	listen 80 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
 	return 301 https://$host$request_uri;
 }
+{{ end }}
 
 server {
 	server_name {{ $host }};
@@ -156,7 +162,10 @@ server {
                 {{ end }}
 	}
 }
-{{ else }}
+
+{{ end }}
+
+{{ if or (eq $is_ssl false) (eq $https_method "noredirect") }}
 
 server {
 	server_name {{ $host }};
