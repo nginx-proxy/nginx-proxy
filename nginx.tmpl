@@ -88,13 +88,14 @@ upstream {{ $host }} {
 {{ end }}
 }
 
-{{ $https_method := or ($.Env.HTTPS_METHOD) "redirect" }}
-
 {{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
 {{ $default_server := index (dict $host "" $default_host "default_server") $host }}
 
 {{/* Get the VIRTUAL_PROTO defined by containers w/ the same vhost, falling back to "http" */}}
 {{ $proto := or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http" }}
+
+{{/* Get the HTTPS_METHOD defined by containers w/ the same vhost, falling back to "redirect" */}}
+{{ $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) "redirect" }}
 
 {{/* Get the first cert name defined by containers w/ the same vhost */}}
 {{ $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
@@ -165,7 +166,7 @@ server {
 
 {{ end }}
 
-{{ if or (eq $is_ssl false) (eq $https_method "noredirect") }}
+{{ if or (not $is_https) (eq $https_method "noredirect") }}
 
 server {
 	server_name {{ $host }};
@@ -192,7 +193,7 @@ server {
 	}
 }
 
-{{ if (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
+{{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name {{ $host }};
 	listen 443 ssl http2 {{ $default_server }};
