@@ -11,9 +11,16 @@ RUN apt-get update \
  && rm -r /var/lib/apt/lists/*
 
 # Get Let's Encrypt client source
-RUN git -C /opt clone https://github.com/letsencrypt/letsencrypt
+#RUN git -C /opt clone https://github.com/letsencrypt/letsencrypt
+# Get Let's Encrypt simp_le client source
+RUN git -C /opt clone https://github.com/kuba/simp_le.git
 # Install letsencrypt
-RUN cd /opt/letsencrypt && ./letsencrypt-auto --help
+#RUN cd /opt/letsencrypt && ./letsencrypt-auto --help
+# Install simp_le
+RUN cd /opt/simp_le && ./bootstrap.sh && ./venv.sh
+#&& \
+#RUN /opt/simp_le/venv.sh
+# . venv/bin/activate
 
 # Testing directory
 RUN mkdir -p /usr/share/nginx/html/.well-known \

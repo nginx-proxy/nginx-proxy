@@ -1,31 +1,40 @@
 #!/bin/bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo 'Waiting'
 sleep 10
 
 # Wait some amount of time
-seconds_to_wait=100;
+seconds_to_wait=10;
 while true; do
-  # for each configuration file,
-  for f in "/etc/letsencrypt/*.ini"; do 
-    [[ -f "$f" ]] || continue 
-    echo "letsencrypt ${f%.ini}"
-    domain="${f%.ini}"
+  # Load relevant conatiner settings
+  source $DIR/letsencrypt_service_data
+
+  for lec in "${LETSENCRYPT_CONTAINERS[@]}"; do
+    host_varname="LETSENCRYPT_""$lec""_HOST"
+    # Array variable indirection hack: http://stackoverflow.com/a/25880676/350221
+    hosts_array=$host_varname[@]; echo ${!hosts_array}
+
+    email_varname="LETSENCRYPT_""$lec""_EMAIL"; echo ${!email_varname}
     # Wait until the threshold is reached for renewing certificate
     # cat /etc/nginx/certs/ftl3.local.crt | openssl x509 -noout -dates
 
     # Or if the certificate doesn't exist
 
-    /opt/letsencrypt/letsencrypt-auto certonly --authenticator webroot \
-      --webroot-path /usr/share/nginx/html -d $domain
-  done
-  date
-  sleep $seconds_to_wait
-done
+    domain_params=""
+    for domain in "${!hosts_array}"; do
+      domain_params+="-d $domain "
+    done
 
-# Date difference in days
-datediff() {
-  d1=$(date -d "$1" +%s)
-  d2=$(date -d "$2" +%s)
-  echo $(( (d1 - d2) / 86400 ))
-}
+    /opt/simp_le/venv/bin/simp_le $domain_params -f fullchain.pem -f key.pem --email ${!email_varname} --default_root /usr/share/nginx/html/
+
+    # Copy certificates into /etc/nginx/certs
+    #cp /etc/letsencrypt/live/
+
+    unset $host_varname; unset $email_varname; unset $hosts_array
+  done
+  unset LETSENCRYPT_CONTAINERS
+
+  date
+  echo "Waiting $seconds_to_wait seconds"; sleep $seconds_to_wait
+done

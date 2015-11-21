@@ -1,0 +1,10 @@
+LETSENCRYPT_CONTAINERS=({{ range $host, $containers := groupBy $ "Env.LETSENCRYPT_HOST" }}{{ range $container := $containers }} '{{ $container.ID }}' {{ end }}{{ end }})
+
+{{ range $hosts, $containers := groupBy $ "Env.LETSENCRYPT_HOST" }}
+
+{{ range $container := $containers }}
+LETSENCRYPT_{{ $container.ID }}_HOST=( {{ range $host := split $hosts " " }}'{{ $host }}' {{ end }})
+LETSENCRYPT_{{ $container.ID }}_EMAIL="{{ $container.Env.LETSENCRYPT_EMAIL }}"
+{{ end }}
+
+{{ end }}
