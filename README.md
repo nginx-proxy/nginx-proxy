@@ -125,7 +125,7 @@ a 503.
 
 Use the Let's Encrypt service to automatically create a valid certificate for a virtual host.
 
-Set the following environment variables to enable Let's Encrypt support.
+Set the following environment variables to enable Let's Encrypt support for a container being proxied.
 
 - `LETSENCRYPT_HOST`
 - `LETSENCRYPT_EMAIL`
