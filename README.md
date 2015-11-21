@@ -121,6 +121,19 @@ to establish a connection.  A self-signed or generic cert named `default.crt` an
 will allow a client browser to make a SSL connection (likely w/ a warning) and subsequently receive
 a 503.
 
+#### Let's Encrypt
+
+Use the Let's Encrypt service to automatically create a valid certificate for a virtual host.
+
+Set the following environment variables to enable Let's Encrypt support.
+
+- `LETSENCRYPT_HOST`
+- `LETSENCRYPT_EMAIL`
+
+The `LETSENCRYPT_HOST` variable most likely needs to be the same as the `VIRTUAL_HOSTS` variable and must be publicly reachable domains. Specify multiple hosts with a space delemiter.
+
+After the first start, the nginx-proxy will need to be restarted again. This is because the nginx configuration needs to be regenerated after downloading the Let's Encrypt certificate.
+
 ### Basic Authentication Support
 
 In order to be able to secure your virtual host, you have to create a file named as its equivalent VIRTUAL_HOST variable on directory
