@@ -32,8 +32,8 @@ while true; do
 
     # Symlink to created certificate and key.
     for domain in "${!hosts_array}"; do
-      ln -s /etc/nginx/certs/$primary_domain/fullchain.pem /etc/nginx/certs/$domain".crt"
-      ln -s /etc/nginx/certs/$primary_domain/key.pem /etc/nginx/certs/$domain".key"
+      ln -sf ./$primary_domain/fullchain.pem /etc/nginx/certs/$domain".crt"
+      ln -sf ./$primary_domain/key.pem /etc/nginx/certs/$domain".key"
     done
 
     # TODO: Regenerate nginx config if simp_le created a certificate and key
