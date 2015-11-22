@@ -1,0 +1,8 @@
+#!/bin/bash
+
+docker-gen \
+ -only-exposed \
+ -notify '/app/update_certs' \
+ /app/letsencrypt_service_data.tmpl /app/letsencrypt_service_data
+
+nginx -s reload
