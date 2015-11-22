@@ -26,7 +26,9 @@ while true; do
     primary_domain=${!host_varname}
     mkdir -p /etc/nginx/certs/$primary_domain
     cd /etc/nginx/certs/$primary_domain
-    /opt/simp_le/venv/bin/simp_le $domain_params -f fullchain.pem -f key.pem --email ${!email_varname} --default_root /usr/share/nginx/html/
+    /opt/simp_le/venv/bin/simp_le $domain_params -f fullchain.pem -f key.pem --email ${!email_varname} \
+        --server=https://acme-v01.api.letsencrypt.org/directory \
+        --default_root /usr/share/nginx/html/
     simp_le_return=$?
     cd /app
 
