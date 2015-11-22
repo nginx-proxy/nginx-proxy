@@ -5,17 +5,17 @@ echo 'Waiting'
 sleep 10
 
 # Wait some amount of time
-seconds_to_wait=3600;
+seconds_to_wait=3600
 while true; do
-  # Load relevant conatiner settings
+  # Load relevant container settings
   source $DIR/letsencrypt_service_data
 
-  for lec in "${LETSENCRYPT_CONTAINERS[@]}"; do
+  for cid in "${LETSENCRYPT_CONTAINERS[@]}"; do
     # Derive host and email variable names
-    host_varname="LETSENCRYPT_""$lec""_HOST"
+    host_varname="LETSENCRYPT_${cid}_HOST"
     # Array variable indirection hack: http://stackoverflow.com/a/25880676/350221
     hosts_array=$host_varname[@]
-    email_varname="LETSENCRYPT_""$lec""_EMAIL"
+    email_varname="LETSENCRYPT_${cid}_EMAIL"
 
     domain_params=""
     for domain in "${!hosts_array}"; do
