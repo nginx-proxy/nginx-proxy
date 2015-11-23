@@ -1,50 +1,57 @@
 #!/bin/bash
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-echo 'Waiting'
+seconds_to_wait=3600
+
+update_certs() {
+    [[ ! -f "$DIR"/letsencrypt_service_data ]] && return
+
+    # Load relevant container settings
+    source "$DIR"/letsencrypt_service_data
+
+    for cid in "${LETSENCRYPT_CONTAINERS[@]}"; do
+        # Derive host and email variable names
+        host_varname="LETSENCRYPT_${cid}_HOST"
+        # Array variable indirection hack: http://stackoverflow.com/a/25880676/350221
+        hosts_array=$host_varname[@]
+        email_varname="LETSENCRYPT_${cid}_EMAIL"
+
+        for domain in "${!hosts_array}"; do
+
+            # Create the domain directory
+            mkdir -p /etc/nginx/certs/$domain
+            cd /etc/nginx/certs/$domain
+
+            /opt/simp_le/venv/bin/simp_le \
+             -d "$domain" \
+             -f fullchain.pem -f key.pem \
+             --email "${!email_varname}" \
+             --server=https://acme-v01.api.letsencrypt.org/directory \
+             --default_root /usr/share/nginx/html/
+
+            simp_le_return=$?
+
+            if [[ $simp_le_return -eq 0 ]]; then
+                # Symlink to created certificate and key.
+                ln -sf ./$domain/fullchain.pem /etc/nginx/certs/$domain".crt"
+                ln -sf ./$domain/key.pem       /etc/nginx/certs/$domain".key"
+            fi
+        done
+    done
+    unset LETSENCRYPT_CONTAINERS
+}
+
+pid=
+trap '[[ $pid ]] && kill $pid; exec $0' EXIT
+trap 'trap - EXIT' INT TERM
+
+echo 'Waiting 10s before updating certs...'
 sleep 10
 
+update_certs
+
 # Wait some amount of time
-seconds_to_wait=3600
-while true; do
-  # Load relevant container settings
-  source $DIR/letsencrypt_service_data
-
-  for cid in "${LETSENCRYPT_CONTAINERS[@]}"; do
-    # Derive host and email variable names
-    host_varname="LETSENCRYPT_${cid}_HOST"
-    # Array variable indirection hack: http://stackoverflow.com/a/25880676/350221
-    hosts_array=$host_varname[@]
-    email_varname="LETSENCRYPT_${cid}_EMAIL"
-
-    domain_params=""
-    for domain in "${!hosts_array}"; do
-      domain_params+="-d $domain "
-    done
-
-    # Use the first domain to create the directory
-    primary_domain=${!host_varname}
-    mkdir -p /etc/nginx/certs/$primary_domain
-    cd /etc/nginx/certs/$primary_domain
-    /opt/simp_le/venv/bin/simp_le $domain_params -f fullchain.pem -f key.pem --email ${!email_varname} \
-        --server=https://acme-v01.api.letsencrypt.org/directory \
-        --default_root /usr/share/nginx/html/
-    simp_le_return=$?
-    cd /app
-
-    # Symlink to created certificate and key.
-    for domain in "${!hosts_array}"; do
-      ln -sf ./$primary_domain/fullchain.pem /etc/nginx/certs/$domain".crt"
-      ln -sf ./$primary_domain/key.pem /etc/nginx/certs/$domain".key"
-    done
-
-    # TODO: Regenerate nginx config if simp_le created a certificate and key
-    #if [ "$simp_le_return" -eq 0 ]; then nginx -s reload; fi
-
-    unset $host_varname; unset $email_varname; unset $hosts_array
-  done
-  unset LETSENCRYPT_CONTAINERS
-
-  date
-  echo "Waiting $seconds_to_wait seconds"; sleep $seconds_to_wait
-done
+sleep $seconds_to_wait & pid=$!
+wait
+pid=
