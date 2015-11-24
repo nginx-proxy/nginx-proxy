@@ -23,7 +23,7 @@ update_certs() {
             mkdir -p /etc/nginx/certs/$domain
             cd /etc/nginx/certs/$domain
 
-            /opt/simp_le/venv/bin/simp_le \
+            /usr/local/bin/simp_le \
              -d "$domain" \
              -f fullchain.pem -f key.pem \
              --email "${!email_varname}" \
