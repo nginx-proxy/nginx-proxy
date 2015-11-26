@@ -1,6 +1,5 @@
 FROM jwilder/nginx-proxy
-
-MAINTAINER [ "Jason Wilder <mail@jasonwilder.com>", "Yves Blusseau <90z7oey02@sneakemail.com>" ]
+MAINTAINER [ "David Parrish <daveparrish@tutanota.com", "Yves Blusseau <90z7oey02@sneakemail.com>", "Hadrien Mary <hadrien.mary@gmail.com>" ]
 
 RUN apt-get update
 
