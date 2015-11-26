@@ -28,3 +28,5 @@ RUN apt-get clean all
 RUN rm -r /var/lib/apt/lists/*
 
 COPY . /app/
+
+WORKDIR /app/
