@@ -51,7 +51,7 @@ trap '[[ $pid ]] && kill $pid; exec $0' EXIT
 trap 'trap - EXIT' INT TERM
 
 echo 'Waiting 10s before updating certs...'
-sleep 1s
+sleep 10s
 
 update_certs
 
