@@ -36,6 +36,10 @@ update_certs() {
                 # Symlink to created certificate and key.
                 ln -sf ./$domain/fullchain.pem /etc/nginx/certs/$domain".crt"
                 ln -sf ./$domain/key.pem       /etc/nginx/certs/$domain".key"
+
+                # Update certificates configuration in nginx
+                /usr/local/bin/docker-gen -only-exposed /app/nginx.tmpl /etc/nginx/conf.d/default.conf
+                nginx -s reload
             fi
         done
     done
@@ -47,11 +51,12 @@ trap '[[ $pid ]] && kill $pid; exec $0' EXIT
 trap 'trap - EXIT' INT TERM
 
 echo 'Waiting 10s before updating certs...'
-sleep 10
+sleep 10s
 
 update_certs
 
 # Wait some amount of time
+echo "Sleep for ${seconds_to_wait}s"
 sleep $seconds_to_wait & pid=$!
 wait
 pid=
