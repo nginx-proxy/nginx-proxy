@@ -4,6 +4,8 @@ nginx-proxy sets up a container running nginx and [docker-gen][1].  docker-gen g
 
 See [Automated Nginx Reverse Proxy for Docker][2] for why you might want to use this.
 
+nginx-proxy-letsencrypt is a fork of nginx-proxy which adds Let's Encrypt support. Let's Encrypt allows multiple virtual hosts to have TLS certificates automatically created and renewed! The reason the jwilder/nginx-proxy was forked is because it seemed unlikely that the specific Let's Encrypt use case world be added to the more generic nginx-proxy project and the Let's Encrypt client does add some storage overhead. See [pull request](https://github.com/jwilder/nginx-proxy/pull/300) for details about fork. See [Let's Encrypt section](#lets-encrypt) for configuration details.
+
 ### Usage
 
 To run it:
