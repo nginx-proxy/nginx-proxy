@@ -22,7 +22,7 @@ RUN python ./setup.py install
 # Make house cleaning
 RUN rm -rf /opt/simp_le
 
-RUN -get autoremove -y git gcc libssl-dev libffi-dev python-dev python-pip
+RUN apt-get autoremove -y git gcc libssl-dev libffi-dev python-dev python-pip
 
 RUN apt-get clean all
 RUN rm -r /var/lib/apt/lists/*
