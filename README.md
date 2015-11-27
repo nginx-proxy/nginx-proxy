@@ -134,7 +134,9 @@ Set the following environment variables to enable Let's Encrypt support for a co
 
 The `LETSENCRYPT_HOST` variable most likely needs to be the same as the `VIRTUAL_HOST` variable and must be publicly reachable domains. Specify multiple hosts with a comma delimiter.
 
-After the first start, the nginx-proxy will need to be restarted again. This is because the nginx configuration needs to be regenerated after downloading the Let's Encrypt certificate.
+For example
+
+    $ docker run -d -e VIRTUAL_HOST="foo.bar.com,bar.com" -e LETSENCRYPT_HOST="foo.bar.com,bar.com" -e LETSENCRYPT_EMAIL="foo@bar.com" dmp1ce/nginx-proxy-letsencrypt
 
 ### Basic Authentication Support
 
