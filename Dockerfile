@@ -2,6 +2,7 @@ FROM jwilder/nginx-proxy
 
 MAINTAINER David Parrish <daveparrish@tutanota.com>
 MAINTAINER Yves Blusseau <90z7oey02@sneakemail.com>
+MAINTAINER Hadrien Mary <hadrien.mary@gmail.com>
 
 COPY . /app/
 
