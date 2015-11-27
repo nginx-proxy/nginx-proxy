@@ -136,7 +136,14 @@ The `LETSENCRYPT_HOST` variable most likely needs to be the same as the `VIRTUAL
 
 For example
 
-    $ docker run -d -e VIRTUAL_HOST="foo.bar.com,bar.com" -e LETSENCRYPT_HOST="foo.bar.com,bar.com" -e LETSENCRYPT_EMAIL="foo@bar.com" dmp1ce/nginx-proxy-letsencrypt
+```
+$ docker run -d -p 80:80 -p 443:443 \
+    -e VIRTUAL_HOST="foo.bar.com,bar.com" \
+    -e LETSENCRYPT_HOST="foo.bar.com,bar.com" \
+    -e LETSENCRYPT_EMAIL="foo@bar.com" \
+    -v /var/run/docker.sock:/tmp/docker.sock:ro \
+    dmp1ce/nginx-proxy-letsencrypt
+```
 
 ### Basic Authentication Support
 
