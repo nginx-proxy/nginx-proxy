@@ -10,6 +10,7 @@ update_certs() {
     # Load relevant container settings
     source "$DIR"/letsencrypt_service_data
 
+    reload_nginx='false'
     for cid in "${LETSENCRYPT_CONTAINERS[@]}"; do
         # Derive host and email variable names
         host_varname="LETSENCRYPT_${cid}_HOST"
@@ -36,14 +37,15 @@ update_certs() {
                 # Symlink to created certificate and key.
                 ln -sf ./$domain/fullchain.pem /etc/nginx/certs/$domain".crt"
                 ln -sf ./$domain/key.pem       /etc/nginx/certs/$domain".key"
-
-                # Update certificates configuration in nginx
-                /usr/local/bin/docker-gen -only-exposed /app/nginx.tmpl /etc/nginx/conf.d/default.conf
-                nginx -s reload
+                reload_nginx='true'
             fi
         done
     done
     unset LETSENCRYPT_CONTAINERS
+    if [[ "$reload_nginx" == 'true' ]]; then
+        /usr/local/bin/docker-gen -only-exposed /app/nginx.tmpl /etc/nginx/conf.d/default.conf
+        nginx -s reload
+    fi
 }
 
 pid=
