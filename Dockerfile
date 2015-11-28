@@ -7,4 +7,4 @@ MAINTAINER Hadrien Mary <hadrien.mary@gmail.com>
 COPY . /app/
 
 # Install simp_le program
-RUN chmod +rx /app/install_simp_le.sh && /app/install_simp_le.sh && rm -f /app/install_simp_le.sh
+RUN chmod +rx /app/install_simp_le.sh && sync && /app/install_simp_le.sh && rm -f /app/install_simp_le.sh
