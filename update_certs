@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Copyright (c) 2015 Yves Blusseau
+
+pkill -f -SIGUSR1 /app/letsencrypt_service

@@ -1,0 +1,73 @@
+#!/bin/bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+seconds_to_wait=3600
+
+update_certs() {
+    [[ ! -f "$DIR"/letsencrypt_service_data ]] && return
+
+    # Load relevant container settings
+    source "$DIR"/letsencrypt_service_data
+
+    reload_nginx='false'
+    for cid in "${LETSENCRYPT_CONTAINERS[@]}"; do
+        # Derive host and email variable names
+        host_varname="LETSENCRYPT_${cid}_HOST"
+        # Array variable indirection hack: http://stackoverflow.com/a/25880676/350221
+        hosts_array=$host_varname[@]
+        email_varname="LETSENCRYPT_${cid}_EMAIL"
+
+        params_d_str=""
+        hosts_array_expanded=("${!hosts_array}")
+        # First domain will be our base domain
+        base_domain="${hosts_array_expanded[0]}"
+
+        # Create directorty for the first domain
+        mkdir -p /etc/nginx/certs/$base_domain
+        cd /etc/nginx/certs/$base_domain
+
+        for domain in "${!hosts_array}"; do
+            # Add all the domains to certificate
+            params_d_str+=" -d $domain"
+        done
+        echo "Creating/renewal $base_domain certificates... (${hosts_array_expanded[*]})"
+        /usr/local/bin/simp_le \
+             -f account_key.json -f key.pem -f fullchain.pem \
+             $params_d_str \
+             --email "${!email_varname}" \
+             --server=https://acme-v01.api.letsencrypt.org/directory \
+             --default_root /usr/share/nginx/html/
+
+        simp_le_return=$?
+
+        if [[ $simp_le_return -eq 0 ]]; then
+            for domain in "${!hosts_array}"; do
+                # Symlink all alternative names to base domain certificate
+                ln -sf ./$base_domain/fullchain.pem /etc/nginx/certs/$domain".crt"
+                ln -sf ./$base_domain/key.pem       /etc/nginx/certs/$domain".key"
+            done
+            reload_nginx='true'
+        fi
+    done
+    unset LETSENCRYPT_CONTAINERS
+    if [[ "$reload_nginx" == 'true' ]]; then
+        /usr/local/bin/docker-gen -only-exposed /app/nginx.tmpl /etc/nginx/conf.d/default.conf
+        nginx -s reload
+    fi
+}
+
+pid=
+trap '[[ $pid ]] && kill $pid; exec $0' EXIT
+trap 'trap - EXIT' INT TERM
+
+echo 'Waiting 10s before updating certs...'
+sleep 10s
+
+update_certs
+
+# Wait some amount of time
+echo "Sleep for ${seconds_to_wait}s"
+sleep $seconds_to_wait & pid=$!
+wait
+pid=

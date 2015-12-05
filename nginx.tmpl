@@ -143,7 +143,17 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
+	location /.well-known/ {
+		root /usr/share/nginx/html;
+		try_files $uri @proxy_pass;
+	}
+
+	# Redirect hack. See: http://stackoverflow.com/a/20694873/350221
 	location / {
+		error_page 418 = @proxy_pass; return 418;
+	}
+
+	location @proxy_pass {
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
@@ -169,7 +179,17 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
+	location /.well-known/ {
+		root /usr/share/nginx/html;
+		try_files $uri @proxy_pass;
+	}
+
+	# Redirect hack. See: http://stackoverflow.com/a/20694873/350221
 	location / {
+		error_page 418 = @proxy_pass; return 418;
+	}
+
+	location @proxy_pass {
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
