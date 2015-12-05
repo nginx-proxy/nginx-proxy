@@ -24,6 +24,7 @@ update_certs() {
             mkdir -p /etc/nginx/certs/$domain
             cd /etc/nginx/certs/$domain
 
+            echo "Creating/renewal $domain certificates..."
             /usr/local/bin/simp_le \
              -d "$domain" \
              -f fullchain.pem -f key.pem \
