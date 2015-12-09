@@ -27,7 +27,7 @@ update_certs() {
             echo "Creating/renewal $domain certificates..."
             /usr/local/bin/simp_le \
              -d "$domain" \
-             -f fullchain.pem -f key.pem \
+             -f account_key.json -f key.pem -f fullchain.pem \
              --email "${!email_varname}" \
              --server=https://acme-v01.api.letsencrypt.org/directory \
              --default_root /usr/share/nginx/html/
