@@ -62,7 +62,7 @@ load test_helpers
 		-v /etc/nginx/certs/ \
 		nginx:latest
 	assert_success
-	run retry 5 1s docker run appropriate/curl --silent --fail --head http://$(docker_ip bats-nginx)/
+	run retry 5 1s docker run --rm appropriate/curl --silent --fail --head http://$(docker_ip bats-nginx)/
 	assert_output -l 0 $'HTTP/1.1 200 OK\r'
 
 	# WHEN docker-gen runs on our docker host
@@ -114,4 +114,3 @@ function assert_nginxproxy_behaves {
 	run curl_container $container /data --header "Host: webFOO.bats" --head
 	assert_output -l 0 $'HTTP/1.1 503 Service Temporarily Unavailable\r'
 }
-
