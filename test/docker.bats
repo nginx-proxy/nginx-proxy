@@ -105,10 +105,10 @@ function assert_nginxproxy_behaves {
 
 	# Querying the proxy with Host header → 200
 	run curl_container $container /data --header "Host: web1.bats"
-	assert_output "answer from port 81"
+	assert_output -l 0 "answer from port 81"
 
 	run curl_container $container /data --header "Host: web2.bats"
-	assert_output "answer from port 82"
+	assert_output -l 0 "answer from port 82"
 	
 	# Querying the proxy with unknown Host header → 503
 	run curl_container $container /data --header "Host: webFOO.bats" --head

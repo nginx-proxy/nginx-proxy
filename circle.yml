@@ -1,7 +1,9 @@
 machine:
   pre:
-    # install docker 1.9.1
+    # install docker 1.9.1 with some CircleCI suggestions:
+    # https://discuss.circleci.com/t/how-use-a-different-docker-version/298/8
     - sudo curl -L -o /usr/bin/docker 'https://s3-external-1.amazonaws.com/circle-downloads/docker-1.9.1-circleci'; sudo chmod 0755 /usr/bin/docker; true
+    - sudo sed -i -e 's/ --userland-proxy=false//' /etc/default/docker
   services:
     - docker
 

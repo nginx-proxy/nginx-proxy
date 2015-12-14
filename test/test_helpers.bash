@@ -129,6 +129,6 @@ function prepare_web_container {
 	IFS=$' \t\n' # See https://github.com/sstephenson/bats/issues/89
 	for port in $ports; do
 		run retry 5 1s docker run --rm appropriate/curl --silent --fail http://$(docker_ip $container_name):$port/data
-		assert_output "answer from port $port"
+		assert_output -l 0 "answer from port $port"
 	done
 }
