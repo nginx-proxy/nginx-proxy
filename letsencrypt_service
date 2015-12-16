@@ -3,6 +3,7 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 seconds_to_wait=3600
+acme_ca_uri="${ACME_CA_URI:-https://acme-v01.api.letsencrypt.org/directory}"
 
 update_certs() {
     [[ ! -f "$DIR"/letsencrypt_service_data ]] && return
@@ -36,7 +37,7 @@ update_certs() {
              -f account_key.json -f key.pem -f fullchain.pem \
              $params_d_str \
              --email "${!email_varname}" \
-             --server=https://acme-v01.api.letsencrypt.org/directory \
+             --server=$acme_ca_uri \
              --default_root /usr/share/nginx/html/
 
         simp_le_return=$?
