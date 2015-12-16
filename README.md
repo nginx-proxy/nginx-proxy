@@ -143,6 +143,22 @@ $ docker run -d -p 80:80 \
     -e LETSENCRYPT_EMAIL="foo@bar.com" ...
 ```
 
+##### Optional container environment variables
+
+Optional nginx-proxy-letsencrypt container environment variables for custom configuration.
+
+- `ACME_CA_URI` - Directory URI for the CA ACME API endpoint (default: ``https://acme-v01.api.letsencrypt.org/directory``)
+
+For example
+
+```
+$ docker run -d -p 80:80 -p 443:443 \
+    -e ACME_CA_URI="https://acme-staging.api.letsencrypt.org/directory" \
+    -v /path/to/certs:/etc/nginx/certs \
+    -v /var/run/docker.sock:/tmp/docker.sock:ro \
+    dmp1ce/nginx-proxy-letsencrypt
+```
+
 ### Basic Authentication Support
 
 In order to be able to secure your virtual host, you have to create a file named as its equivalent VIRTUAL_HOST variable on directory
