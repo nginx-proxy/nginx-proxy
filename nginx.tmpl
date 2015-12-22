@@ -144,7 +144,12 @@ server {
 	{{ end }}
 
 	location / {
+		{{ if eq $proto "uwsgi" }}
+		include uwsgi_params;
+		uwsgi_pass {{ trim $proto }}://{{ trim $host }};
+		{{ else }}
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
+		{{ end }}
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
@@ -170,7 +175,12 @@ server {
 	{{ end }}
 
 	location / {
+		{{ if eq $proto "uwsgi" }}
+		include uwsgi_params;
+		uwsgi_pass {{ trim $proto }}://{{ trim $host }};
+		{{ else }}
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
+		{{ end }}
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};

@@ -37,6 +37,12 @@ You can also use wildcards at the beginning and the end of host name, like `*.ba
 
 If you would like to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_PROTO=https` on the backend container.
 
+### uWSGI Backends
+
+If you would like to connect to uWSGI backend, set `VIRTUAL_PROTO=uwsgi` on the
+backend container. Your backend container should than listen on a port rather
+than a socket and expose that port.
+
 ### Default Host
 
 To set the default host for nginx use the env var `DEFAULT_HOST=foo.bar.com` for example
@@ -227,4 +233,3 @@ Before submitting pull requests or issues, please check github to make sure an e
 To run tests, you'll need to install [bats 0.4.0](https://github.com/sstephenson/bats).
 
     make test
-
