@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Copyright (c) 2015 Yves Blusseau
+
+nginx -s reload
+
+docker-gen \
+ -only-exposed \
+ -notify '/app/update_certs' \
+ /app/letsencrypt_service_data.tmpl /app/letsencrypt_service_data

@@ -23,7 +23,12 @@ RUN wget https://github.com/jwilder/docker-gen/releases/download/$DOCKER_GEN_VER
  && tar -C /usr/local/bin -xvzf docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz \
  && rm /docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz
 
-COPY . /app/
+# Install simp_le program
+COPY /install_simp_le.sh /app/install_simp_le.sh
+RUN chmod +rx /app/install_simp_le.sh && sync && /app/install_simp_le.sh && rm -f /app/install_simp_le.sh
+
+COPY docker-entrypoint.sh Dockerfile letsencrypt_service letsencrypt_service_data.tmpl LICENSE \
+     nginx.tmpl Procfile update_certs update_nginx /app/
 WORKDIR /app/
 
 ENV DOCKER_HOST unix:///tmp/docker.sock

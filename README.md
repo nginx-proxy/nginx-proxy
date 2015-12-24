@@ -1,4 +1,4 @@
-![nginx 1.9.6](https://img.shields.io/badge/nginx-1.9.6-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build](https://circleci.com/gh/jwilder/nginx-proxy.svg?&style=shield&circle-token=2da3ee844076a47371bd45da81cf27409ca7306a)](https://circleci.com/gh/jwilder/nginx-proxy)
+![nginx 1.9.6](https://img.shields.io/badge/nginx-1.9.6-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build](https://circleci.com/gh/jwilder/nginx-proxy.svg?&style=shield&circle-token=2da3ee844076a47371bd45da81cf27409ca7306a)](https://circleci.com/gh/jwilder/nginx-proxy) [![](https://badge.imagelayers.io/jwilder/nginx-proxy:latest.svg)](https://imagelayers.io/?images=jwilder/nginx-proxy:latest 'Get your own badge on imagelayers.io')
 
 nginx-proxy sets up a container running nginx and [docker-gen][1].  docker-gen generates reverse proxy configs for nginx and reloads nginx when containers are started and stopped.
 
@@ -120,6 +120,44 @@ Note that in the latter case, a browser may get an connection error as no certif
 to establish a connection.  A self-signed or generic cert named `default.crt` and `default.key`
 will allow a client browser to make a SSL connection (likely w/ a warning) and subsequently receive
 a 503.
+
+#### Let's Encrypt
+
+Use the Let's Encrypt service to automatically create a valid certificate for a virtual host.
+
+Set the following environment variables to enable Let's Encrypt support for a container being proxied.
+
+- `LETSENCRYPT_HOST`
+- `LETSENCRYPT_EMAIL`
+
+The `LETSENCRYPT_HOST` variable most likely needs to be the same as the `VIRTUAL_HOST` variable and must be publicly reachable domains. Specify multiple hosts with a comma delimiter.
+
+For example
+
+```
+$ docker run -d -p 80:80 -p 443:443 \
+    -e VIRTUAL_HOST="foo.bar.com,bar.com" \
+    -e LETSENCRYPT_HOST="foo.bar.com,bar.com" \
+    -e LETSENCRYPT_EMAIL="foo@bar.com" \
+    -v /var/run/docker.sock:/tmp/docker.sock:ro \
+    jwilder/nginx-proxy
+```
+
+##### Optional container environment variables
+
+Optional nginx-proxy-letsencrypt container environment variables for custom configuration.
+
+- `ACME_CA_URI` - Directory URI for the CA ACME API endpoint (default: ``https://acme-v01.api.letsencrypt.org/directory``)
+
+For example
+
+```
+$ docker run -d -p 80:80 -p 443:443 \
+    -e ACME_CA_URI="https://acme-staging.api.letsencrypt.org/directory" \
+    -v /path/to/certs:/etc/nginx/certs \
+    -v /var/run/docker.sock:/tmp/docker.sock:ro \
+    dmp1ce/nginx-proxy-letsencrypt
+```
 
 ### Basic Authentication Support
 
