@@ -1,4 +1,4 @@
-Customized version based on jwilder/nginx-proxy!
+Customized version based on jwilder/nginx-proxy! Just updated to recent versions.
 
 
 ![nginx 1.9.6](https://img.shields.io/badge/nginx-1.9.6-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build](https://circleci.com/gh/jwilder/nginx-proxy.svg?&style=shield&circle-token=2da3ee844076a47371bd45da81cf27409ca7306a)](https://circleci.com/gh/jwilder/nginx-proxy)
