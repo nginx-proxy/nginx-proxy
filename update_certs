@@ -1,0 +1,3 @@
+#!/bin/bash
+
+pkill -f -SIGUSR1 /app/letsencrypt_service

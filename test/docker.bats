@@ -62,7 +62,7 @@ load test_helpers
 		-v /etc/nginx/certs/ \
 		nginx:latest
 	assert_success
-	run retry 5 1s docker run appropriate/curl --silent --fail --head http://$(docker_ip bats-nginx)/
+	run retry 5 1s docker run --rm appropriate/curl --silent --fail --head http://$(docker_ip bats-nginx)/
 	assert_output -l 0 $'HTTP/1.1 200 OK\r'
 
 	# WHEN docker-gen runs on our docker host
@@ -105,13 +105,12 @@ function assert_nginxproxy_behaves {
 
 	# Querying the proxy with Host header → 200
 	run curl_container $container /data --header "Host: web1.bats"
-	assert_output "answer from port 81"
+	assert_output -l 0 "answer from port 81"
 
 	run curl_container $container /data --header "Host: web2.bats"
-	assert_output "answer from port 82"
+	assert_output -l 0 "answer from port 82"
 	
 	# Querying the proxy with unknown Host header → 503
 	run curl_container $container /data --header "Host: webFOO.bats" --head
 	assert_output -l 0 $'HTTP/1.1 503 Service Temporarily Unavailable\r'
 }
-

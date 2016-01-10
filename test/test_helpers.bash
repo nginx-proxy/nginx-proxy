@@ -5,7 +5,7 @@
 
 
 # set a few global variables
-SUT_IMAGE=jwilder/nginx-proxy:bats
+SUT_IMAGE=dmp1ce/nginx-proxy-letsencrypt:bats
 TEST_FILE=$(basename $BATS_TEST_FILENAME .bats)
 
 
@@ -66,7 +66,7 @@ function curl_container {
 	local -r container=$1
 	local -r path=$2
 	shift 2
-	docker run appropriate/curl --silent \
+	docker run --rm appropriate/curl --silent \
 		--connect-timeout 5 \
 		--max-time 20 \
 		"$@" \
@@ -128,7 +128,7 @@ function prepare_web_container {
 	# THEN querying directly port works
 	IFS=$' \t\n' # See https://github.com/sstephenson/bats/issues/89
 	for port in $ports; do
-		run retry 5 1s docker run appropriate/curl --silent --fail http://$(docker_ip $container_name):$port/data
-		assert_output "answer from port $port"
+		run retry 5 1s docker run --rm appropriate/curl --silent --fail http://$(docker_ip $container_name):$port/data
+		assert_output -l 0 "answer from port $port"
 	done
 }
