@@ -105,10 +105,12 @@ and `CERT_NAME=shared` will then use this shared cert.
 
 #### How SSL Support Works
 
-The SSL cipher configuration is based on [mozilla nginx intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Nginx) which
+The default SSL cipher configuration is based on [Mozilla intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS) which
 should provide compatibility with clients back to Firefox 1, Chrome 1, IE 7, Opera 5, Safari 1,
 Windows XP IE8, Android 2.3, Java 7.  The configuration also enables HSTS, and SSL
 session caches.
+
+You can also select the "Modern" or "Old" cipher suites described in Mozilla's wiki by setting the env var `DEFAULT_CIPHER_SUITE` (e.g `DEFAULT_CIPHER_SUITE=Modern`) on the nginx-proxy container.
 
 The behavior for the proxy when port 80 and 443 are exposed is as follows:
 
@@ -227,4 +229,3 @@ Before submitting pull requests or issues, please check github to make sure an e
 To run tests, you'll need to install [bats 0.4.0](https://github.com/sstephenson/bats).
 
     make test
-
