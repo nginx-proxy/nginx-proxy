@@ -1,4 +1,4 @@
-![nginx 1.9.6](https://img.shields.io/badge/nginx-1.9.6-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build](https://circleci.com/gh/jwilder/nginx-proxy.svg?&style=shield&circle-token=2da3ee844076a47371bd45da81cf27409ca7306a)](https://circleci.com/gh/jwilder/nginx-proxy)
+![nginx 1.9.9](https://img.shields.io/badge/nginx-1.9.6-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build](https://circleci.com/gh/jwilder/nginx-proxy.svg?&style=shield&circle-token=2da3ee844076a47371bd45da81cf27409ca7306a)](https://circleci.com/gh/jwilder/nginx-proxy)
 
 nginx-proxy sets up a container running nginx and [docker-gen][1].  docker-gen generates reverse proxy configs for nginx and reloads nginx when containers are started and stopped.
 
@@ -8,11 +8,11 @@ See [Automated Nginx Reverse Proxy for Docker][2] for why you might want to use 
 
 To run it:
 
-    $ docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+    $ docker run -d -p 80:80 -e IDENTITY_NAME=test -e IDENTITY_REGEX=test_value -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
-Then start any containers you want proxied with an env var `VIRTUAL_HOST=subdomain.youdomain.com`
+Then start any containers you want proxied with an env var `VIRTUAL_HOST=subdomain.youdomain.com` and identified with an label pair `--label IDENTITY_NAME="IDENTITY_REGEX"`
 
-    $ docker run -e VIRTUAL_HOST=foo.bar.com  ...
+    $ docker run -e VIRTUAL_HOST=foo.bar.com --label test="test_value" ...
 
 The containers being proxied must [expose](https://docs.docker.com/reference/run/#expose-incoming-ports) the port to be proxied, either by using the `EXPOSE` directive in their `Dockerfile` or by using the `--expose` flag to `docker run` or `docker create`.
 
@@ -54,7 +54,7 @@ If you would like to connect to your backend using HTTPS instead of HTTP, set `V
 
 To set the default host for nginx use the env var `DEFAULT_HOST=foo.bar.com` for example
 
-    $ docker run -d -p 80:80 -e DEFAULT_HOST=foo.bar.com -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+    $ docker run -d -p 80:80 -e DEFAULT_HOST=foo.bar.com -e IDENTITY_NAME=test -e IDENTITY_REGEX=test_value -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
 
 ### Separate Containers
@@ -76,6 +76,7 @@ Then start the docker-gen container with the shared volume and template:
 ```
 $ docker run --volumes-from nginx \
     \
+    -e IDENTITY_NAME=test -e IDENTITY_REGEX=test_value \
     -v /var/run/docker.sock:/tmp/docker.sock:ro \
     -v $(pwd):/etc/docker-gen/templates \
     -t jwilder/docker-gen -notify-sighup nginx -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
@@ -83,7 +84,7 @@ $ docker run --volumes-from nginx \
 
 Finally, start your containers with `VIRTUAL_HOST` environment variables.
 
-    $ docker run -e VIRTUAL_HOST=foo.bar.com  ...
+    $ docker run -e VIRTUAL_HOST=foo.bar.com --label test="test_value" ...
 
 ### SSL Support
 
@@ -92,7 +93,7 @@ certificates or optionally specifying a cert name (for SNI) as an environment va
 
 To enable SSL:
 
-    $ docker run -d -p 80:80 -p 443:443 -v /path/to/certs:/etc/nginx/certs -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+    $ docker run -d -p 80:80 -p 443:443 -e IDENTITY_NAME=test -e IDENTITY_REGEX=test_value -v /path/to/certs:/etc/nginx/certs -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
 The contents of `/path/to/certs` should contain the certificates and private keys for any virtual
 hosts in use.  The certificate and keys should be named after the virtual host with a `.crt` and
@@ -142,6 +143,7 @@ In order to be able to secure your virtual host, you have to create a file named
 
 ```
 $ docker run -d -p 80:80 -p 443:443 \
+    -e IDENTITY_NAME=test -e IDENTITY_REGEX=test_value \
     -v /path/to/htpasswd:/etc/nginx/htpasswd \
     -v /path/to/certs:/etc/nginx/certs \
     -v /var/run/docker.sock:/tmp/docker.sock:ro \
@@ -199,7 +201,7 @@ In order to allow virtual hosts to be dynamically configured as backends are add
 
 For example, if you have a virtual host named `app.example.com`, you could provide a custom configuration for that host as follows:
 
-    $ docker run -d -p 80:80 -p 443:443 -v /path/to/vhost.d:/etc/nginx/vhost.d:ro -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+    $ docker run -d -p 80:80 -p 443:443 -e IDENTITY_NAME=test -e IDENTITY_REGEX=test_value -v /path/to/vhost.d:/etc/nginx/vhost.d:ro -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
     $ { echo 'server_tokens off;'; echo 'client_max_body_size 100m;'; } > /path/to/vhost.d/app.example.com
 
 If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=example.com,www.example.com`), the virtual host configuration file must exist for each hostname. If you would like to use the same configuration for multiple virtual host names, you can use a symlink:
@@ -219,7 +221,7 @@ just like the previous section except with the suffix `_location`.
 
 For example, if you have a virtual host named `app.example.com` and you have configured a proxy_cache `my-cache` in another custom file, you could tell it to use a proxy cache as follows:
 
-    $ docker run -d -p 80:80 -p 443:443 -v /path/to/vhost.d:/etc/nginx/vhost.d:ro -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+    $ docker run -d -p 80:80 -p 443:443 -e IDENTITY_NAME=test -e IDENTITY_REGEX=test_value -v /path/to/vhost.d:/etc/nginx/vhost.d:ro -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
     $ { echo 'proxy_cache my-cache;'; echo 'proxy_cache_valid  200 302  60m;'; echo 'proxy_cache_valid  404 1m;' } > /path/to/vhost.d/app.example.com_location
 
 If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=example.com,www.example.com`), the virtual host configuration file must exist for each hostname. If you would like to use the same configuration for multiple virtual host names, you can use a symlink:
