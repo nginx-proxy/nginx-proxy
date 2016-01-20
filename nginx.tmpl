@@ -188,7 +188,7 @@ server {
 	server_name {{ $host }};
 	listen 443 ssl http2 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
-	return 503;
+	return 500;
 
 	ssl_certificate /etc/nginx/certs/default.crt;
 	ssl_certificate_key /etc/nginx/certs/default.key;
