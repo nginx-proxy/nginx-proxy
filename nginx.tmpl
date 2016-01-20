@@ -70,7 +70,7 @@ server {
 }
 {{ end }}
 
-{{ $filtered := whereLabelValueMatches $ .Env.IDENTITY_NAME (print "^" .Env.IDENTITY_VALUE print "$") }}
+{{ $filtered := whereLabelValueMatches $ .Env.IDENTITY_NAME .Env.IDENTITY_REGEX }}
 {{ range $host, $containers := groupByMulti $filtered "Env.VIRTUAL_HOST" "," }}
 upstream {{ $host }} {
 {{ range $container := $containers }}
