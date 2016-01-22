@@ -35,16 +35,17 @@ You can also use wildcards at the beginning and the end of host name, like `*.ba
 
 ### Multiple Networks
 
-With the new overlay network, your proxy can be deal with many containers in many networks. Default, if you don't use ```--net``` flag, your proxy will be attached at ```bridge``` default network. You can define your container with ```--net=your_network``` option.
+With the addition of [overlay networking](https://docs.docker.com/engine/userguide/networking/get-started-overlay/) in Docker 1.9, your `nginx-proxy` container may need to connect to backend containers on multiple networks. By default, if you don't pass the `--net` flag when your `nginx-proxy` container is created, it will only be attached to the default `bridge` network. This means that it will not be able to connect to containers on networks other than `bridge`.
 
-If your proxy try to access at a container in an unattached network, the request is successful.
+If you want your `nginx-proxy` container to be attached to a different network, you must pass the `--net=my-network` option in your `docker create` or `docker run` command. At the time of this writing, only a single network can be specified at container creation time. To attach to other networks, you can use the `docker network connect` command after your container is created:
 
-#### Connect Another Network
-
-In current Docker release (1.9), you can create a container with only one network. To attach others networks, you can use this command.
+```console
+$ docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro \
+    --name my-nginx-proxy --net my-network jwilder/nginx-proxy
+$ docker network connect my-other-network my-nginx-proxy
 ```
-docker network connect my_network my_container
-```
+
+In this example, the `my-nginx-proxy` container will be connected to `my-network` and `my-other-network` and will be able to proxy to other containers attached to those networks.
 
 ### SSL Backends
 
@@ -75,7 +76,6 @@ Then start the docker-gen container with the shared volume and template:
 
 ```
 $ docker run --volumes-from nginx \
-    \
     -v /var/run/docker.sock:/tmp/docker.sock:ro \
     -v $(pwd):/etc/docker-gen/templates \
     -t jwilder/docker-gen -notify-sighup nginx -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
