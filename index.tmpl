@@ -1,0 +1,25 @@
+{{ $title := or $.Env.TITLE "List of proxied sites" }}
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>{{ $title }}</title>
+  </head>
+  <body>
+  <!--<div class='titre' style='width:1500px'><h1>Reseau Mare Mais</h1></div>-->
+  <h1>{{ $title }}</h1>
+   <div>
+    <ul>
+    {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
+      {{ range $container := $containers }}
+        {{if $container.Env.TITLE}}
+          <li><a href='http://{{ $container.Env.VIRTUAL_HOST  }}'>{{$container.Env.TITLE}}</a></li>
+        {{else}}
+          <li><a href='http://{{ $container.Env.VIRTUAL_HOST  }}'>{{$container.Env.VIRTUAL_HOST}}</a></li>
+        {{ end }}
+      {{ end }}
+    {{ end }}
+    </ul>
+   </div>
+  </body>
+</html>
