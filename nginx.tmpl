@@ -1,4 +1,4 @@
-{{ $CurrentContainer := where $ "ID" .CurrentContainerID | first }}
+{{ $CurrentContainer := where $ "ID" .Docker.CurrentContainerID | first }}
 
 {{ define "upstream" }}
 	{{ if .Address }}
