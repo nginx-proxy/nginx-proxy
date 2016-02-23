@@ -18,6 +18,11 @@ The containers being proxied must [expose](https://docs.docker.com/reference/run
 
 Provided your DNS is setup to forward foo.bar.com to the a host running nginx-proxy, the request will be routed to a container with the VIRTUAL_HOST env var set.
 
+### Docker-compose
+
+Currently this does not work with the new v2 syntax of docker-compose (due to not being compatible with the new network overlay see #304). It does work when using the old docker-composer syntax.
+
+
 ### Multiple Ports
 
 If your container exposes multiple ports, nginx-proxy will default to the service running on port 80.  If you need to specify a different port, you can set a VIRTUAL_PORT env var to select a different one.  If your container only exposes one port and it has a VIRTUAL_HOST env var set, that port will be selected.
