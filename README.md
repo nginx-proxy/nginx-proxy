@@ -20,7 +20,7 @@ Provided your DNS is setup to forward foo.bar.com to the a host running nginx-pr
 
 ### Docker-compose
 
-Currently this does not work with the new v2 syntax of docker-compose (due to not being compatible with the new network overlay see #304). It does work when using the old docker-composer syntax.
+Currently this does not work with the new v2 syntax of docker-compose (due to not being compatible with the new network overlay see [#304](https://github.com/jwilder/nginx-proxy/issues/304)). It does work when using the old docker-composer syntax.
 
 
 ### Multiple Ports
