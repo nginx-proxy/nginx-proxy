@@ -54,15 +54,21 @@ load test_helpers
 @test "[$TEST_FILE] separated containers (nginx + docker-gen + nginx.tmpl)" {
 	docker_clean bats-nginx
 	docker_clean bats-docker-gen
+	docker_network_clean bats-docker-gen-network
+
+	# MAKE network
+	run docker network create bats-docker-gen-network
+	assert_success
 	
 	# GIVEN a simple nginx container
 	run docker run -d \
 		--name bats-nginx \
+		--net=bats-docker-gen-network \
 		-v /etc/nginx/conf.d/ \
 		-v /etc/nginx/certs/ \
 		nginx:latest
 	assert_success
-	run retry 5 1s docker run appropriate/curl --silent --fail --head http://$(docker_ip bats-nginx)/
+	run retry 5 1s docker run --net=bats-docker-gen-network appropriate/curl --silent --fail --head http://$(docker_ips bats-nginx)/
 	assert_output -l 0 $'HTTP/1.1 200 OK\r'
 
 	# WHEN docker-gen runs on our docker host
