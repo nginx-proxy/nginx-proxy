@@ -8,20 +8,9 @@ function docker_clean {
 	sleep .25s
 }
 
-# Removes network $1
-function docker_network_clean {
-	docker network rm $1 &>/dev/null ||:
-	sleep .25s
-}
-
 # get the ip of docker container $1
 function docker_ip {
 	docker inspect --format '{{ .NetworkSettings.IPAddress }}' $1
-}
-
-# get the ip of docker container $1
-function docker_ips {
-	docker inspect --format '{{ range .NetworkSettings.Networks }}{{ .IPAddress }}{{ end }}' $1
 }
 
 # get the running state of container $1
