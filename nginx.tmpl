@@ -72,7 +72,14 @@ server {
 
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
 
+{{ $ip_hash := or (first (groupByKeys $containers "Env.USE_IP_HASH")) "0" }}
+
 upstream {{ $host }} {
+{{/* If the container requests to load-balance by connection IP */}}
+{{ if ne $ip_hash "0" }}
+	ip_hash;
+{{ end }}
+
 {{ range $container := $containers }}
 	{{ $addrLen := len $container.Addresses }}
 	{{/* If only 1 port exposed, use that */}}
