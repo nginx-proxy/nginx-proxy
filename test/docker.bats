@@ -14,7 +14,7 @@ load test_helpers
 	# WHEN nginx-proxy runs on our docker host using the default unix socket 
 	run nginxproxy $SUT_CONTAINER -v /var/run/docker.sock:/tmp/docker.sock:ro
 	assert_success
-	docker_wait_for_log $SUT_CONTAINER 3 "Watching docker events"
+	docker_wait_for_log $SUT_CONTAINER 9 "Watching docker events"
 
 	# THEN
 	assert_nginxproxy_behaves $SUT_CONTAINER
@@ -27,7 +27,7 @@ load test_helpers
 	# WHEN nginx-proxy runs on our docker host using a custom unix socket 
 	run nginxproxy $SUT_CONTAINER -v /var/run/docker.sock:/f00.sock:ro -e DOCKER_HOST=unix:///f00.sock
 	assert_success
-	docker_wait_for_log $SUT_CONTAINER 3 "Watching docker events"
+	docker_wait_for_log $SUT_CONTAINER 9 "Watching docker events"
 
 	# THEN
 	assert_nginxproxy_behaves $SUT_CONTAINER
@@ -44,7 +44,7 @@ load test_helpers
 	# WHEN nginx-proxy runs on our docker host using tcp to connect to our docker host
 	run nginxproxy $SUT_CONTAINER -e DOCKER_HOST="tcp://bats-docker-tcp:2375" --link bats-docker-tcp:bats-docker-tcp
 	assert_success
-	docker_wait_for_log $SUT_CONTAINER 3 "Watching docker events"
+	docker_wait_for_log $SUT_CONTAINER 9 "Watching docker events"
 	
 	# THEN
 	assert_nginxproxy_behaves $SUT_CONTAINER
@@ -57,28 +57,30 @@ load test_helpers
 	
 	# GIVEN a simple nginx container
 	run docker run -d \
+		--label bats-type="nginx" \
 		--name bats-nginx \
 		-v /etc/nginx/conf.d/ \
 		-v /etc/nginx/certs/ \
 		nginx:latest
 	assert_success
-	run retry 5 1s docker run appropriate/curl --silent --fail --head http://$(docker_ip bats-nginx)/
+	run retry 5 1s docker run --label bats-type="curl" appropriate/curl --silent --fail --head http://$(docker_ip bats-nginx)/
 	assert_output -l 0 $'HTTP/1.1 200 OK\r'
 
 	# WHEN docker-gen runs on our docker host
 	run docker run -d \
+		--label bats-type="docker-gen" \
 		--name bats-docker-gen \
 		-v /var/run/docker.sock:/tmp/docker.sock:ro \
 		-v $BATS_TEST_DIRNAME/../nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl:ro \
 		--volumes-from bats-nginx \
-		jwilder/docker-gen:latest \
+		jwilder/docker-gen:0.7.0 \
 			-notify-sighup bats-nginx \
 			-watch \
 			-only-exposed \
 			/etc/docker-gen/templates/nginx.tmpl \
 			/etc/nginx/conf.d/default.conf
 	assert_success
-	docker_wait_for_log bats-docker-gen 6 "Watching docker events"
+	docker_wait_for_log bats-docker-gen 9 "Watching docker events"
 	
 	# Give some time to the docker-gen container to notify bats-nginx so it 
 	# reloads its config
@@ -92,6 +94,10 @@ load test_helpers
 	
 	# THEN
 	assert_nginxproxy_behaves bats-nginx
+}
+
+@test "[$TEST_FILE] stop all bats containers" {
+	stop_bats_containers
 }
 
 
