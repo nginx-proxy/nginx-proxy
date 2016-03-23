@@ -1,4 +1,4 @@
-![nginx 1.9.6](https://img.shields.io/badge/nginx-1.9.6-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build](https://circleci.com/gh/jwilder/nginx-proxy.svg?&style=shield&circle-token=2da3ee844076a47371bd45da81cf27409ca7306a)](https://circleci.com/gh/jwilder/nginx-proxy)
+![nginx 1.9.12](https://img.shields.io/badge/nginx-1.9.12-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build](https://circleci.com/gh/jwilder/nginx-proxy.svg?&style=shield&circle-token=2da3ee844076a47371bd45da81cf27409ca7306a)](https://circleci.com/gh/jwilder/nginx-proxy)
 
 nginx-proxy sets up a container running nginx and [docker-gen][1].  docker-gen generates reverse proxy configs for nginx and reloads nginx when containers are started and stopped.
 
@@ -17,6 +17,11 @@ Then start any containers you want proxied with an env var `VIRTUAL_HOST=subdoma
 The containers being proxied must [expose](https://docs.docker.com/reference/run/#expose-incoming-ports) the port to be proxied, either by using the `EXPOSE` directive in their `Dockerfile` or by using the `--expose` flag to `docker run` or `docker create`.
 
 Provided your DNS is setup to forward foo.bar.com to the a host running nginx-proxy, the request will be routed to a container with the VIRTUAL_HOST env var set.
+
+### Docker-compose
+
+Currently this does not work with the new v2 syntax of docker-compose (due to not being compatible with the new network overlay see [#304](https://github.com/jwilder/nginx-proxy/issues/304)). It does work when using the old docker-composer syntax.
+
 
 ### Multiple Ports
 
@@ -241,4 +246,3 @@ Before submitting pull requests or issues, please check github to make sure an e
 To run tests, you'll need to install [bats 0.4.0](https://github.com/sstephenson/bats).
 
     make test
-
