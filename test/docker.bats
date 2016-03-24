@@ -73,6 +73,7 @@ load test_helpers
 		-v /var/run/docker.sock:/tmp/docker.sock:ro \
 		-v $BATS_TEST_DIRNAME/../nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl:ro \
 		--volumes-from bats-nginx \
+		--expose 80 \
 		jwilder/docker-gen:0.7.0 \
 			-notify-sighup bats-nginx \
 			-watch \
