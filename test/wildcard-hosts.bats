@@ -5,10 +5,7 @@ SUT_CONTAINER=bats-nginx-proxy-${TEST_FILE}
 function setup {
 	# make sure to stop any web container before each test so we don't
 	# have any unexpected contaiener running with VIRTUAL_HOST or VIRUTAL_PORT set
-	CIDS=( $(docker ps -q --filter "label=bats-type=web") )
-	if [ ${#CIDS[@]} -gt 0 ]; then
-		docker stop ${CIDS[@]} >&2
-	fi
+	stop_bats_containers web
 }
 
 
@@ -16,13 +13,15 @@ function setup {
 	# GIVEN
 	run nginxproxy $SUT_CONTAINER -v /var/run/docker.sock:/tmp/docker.sock:ro
 	assert_success
-	docker_wait_for_log $SUT_CONTAINER 3 "Watching docker events"
+	docker_wait_for_log $SUT_CONTAINER 9 "Watching docker events"
 }
 
 
 @test "[$TEST_FILE] VIRTUAL_HOST=*.wildcard.bats" {
 	# WHEN
 	prepare_web_container bats-wildcard-hosts-1 80 -e VIRTUAL_HOST=*.wildcard.bats
+	dockergen_wait_for_event $SUT_CONTAINER start bats-wildcard-hosts-1
+	sleep 1
 
 	# THEN
 	assert_200 f00.wildcard.bats
@@ -33,6 +32,8 @@ function setup {
 @test "[$TEST_FILE] VIRTUAL_HOST=wildcard.bats.*" {
 	# WHEN
 	prepare_web_container bats-wildcard-hosts-2 80 -e VIRTUAL_HOST=wildcard.bats.*
+	dockergen_wait_for_event $SUT_CONTAINER start bats-wildcard-hosts-2
+	sleep 1
 
 	# THEN
 	assert_200 wildcard.bats.f00
@@ -43,12 +44,18 @@ function setup {
 @test "[$TEST_FILE] VIRTUAL_HOST=~^foo\.bar\..*\.bats" {
 	# WHEN
 	prepare_web_container bats-wildcard-hosts-2 80 -e VIRTUAL_HOST=~^foo\.bar\..*\.bats
+	dockergen_wait_for_event $SUT_CONTAINER start bats-wildcard-hosts-2
+	sleep 1
 
 	# THEN
 	assert_200 foo.bar.whatever.bats
 	assert_200 foo.bar.why.not.bats
 	assert_503 unexpected.host.bats
 
+}
+
+@test "[$TEST_FILE] stop all bats containers" {
+	stop_bats_containers
 }
 
 
