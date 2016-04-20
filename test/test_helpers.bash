@@ -74,6 +74,23 @@ function curl_container {
 		http://$(docker_ip $container)${path}
 }
 
+# Send a HTTPS request to container $1 for path $2 and 
+# Additional curl options can be passed as $@
+#
+# $1 container name
+# $2 HTTPS path to query
+# $@ additional options to pass to the curl command
+function curl_container_https {
+	local -r container=$1
+	local -r path=$2
+	shift 2
+	docker run --label bats-type="curl" appropriate/curl --silent \
+		--connect-timeout 5 \
+		--max-time 20 \
+		--insecure \
+		"$@" \
+		https://$(docker_ip $container)${path}
+}
 
 # start a container running (one or multiple) webservers listening on given ports
 #
