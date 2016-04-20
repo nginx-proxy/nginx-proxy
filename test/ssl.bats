@@ -10,7 +10,7 @@ function setup {
 
 
 @test "[$TEST_FILE] start a nginx-proxy container" {
-	run nginxproxy $SUT_CONTAINER -v /var/run/docker.sock:/tmp/docker.sock:ro -v $(pwd)/lib/ssl:/etc/nginx/certs:ro
+	run nginxproxy $SUT_CONTAINER -v /var/run/docker.sock:/tmp/docker.sock:ro -v ${DIR}/lib/ssl:/etc/nginx/certs:ro
 	assert_success
 	docker_wait_for_log $SUT_CONTAINER 9 "Watching docker events"
 }
