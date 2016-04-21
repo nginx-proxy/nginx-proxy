@@ -5,9 +5,12 @@
 			# {{ .Container.Node.Name }}/{{ .Container.Name }}
 			server {{ .Container.Node.Address.IP }}:{{ .Address.HostPort }};
 		{{/* If there is no swarm node or the port is not published on host, use container's IP:PORT */}}
-		{{ else }}
+		{{ else if .Address.IP }}
 			# {{ .Container.Name }}
 			server {{ .Address.IP }}:{{ .Address.Port }};
+		{{ else }}
+			# {{ .Container.Name }}
+			server {{ .Container.Name }}:{{ .Address.Port }};
 		{{ end }}
 	{{ else }}
 		# {{ .Container.Name }}
