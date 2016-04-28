@@ -94,6 +94,9 @@ upstream {{ $host }} {
 {{/* Get the VIRTUAL_PROTO defined by containers w/ the same vhost, falling back to "http" */}}
 {{ $proto := or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http" }}
 
+{{/* Option to not force https redirect in case you have multiple vhosts and not all need it */}}
+{{ $force_https := or (first (groupByKeys $containers "Env.FORCE_HTTPS")) "true" }}
+
 {{/* Get the first cert name defined by containers w/ the same vhost */}}
 {{ $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
 
@@ -112,12 +115,14 @@ upstream {{ $host }} {
 server {
 	server_name {{ $host }};
 	listen 80 {{ $default_server }};
+{{ if (eq $force_https "true") }}
 	access_log /var/log/nginx/access.log vhost;
 	return 301 https://$host$request_uri;
 }
 
 server {
 	server_name {{ $host }};
+{{ end }}
 	listen 443 ssl http2 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
 
