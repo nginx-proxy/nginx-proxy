@@ -54,7 +54,7 @@ load test_helpers
 @test "[$TEST_FILE] separated containers (nginx + docker-gen + nginx.tmpl)" {
 	docker_clean bats-nginx
 	docker_clean bats-docker-gen
-	
+
 	# GIVEN a simple nginx container
 	run docker run -d \
 		--label bats-type="nginx" \
@@ -73,6 +73,7 @@ load test_helpers
 		-v /var/run/docker.sock:/tmp/docker.sock:ro \
 		-v $BATS_TEST_DIRNAME/../nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl:ro \
 		--volumes-from bats-nginx \
+		--expose 80 \
 		jwilder/docker-gen:0.7.0 \
 			-notify-sighup bats-nginx \
 			-watch \
@@ -91,7 +92,7 @@ load test_helpers
 		docker logs bats-docker-gen
 		false
 	} >&2
-	
+
 	# THEN
 	assert_nginxproxy_behaves bats-nginx
 }
@@ -120,4 +121,3 @@ function assert_nginxproxy_behaves {
 	run curl_container $container /data --header "Host: webFOO.bats" --head
 	assert_output -l 0 $'HTTP/1.1 503 Service Temporarily Unavailable\r'
 }
-

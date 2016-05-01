@@ -62,5 +62,5 @@ function docker_tcp {
 		--expose 2375 \
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		rancher/socat-docker
-	docker run --label bats-type="docker" --link "$container_name:docker" docker:1.9 version
+	docker run --label bats-type="docker" --link "$container_name:docker" docker:1.10 version
 }
