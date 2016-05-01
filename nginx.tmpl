@@ -102,6 +102,8 @@ upstream {{ $host }} {
 {{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
 {{ $default_server := index (dict $host "" $default_host "default_server") $host }}
 
+{{ $no_https_auto_redirect := or (first (groupByKeys $containers "Env.NO_HTTPS_AUTO_REDIRECT")) "false" }}
+
 {{/* Get the VIRTUAL_PROTO defined by containers w/ the same vhost, falling back to "http" */}}
 {{ $proto := or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http" }}
 
@@ -120,12 +122,43 @@ upstream {{ $host }} {
 
 {{ if (and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) }}
 
+{{ if ne $no_https_auto_redirect "true" }}
+
 server {
 	server_name {{ $host }};
 	listen 80 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
 	return 301 https://$host$request_uri;
 }
+
+{{ else }}
+
+server {
+	server_name {{ $host }};
+	listen 80 {{ $default_server }};
+	access_log /var/log/nginx/access.log vhost;
+
+	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
+	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
+	{{ else if (exists "/etc/nginx/vhost.d/default") }}
+	include /etc/nginx/vhost.d/default;
+	{{ end }}
+
+	location / {
+		proxy_pass {{ trim $proto }}://{{ trim $host }};
+		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
+		auth_basic	"Restricted {{ $host }}";
+		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
+		{{ end }}
+                {{ if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
+                include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
+                {{ else if (exists "/etc/nginx/vhost.d/default_location") }}
+                include /etc/nginx/vhost.d/default_location;
+                {{ end }}
+	}
+}
+
+{{ end }}
 
 server {
 	server_name {{ $host }};
