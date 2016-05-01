@@ -130,7 +130,7 @@ should provide compatibility with clients back to Firefox 1, Chrome 1, IE 7, Ope
 Windows XP IE8, Android 2.3, Java 7.  The configuration also enables HSTS, and SSL
 session caches.
 
-The behavior for the proxy when port 80 and 443 are exposed is as follows:
+The default behavior for the proxy when port 80 and 443 are exposed is as follows:
 
 * If a container has a usable cert, port 80 will redirect to 443 for that container so that HTTPS
 is always preferred when available.
@@ -140,6 +140,10 @@ Note that in the latter case, a browser may get an connection error as no certif
 to establish a connection.  A self-signed or generic cert named `default.crt` and `default.key`
 will allow a client browser to make a SSL connection (likely w/ a warning) and subsequently receive
 a 503.
+
+To serve traffic in both SSL and non-SSL modes without redirecting to SSL, you can include the
+environment variable `HTTPS_METHOD=noredirect` (the default is `HTTPS_METHOD=redirect`).  You can also
+disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`. 
 
 ### Basic Authentication Support
 
