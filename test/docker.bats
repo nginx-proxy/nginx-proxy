@@ -11,7 +11,7 @@ load test_helpers
 @test "[$TEST_FILE] -v /var/run/docker.sock:/tmp/docker.sock:ro" {
 	SUT_CONTAINER=bats-nginx-proxy-${TEST_FILE}-1
 
-	# WHEN nginx-proxy runs on our docker host using the default unix socket 
+	# WHEN nginx-proxy runs on our docker host using the default unix socket
 	run nginxproxy $SUT_CONTAINER -v /var/run/docker.sock:/tmp/docker.sock:ro
 	assert_success
 	docker_wait_for_log $SUT_CONTAINER 9 "Watching docker events"
@@ -24,7 +24,7 @@ load test_helpers
 @test "[$TEST_FILE] -v /var/run/docker.sock:/f00.sock:ro -e DOCKER_HOST=unix:///f00.sock" {
 	SUT_CONTAINER=bats-nginx-proxy-${TEST_FILE}-2
 
-	# WHEN nginx-proxy runs on our docker host using a custom unix socket 
+	# WHEN nginx-proxy runs on our docker host using a custom unix socket
 	run nginxproxy $SUT_CONTAINER -v /var/run/docker.sock:/f00.sock:ro -e DOCKER_HOST=unix:///f00.sock
 	assert_success
 	docker_wait_for_log $SUT_CONTAINER 9 "Watching docker events"
@@ -45,7 +45,7 @@ load test_helpers
 	run nginxproxy $SUT_CONTAINER -e DOCKER_HOST="tcp://bats-docker-tcp:2375" --link bats-docker-tcp:bats-docker-tcp
 	assert_success
 	docker_wait_for_log $SUT_CONTAINER 9 "Watching docker events"
-	
+
 	# THEN
 	assert_nginxproxy_behaves $SUT_CONTAINER
 }
@@ -74,7 +74,7 @@ load test_helpers
 		-v $BATS_TEST_DIRNAME/../nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl:ro \
 		--volumes-from bats-nginx \
 		--expose 80 \
-		jwilder/docker-gen:0.7.0 \
+		jwilder/docker-gen:0.7.1 \
 			-notify-sighup bats-nginx \
 			-watch \
 			-only-exposed \
@@ -82,8 +82,8 @@ load test_helpers
 			/etc/nginx/conf.d/default.conf
 	assert_success
 	docker_wait_for_log bats-docker-gen 9 "Watching docker events"
-	
-	# Give some time to the docker-gen container to notify bats-nginx so it 
+
+	# Give some time to the docker-gen container to notify bats-nginx so it
 	# reloads its config
 	sleep 2s
 
@@ -116,7 +116,7 @@ function assert_nginxproxy_behaves {
 
 	run curl_container $container /data --header "Host: web2.bats"
 	assert_output "answer from port 82"
-	
+
 	# Querying the proxy with unknown Host header → 503
 	run curl_container $container /data --header "Host: webFOO.bats" --head
 	assert_output -l 0 $'HTTP/1.1 503 Service Temporarily Unavailable\r'
