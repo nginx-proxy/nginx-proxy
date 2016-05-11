@@ -107,7 +107,7 @@ hosts in use.  The certificate and keys should be named after the virtual host w
 
 #### Passphrase
 
-Optionally you can set passphrase file for each certificate by creating `.pw` file with passphrase in certs directory.
+Optionally you can set passphrase for certificate by creating `.pw` file with passphrase in `/path/to/certs` directory.
 For example `foo.bar.com.pw`.
 
 #### Diffie-Hellman Groups
