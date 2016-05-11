@@ -105,6 +105,11 @@ hosts in use.  The certificate and keys should be named after the virtual host w
 `.key` extension.  For example, a container with `VIRTUAL_HOST=foo.bar.com` should have a
 `foo.bar.com.crt` and `foo.bar.com.key` file in the certs directory.
 
+#### Passphrase
+
+Optionally you can set passphrase file for each certificate by creating `.pw` file with passphrase in certs directory.
+For example `foo.bar.com.pw`.
+
 #### Diffie-Hellman Groups
 
 If you have Diffie-Hellman groups enabled, the files should be named after the virtual host with a
