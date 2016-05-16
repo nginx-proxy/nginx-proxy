@@ -73,18 +73,26 @@ You may want to do this to prevent having the docker socket bound to a publicly 
 
 To run nginx proxy as a separate container you'll need to have [nginx.tmpl](https://github.com/jwilder/nginx-proxy/blob/master/nginx.tmpl) on your host system.
 
-First start nginx with a volume:
+First start nginx (or nginx:alpine, etc) with a volume:
 
-
-    $ docker run -d -p 80:80 --name nginx -v /tmp/nginx:/etc/nginx/conf.d -t nginx
+```
+$ docker run -d -p 80:80 \
+    --name nginx-proxy \
+    -v /tmp/nginx:/etc/nginx/conf.d \
+    -t nginx
+```
 
 Then start the docker-gen container with the shared volume and template:
 
 ```
-$ docker run --volumes-from nginx \
+$ docker run -d \
+    --name nginx-proxy-gen \
+    --volumes-from nginx-proxy \
     -v /var/run/docker.sock:/tmp/docker.sock:ro \
-    -v $(pwd):/etc/docker-gen/templates \
-    -t jwilder/docker-gen -notify-sighup nginx -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    -v $(pwd)/certs:/etc/nginx/certs:ro \
+    -v $(pwd)/nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl:ro \
+    -t jwilder/docker-gen \
+        -notify-sighup nginx-proxy -wait 5s:30s -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
 ```
 
 Finally, start your containers with `VIRTUAL_HOST` environment variables.
