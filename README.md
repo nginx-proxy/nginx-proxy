@@ -143,7 +143,8 @@ a 503.
 
 To serve traffic in both SSL and non-SSL modes without redirecting to SSL, you can include the
 environment variable `HTTPS_METHOD=noredirect` (the default is `HTTPS_METHOD=redirect`).  You can also
-disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`. 
+disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`. Note that `HTTPS_METHOD` must be specified
+on each container for which you want to override the default behavior.
 
 ### Basic Authentication Support
 
