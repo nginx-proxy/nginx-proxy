@@ -56,6 +56,35 @@ function setup {
 	assert_200_https test.nginx-proxy.bats
 }
 
+@test "[$TEST_FILE] test SSL Strict-Transport-Security" {
+	# WHEN
+	prepare_web_container bats-ssl-hosts-4 "80 443" \
+		-e VIRTUAL_HOST=*.nginx-proxy.bats \
+		-e CERT_NAME=nginx-proxy.bats
+	dockergen_wait_for_event $SUT_CONTAINER start bats-ssl-hosts-1
+	sleep 1
+
+	# THEN
+	assert_301 test.nginx-proxy.bats
+	assert_200_https test.nginx-proxy.bats
+    assert_output -p "Strict-Transport-Security: max-age=31536000"
+}
+
+@test "[$TEST_FILE] test HTTPS_METHOD=noredirect disables Strict-Transport-Security" {
+	# WHEN
+	prepare_web_container bats-ssl-hosts-5 "80 443" \
+		-e VIRTUAL_HOST=*.nginx-proxy.bats \
+		-e CERT_NAME=nginx-proxy.bats \
+		-e HTTPS_METHOD=noredirect
+	dockergen_wait_for_event $SUT_CONTAINER start bats-ssl-hosts-3
+	sleep 1
+
+	# THEN
+	assert_200 test.nginx-proxy.bats
+	assert_200_https test.nginx-proxy.bats
+    refute_output -p "Strict-Transport-Security: max-age=31536000"
+}
+
 
 @test "[$TEST_FILE] stop all bats containers" {
 	stop_bats_containers

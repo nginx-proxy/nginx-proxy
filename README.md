@@ -143,8 +143,12 @@ a 503.
 
 To serve traffic in both SSL and non-SSL modes without redirecting to SSL, you can include the
 environment variable `HTTPS_METHOD=noredirect` (the default is `HTTPS_METHOD=redirect`).  You can also
-disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`. Note that `HTTPS_METHOD` must be specified
-on each container for which you want to override the default behavior.
+disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`. `HTTPS_METHOD` must be specified
+on each container for which you want to override the default behavior.  If `HTTPS_METHOD=noredirect` is
+used, Strict Transport Security (HSTS) is disabled to prevent HTTPS users from being redirected by the
+client.  If you cannot get to the HTTP site after changing this setting, your browser has probably cached
+the HSTS policy and is automatically redirecting you back to HTTPS.  You will need to clear your browser's
+HSTS cache or use an incognito window / different browser.
 
 ### Basic Authentication Support
 
