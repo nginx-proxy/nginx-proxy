@@ -92,7 +92,7 @@ $ docker run -d \
     -v $(pwd)/certs:/etc/nginx/certs:ro \
     -v $(pwd)/nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl:ro \
     -t jwilder/docker-gen \
-        -notify-sighup nginx-proxy -wait 5s:30s -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+        -notify-sighup nginx-proxy -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
 ```
 
 Finally, start your containers with `VIRTUAL_HOST` environment variables.
