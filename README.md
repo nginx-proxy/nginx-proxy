@@ -26,7 +26,7 @@ Currently this does not work with the new v2 syntax of docker-compose (due to no
 
 ### Multiple Ports
 
-If your container exposes multiple ports, nginx-proxy will default to the service running on port 80.  If you need to specify a different port, you can set a VIRTUAL_PORT env var to select a different one.  If your container only exposes one port and it has a VIRTUAL_HOST env var set, that port will be selected.
+If your container exposes multiple ports, nginx-proxy will default to the service running on port 80.  If you need to specify a different port, you can set a VIRTUAL_PORT env var to select a different one.  If your container only exposes one port and it has a VIRTUAL_HOST env var set, that port will be selected. Or you can try your hand at the Advanced VIRTUAL_HOST syntax.
 
   [1]: https://github.com/jwilder/docker-gen
   [2]: http://jasonwilder.com/blog/2014/03/25/automated-nginx-reverse-proxy-for-docker/
@@ -56,6 +56,22 @@ In this example, the `my-nginx-proxy` container will be connected to `my-network
 ### SSL Backends
 
 If you would like to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_PROTO=https` on the backend container.
+
+### Advanced VIRTUAL_HOST syntax
+
+Using the Advanced VIRTUAL_HOST syntax you can specify multiple host names to each go to their own backend port. Basically provides support for VIRTUAL_HOST, VIRTUAL_PORT, and VIRTUAL_PROTO all in one field.
+
+For example, given the following:
+
+```
+VIRTUAL_HOST=api.example.com=>http:80,api-admin.example.com=>http:8001,secure.example.com=>https:8443
+```
+
+This would yield 3 different server/upstream configurations...
+
+1. Requests for api.example.com would route to this container's port 80 via http
+2. Requests for api-admin.example.com would route to this containers port 8001 via http
+3. Requests for secure.example.com would route to this containers port 8443 via https
 
 ### Default Host
 
@@ -143,7 +159,7 @@ a 503.
 
 To serve traffic in both SSL and non-SSL modes without redirecting to SSL, you can include the
 environment variable `HTTPS_METHOD=noredirect` (the default is `HTTPS_METHOD=redirect`).  You can also
-disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`. 
+disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`.
 
 ### Basic Authentication Support
 
