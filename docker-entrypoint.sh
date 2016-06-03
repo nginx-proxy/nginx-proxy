@@ -19,4 +19,19 @@ if [ "$socketMissing" = 1 -a "$1" = forego -a "$2" = start -a "$3" = '-r' ]; the
 	exit 1
 fi
 
+# if a custom template has not been specified
+if [ -z "$CUSTOM_TEMPLATE" ]; then
+	# try to copy default config to another file if the other file doesn't yet exist
+	cp -n nginx.tmpl nginx_default.tmpl
+
+	# create symlink to default config file
+	ln -sf nginx_default.tmpl nginx.tmpl
+else
+	# try to copy default config to another file if the other file doesn't yet exist
+	cp -n nginx.tmpl nginx_default.tmpl
+
+	# create symlink to custom config file
+	ln -sf $CUSTOM_TEMPLATE nginx.tmpl
+fi
+
 exec "$@"

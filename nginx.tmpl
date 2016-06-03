@@ -123,20 +123,26 @@ upstream {{ $host }} {
 
 {{ $is_https := (and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) }}
 
+{{ $http_lport := or (first (groupByKeys $containers "Env.LISTEN_PORT_HTTP")) "80" }}
+{{ $https_lport := or (first (groupByKeys $containers "Env.LISTEN_PORT_HTTPS")) "443" }}
+
 {{ if $is_https }}
 
+{{ if ne $http_lport "None" }}
 {{ if eq $https_method "redirect" }}
 server {
 	server_name {{ $host }};
-	listen 80 {{ $default_server }};
+	listen {{ $http_lport }} {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
 	return 301 https://$host$request_uri;
 }
 {{ end }}
+{{ end }}
 
+{{ if ne $https_lport "None" }}
 server {
 	server_name {{ $host }};
-	listen 443 ssl http2 {{ $default_server }};
+	listen {{ $https_lport }} ssl http2 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
 
 	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
@@ -174,14 +180,16 @@ server {
                 {{ end }}
 	}
 }
+{{ end }}
 
 {{ end }}
 
 {{ if or (not $is_https) (eq $https_method "noredirect") }}
 
+{{ if ne $http_lport "None" }}
 server {
 	server_name {{ $host }};
-	listen 80 {{ $default_server }};
+	listen {{ $http_lport }} {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
@@ -203,17 +211,20 @@ server {
                 {{ end }}
 	}
 }
+{{ end }}
 
+{{ if ne $https_lport "None" }}
 {{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name {{ $host }};
-	listen 443 ssl http2 {{ $default_server }};
+	listen {{ $https_lport }} ssl http2 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
 
 	ssl_certificate /etc/nginx/certs/default.crt;
 	ssl_certificate_key /etc/nginx/certs/default.key;
 }
+{{ end }}
 {{ end }}
 
 {{ end }}
