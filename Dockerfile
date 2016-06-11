@@ -9,9 +9,11 @@ RUN apt-get update \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/*
 
-# Configure Nginx and apply fix for very long server names
+# Update default nginx.conf
+# - apply fix for very long server names
+# - delete access_log to allow for per-virtual host customisation in nginx.tmpl
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
- && sed -i 's/^http {/&\n    server_names_hash_bucket_size 128;/g' /etc/nginx/nginx.conf
+ && sed -i 's/^http {/&\n    server_names_hash_bucket_size 128;/g; /access_log/d' /etc/nginx/nginx.conf
 
 # Install Forego
 ADD https://github.com/jwilder/forego/releases/download/v0.16.1/forego /usr/local/bin/forego
