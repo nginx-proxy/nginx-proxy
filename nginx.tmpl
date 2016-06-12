@@ -120,7 +120,7 @@ upstream {{ $host }} {
 	{{ $vhostCert := replace $vhostCert ".key" "" -1 }}
 {{ end }}
 
-{{/* Use the cert specifid on the container or fallback to the best vhost match */}}
+{{/* Use the cert specified on the container or fallback to the best vhost match */}}
 {{ $cert := (coalesce $certName $vhostCert) }}
 
 {{ $is_https := (and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) }}
