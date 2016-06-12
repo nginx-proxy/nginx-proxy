@@ -112,11 +112,13 @@ upstream {{ $host }} {
 {{ $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
 
 {{/* Get the best matching cert  by name for the vhost. */}}
+{{ $vhostCert := "" }}
+{{ if exists "/etc/nginx/certs" }}
 {{ $vhostCert := (closest (dir "/etc/nginx/certs") (printf "%s.crt" $host))}}
-
-{{/* vhostCert is actually a filename so remove any suffixes since they are added later */}}
-{{ $vhostCert := replace $vhostCert ".crt" "" -1 }}
-{{ $vhostCert := replace $vhostCert ".key" "" -1 }}
+	{{/* vhostCert is actually a filename so remove any suffixes since they are added later */}}
+	{{ $vhostCert := replace $vhostCert ".crt" "" -1 }}
+	{{ $vhostCert := replace $vhostCert ".key" "" -1 }}
+{{ end }}
 
 {{/* Use the cert specifid on the container or fallback to the best vhost match */}}
 {{ $cert := (coalesce $certName $vhostCert) }}
