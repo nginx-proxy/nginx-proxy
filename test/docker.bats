@@ -74,7 +74,7 @@ load test_helpers
 		-v $BATS_TEST_DIRNAME/../nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl:ro \
 		--volumes-from bats-nginx \
 		--expose 80 \
-		jwilder/docker-gen:0.7.1 \
+		jwilder/docker-gen:0.7.3 \
 			-notify-sighup bats-nginx \
 			-watch \
 			-only-exposed \
