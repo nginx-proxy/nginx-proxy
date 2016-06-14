@@ -186,6 +186,32 @@ $ docker run -d -p 80:80 -p 443:443 \
 
 You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
 
+### Multiple nginx-proxy Containers
+
+If you need to run multiple nginx-proxy containers to load balance across
+different sets of backend containers, you can set an environment variable
+APP_KEY on both the nginx-proxy container and the backend containers.
+```
+$ docker run -d -p 8080:80 -p 8443:443 \
+    -e APP_KEY=api-green \
+    -v /var/run/docker.sock:/tmp/docker.sock:ro \
+    jwilder/nginx-proxy
+
+$ docker run -e VIRTUAL_HOST=foo.bar.com \
+    -e APP_KEY=api-green ...
+
+$ docker run -d -p 9090:80 -p 9443:443 \
+    -e APP_KEY=api-blue \
+    -v /var/run/docker.sock:/tmp/docker.sock:ro \
+    jwilder/nginx-proxy
+
+  $ docker run -e VIRTUAL_HOST=foo.bar.com \
+    -e APP_KEY=api-blue ...
+
+```
+This could be used in the orchestration of blue-green style deployments of
+containers onto a single Docker host.
+
 ### Custom Nginx Configuration
 
 If you need to configure Nginx beyond what is possible using environment variables, you can provide custom configuration files on either a proxy-wide or per-`VIRTUAL_HOST` basis.
