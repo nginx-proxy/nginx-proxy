@@ -42,7 +42,7 @@ services:
 ```shell
 $ docker-compose up
 $ curl -H "Host: whoami.local" localhost
-I''m 5b129ab83266
+I'm 5b129ab83266
 ```
 
 ### Multiple Ports
@@ -91,6 +91,14 @@ nginx-proxy can also be run as two separate containers using the [jwilder/docker
 image and the official [nginx](https://registry.hub.docker.com/_/nginx/) image.
 
 You may want to do this to prevent having the docker socket bound to a publicly exposed container service.
+
+You can demo this pattern with docker-compose:
+
+```console
+$ docker-compose --file docker-compose-separate-containers.yml up
+$ curl -H "Host: whoami.local" localhost
+I'm 5b129ab83266
+```
 
 To run nginx proxy as a separate container you'll need to have [nginx.tmpl](https://github.com/jwilder/nginx-proxy/blob/master/nginx.tmpl) on your host system.
 
