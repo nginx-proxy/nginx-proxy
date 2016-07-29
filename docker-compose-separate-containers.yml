@@ -7,8 +7,6 @@ services:
       - "80:80"
     volumes:
       - /etc/nginx/conf.d
-    networks:
-      - proxy-tier
 
   dockergen:
     image: jwilder/docker-gen
@@ -18,16 +16,8 @@ services:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl
-    networks:
-      - proxy-tier
 
   whoami:
     image: jwilder/whoami
     environment:
       - VIRTUAL_HOST=whoami.local
-    networks:
-      - proxy-tier
-
-networks:
-  proxy-tier:
-    driver: bridge
