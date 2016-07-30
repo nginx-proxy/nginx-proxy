@@ -51,15 +51,20 @@ proxy_set_header X-Real-IP $remote_addr;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 client_max_body_size  30M;
-
-
 {{ end }}
 
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
 	listen 80;
 	access_log /var/log/nginx/access.log;
-	return 503;
+	error_page 500 501 502 503 504 /custom_50x.html;
+	location / {
+		return 503;
+	}
+	location = /custom_50x.html{
+	                internal;
+	                root /usr/share/nginx/html;
+	        }
 }
 
 {{ if (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
@@ -67,7 +72,14 @@ server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
 	listen 443 ssl http2;
 	access_log /var/log/nginx/access.log vhost;
-	return 503;
+	error_page 500 501 502 503 504 /custom_50x.html;
+	location / {
+		return 503;
+	}
+	location = /custom_50x.html{
+	                internal;
+	                root /usr/share/nginx/html;
+	        }
 
 	ssl_certificate /etc/nginx/certs/default.crt;
 	ssl_certificate_key /etc/nginx/certs/default.key;
@@ -184,6 +196,17 @@ server {
 	server_name {{ $host }};
 	listen 443 ssl http2 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
+	error_page 404 /custom_404.html;
+  error_page 403 /custom_403.html;
+  location = /custom_404.html{
+            internal;
+                root /usr/share/nginx/html;
+    }
+	location = /custom_403.html{
+          	internal;
+	          root /usr/share/nginx/html;
+  }
+
 
 	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
 	ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA;
@@ -231,6 +254,16 @@ server {
 	server_name {{ $host }};
 	listen 80 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
+	error_page 404 /custom_404.html;
+	error_page 403 /custom_403.html;
+	location = /custom_403.html{
+						internal;
+								root /usr/share/nginx/html;
+		}
+	location = /custom_404.html{
+						internal;
+						root /usr/share/nginx/html;
+	}
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
