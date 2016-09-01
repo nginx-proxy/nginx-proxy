@@ -9,6 +9,12 @@ update-dependencies:
 	docker pull appropriate/curl:latest
 	docker pull docker:1.10
 
-test:
+test-debian:
 	docker build -t jwilder/nginx-proxy:bats .
 	bats test
+
+test-alpine:
+	docker build -f Dockerfile.alpine -t jwilder/nginx-proxy:bats .
+	bats test
+
+test: test-debian test-alpine
