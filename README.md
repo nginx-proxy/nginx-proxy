@@ -78,6 +78,12 @@ In this example, the `my-nginx-proxy` container will be connected to `my-network
 
 If you would like to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_PROTO=https` on the backend container.
 
+### uWSGI Backends
+
+If you would like to connect to uWSGI backend, set `VIRTUAL_PROTO=uwsgi` on the
+backend container. Your backend container should than listen on a port rather
+than a socket and expose that port.
+
 ### Default Host
 
 To set the default host for nginx use the env var `DEFAULT_HOST=foo.bar.com` for example
