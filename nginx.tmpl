@@ -168,7 +168,8 @@ server {
 	{{ end }}
 
 	location / {
-		{{ if eq $proto "uwsgi" }}
+		{{ if eq $proto "custom" }}
+		{{ else if eq $proto "uwsgi" }}
 		include uwsgi_params;
 		uwsgi_pass {{ trim $proto }}://{{ trim $host }};
 		{{ else }}
@@ -202,7 +203,8 @@ server {
 	{{ end }}
 
 	location / {
-		{{ if eq $proto "uwsgi" }}
+		{{ if eq $proto "custom" }}	
+		{{ else if eq $proto "uwsgi" }}
 		include uwsgi_params;
 		uwsgi_pass {{ trim $proto }}://{{ trim $host }};
 		{{ else }}
