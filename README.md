@@ -206,7 +206,7 @@ and `CERT_NAME=shared` will then use this shared cert.
 The SSL cipher configuration is based on the [Mozilla nginx intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Nginx) which
 should provide compatibility with clients back to Firefox 1, Chrome 1, IE 7, Opera 5, Safari 1,
 Windows XP IE8, Android 2.3, Java 7.  Note that the DES-based TLS ciphers were removed for security.
-The configuration also enables HSTS, PFS, and SSL session caches.  Currently TLS 1.0, 1.1 and 1.2
+The configuration also enables HSTS, PFS, OCSP stapling and SSL session caches.  Currently TLS 1.0, 1.1 and 1.2
 are supported.  TLS 1.0 is deprecated but its end of life is not until June 30, 2018.  It is being 
 included because the following browsers will stop working when it is removed: Chrome < 22, Firefox < 27,
 IE < 11, Safari < 7, iOS < 5, Android Browser < 5.
