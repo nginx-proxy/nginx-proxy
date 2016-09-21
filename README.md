@@ -239,12 +239,12 @@ FROM jwilder/nginx-proxy
 RUN { \
       echo 'server_tokens off;'; \
       echo 'client_max_body_size 100m;'; \
-    } > /etc/nginx/conf.d/my_proxy.conf
+    } > /etc/nginx/conf.d/proxy.conf
 ```
 
 Or it can be done by mounting in your custom configuration in your `docker run` command:
 
-    $ docker run -d -p 80:80 -p 443:443 -v /path/to/my_proxy.conf:/etc/nginx/conf.d/my_proxy.conf:ro -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+    $ docker run -d -p 80:80 -p 443:443 -v /path/to/my_proxy.conf:/etc/nginx/conf.d/proxy.conf:ro -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
 #### Per-VIRTUAL_HOST
 
