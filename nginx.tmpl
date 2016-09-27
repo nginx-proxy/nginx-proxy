@@ -125,6 +125,7 @@ upstream {{ $upstream_name }} {
 		{{ end }}
 	{{ end }}
 {{ end }}
+	server localhost down;
 }
 
 {{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
