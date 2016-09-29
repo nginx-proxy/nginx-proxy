@@ -25,7 +25,7 @@ map $http_x_forwarded_proto $proxy_x_forwarded_proto {
 }
 
 # If we receive X-Forwarded-Port, pass it through; otherwise, pass along the
-# server port the client connect to
+# server port the client connected to
 map $http_x_forwarded_port $proxy_x_forwarded_port {
   default $http_x_forwarded_port;
   ''      $server_port;
