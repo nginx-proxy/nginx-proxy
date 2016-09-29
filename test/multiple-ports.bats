@@ -58,7 +58,7 @@ function setup {
 # $1 port we are expecting an response from
 function assert_response_is_from_port {
 	local -r port=$1
-	run curl_container $SUT_CONTAINER /data --header "Host: web.bats"
+	run curl_container $SUT_CONTAINER /port --header "Host: web.bats"
 	assert_output "answer from port $port"
 }
 
