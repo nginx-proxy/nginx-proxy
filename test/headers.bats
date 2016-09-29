@@ -123,6 +123,17 @@ function setup {
 	assert_output -l 'Host: web.bats'
 }
 
+@test "[$TEST_FILE] nginx-proxy supresses Proxy for httpoxy protection" {
+	# WHEN
+	prepare_web_container bats-host-10 80 -e VIRTUAL_HOST=web.bats
+	dockergen_wait_for_event $SUT_CONTAINER start bats-host-10
+	sleep 1
+
+	# THEN
+	run curl_container $SUT_CONTAINER /headers -H "Proxy: tcp://foo.com" -H "Host: web.bats"
+	refute_output -l 'Proxy: tcp://foo.com'
+}
+
 @test "[$TEST_FILE] stop all bats containers" {
 	stop_bats_containers
 }
