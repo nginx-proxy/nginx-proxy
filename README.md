@@ -142,9 +142,11 @@ hosts in use.  The certificate and keys should be named after the virtual host w
 
 #### Diffie-Hellman Groups
 
-If you have Diffie-Hellman groups enabled, the files should be named after the virtual host with a
+Diffie-Hellman groups are enabled by default, with a pregenerated key in `/etc/nginx/dhparam.pem`.
+You can mount a different `dhparam.pem` file at that location to override the default cert.
+To use custom `dhparam.pem` files per-virtual-host, the files should be named after the virtual host with a
 `dhparam` suffix and `.pem` extension. For example, a container with `VIRTUAL_HOST=foo.bar.com`
-should have a `foo.bar.com.dhparam.pem` file in the certs directory.
+should have a `foo.bar.com.dhparam.pem` file in the `/etc/nginx/certs` directory.
 
 #### Wildcard Certificates
 
