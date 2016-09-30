@@ -76,7 +76,7 @@ In this example, the `my-nginx-proxy` container will be connected to `my-network
 
 ### SSL Backends
 
-If you would like to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_PROTO=https` on the backend container.
+If you would like to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_PROTO=https` on the backend container. You will most likely also want to enable the port you will be using https over, typically `VIRTUAL_PORT=443`.
 
 ### uWSGI Backends
 
