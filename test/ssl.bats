@@ -17,7 +17,7 @@ function setup {
 
 @test "[$TEST_FILE] test SSL for VIRTUAL_HOST=*.nginx-proxy.bats" {
 	# WHEN
-	prepare_web_container bats-ssl-hosts-1 "80 443" \
+	prepare_web_container bats-ssl-hosts-1 "80" \
 		-e VIRTUAL_HOST=*.nginx-proxy.bats \
 		-e CERT_NAME=nginx-proxy.bats
 	dockergen_wait_for_event $SUT_CONTAINER start bats-ssl-hosts-1
@@ -30,7 +30,7 @@ function setup {
 
 @test "[$TEST_FILE] test HTTPS_METHOD=nohttp" {
 	# WHEN
-	prepare_web_container bats-ssl-hosts-2 "80 443" \
+	prepare_web_container bats-ssl-hosts-2 "80" \
 		-e VIRTUAL_HOST=*.nginx-proxy.bats \
 		-e CERT_NAME=nginx-proxy.bats \
 		-e HTTPS_METHOD=nohttp
@@ -44,7 +44,7 @@ function setup {
 
 @test "[$TEST_FILE] test HTTPS_METHOD=noredirect" {
 	# WHEN
-	prepare_web_container bats-ssl-hosts-3 "80 443" \
+	prepare_web_container bats-ssl-hosts-3 "80" \
 		-e VIRTUAL_HOST=*.nginx-proxy.bats \
 		-e CERT_NAME=nginx-proxy.bats \
 		-e HTTPS_METHOD=noredirect
@@ -58,7 +58,7 @@ function setup {
 
 @test "[$TEST_FILE] test SSL Strict-Transport-Security" {
 	# WHEN
-	prepare_web_container bats-ssl-hosts-4 "80 443" \
+	prepare_web_container bats-ssl-hosts-4 "80" \
 		-e VIRTUAL_HOST=*.nginx-proxy.bats \
 		-e CERT_NAME=nginx-proxy.bats
 	dockergen_wait_for_event $SUT_CONTAINER start bats-ssl-hosts-1
@@ -72,7 +72,7 @@ function setup {
 
 @test "[$TEST_FILE] test HTTPS_METHOD=noredirect disables Strict-Transport-Security" {
 	# WHEN
-	prepare_web_container bats-ssl-hosts-5 "80 443" \
+	prepare_web_container bats-ssl-hosts-5 "80" \
 		-e VIRTUAL_HOST=*.nginx-proxy.bats \
 		-e CERT_NAME=nginx-proxy.bats \
 		-e HTTPS_METHOD=noredirect
@@ -85,6 +85,19 @@ function setup {
     refute_output -p "Strict-Transport-Security: max-age=31536000"
 }
 
+@test "[$TEST_FILE] test HTTPS_METHOD=nohttps" {
+	# WHEN
+	prepare_web_container bats-ssl-hosts-6 "80" \
+		-e VIRTUAL_HOST=*.nginx-proxy.bats \
+		-e CERT_NAME=nginx-proxy.bats \
+		-e HTTPS_METHOD=nohttps
+	dockergen_wait_for_event $SUT_CONTAINER start bats-ssl-hosts-6
+	sleep 1
+
+	# THEN
+	assert_down_https test.nginx-proxy.bats
+	assert_200 test.nginx-proxy.bats
+}
 
 @test "[$TEST_FILE] stop all bats containers" {
 	stop_bats_containers
@@ -116,6 +129,15 @@ function assert_301 {
 
 	run curl_container $SUT_CONTAINER / --head --header "Host: $host"
 	assert_output -l 0 $'HTTP/1.1 301 Moved Permanently\r'
+}
+
+# assert that querying nginx-proxy with the given Host header fails because the host is down
+# $1 Host HTTP header to use when querying nginx-proxy
+function assert_down_https {
+	local -r host=$1
+
+	run curl_container_https $SUT_CONTAINER / --head --header "Host: $host"
+	assert_failure
 }
 
 # assert that querying nginx-proxy with the given Host header produces a `HTTP 200` response
