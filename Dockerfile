@@ -9,10 +9,9 @@ RUN apt-get update \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/*
 
-# Generate dhparam.pem, configure Nginx, apply fix for very long server names
+# Generate dhparam.pem, configure nginx
 RUN openssl dhparam -out /etc/nginx/dhparam.pem 2048 \
- && echo "daemon off;" >> /etc/nginx/nginx.conf \
- && sed -i 's|^http {|&\n    server_names_hash_bucket_size 128;\n    ssl_dhparam /etc/nginx/dhparam.pem;|g' /etc/nginx/nginx.conf
+ && echo "daemon off;" >> /etc/nginx/nginx.conf
 
 # Install Forego
 ADD https://github.com/jwilder/forego/releases/download/v0.16.1/forego /usr/local/bin/forego
