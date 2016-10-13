@@ -198,7 +198,11 @@ $ docker run -d -p 80:80 -p 443:443 \
     jwilder/nginx-proxy
 ```
 
-You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
+You'll need to create a password file for each virtualhost:
+
+```shell
+docker run --rm -ti m31271n/htpasswd <username> <password> > htpasswd
+```
 
 ### Custom Nginx Configuration
 
