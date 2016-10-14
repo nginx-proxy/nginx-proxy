@@ -11,8 +11,8 @@ function setup {
 @test "[$TEST_FILE] DEFAULT_HOST=web1.bats" {
 	SUT_CONTAINER=bats-nginx-proxy-${TEST_FILE}-1
 
-	# GIVEN a webserver with VIRTUAL_HOST set to web.bats
-	prepare_web_container bats-web 80 -e VIRTUAL_HOST=web.bats
+	# GIVEN a webserver with VIRTUAL_HOST set to web.bats and VIRTUAL_LISTEN_PORT_HTTP set to 81
+	prepare_web_container bats-web 80 -e VIRTUAL_HOST=web.bats -e VIRTUAL_LISTEN_PORT_HTTP=81
 
 	# WHEN nginx-proxy runs with DEFAULT_HOST set to web.bats
 	run nginxproxy $SUT_CONTAINER -v /var/run/docker.sock:/tmp/docker.sock:ro -e DEFAULT_HOST=web.bats
@@ -25,6 +25,14 @@ function setup {
 
 	# THEN querying the proxy with any other Host header → 200
 	run curl_container $SUT_CONTAINER / --head --header "Host: something.I.just.made.up"
+	assert_output -l 0 $'HTTP/1.1 200 OK\r'
+
+	# THEN querying the proxy without Host header on port 81 → 200
+	run curl_container_port $SUT_CONTAINER / 81 --head
+	assert_output -l 0 $'HTTP/1.1 200 OK\r'
+
+	# THEN querying the proxy with any other Host header on port 81 → 200
+	run curl_container_port $SUT_CONTAINER / 81 --head --header "Host: something.I.just.made.up"
 	assert_output -l 0 $'HTTP/1.1 200 OK\r'
 }
 

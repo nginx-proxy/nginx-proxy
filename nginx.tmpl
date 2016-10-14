@@ -56,9 +56,17 @@ proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 proxy_set_header Proxy "";
 {{ end }}
 
+{{ $http_ports := (groupByKeys $ "Env.VIRTUAL_LISTEN_PORT_HTTP") }}
+{{ $https_ports := (groupByKeys $ "Env.VIRTUAL_LISTEN_PORT_HTTPS") }}
+
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
 	listen 80;
+	{{ range $port := $http_ports }}
+		{{ if ne $port "80" }}
+			listen {{ $port }};
+		{{ end }}
+	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
 }
@@ -67,6 +75,11 @@ server {
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
 	listen 443 ssl http2;
+	{{ range $port := $https_ports }}
+		{{ if ne $port "443" }}
+			listen {{ $port }} ssl http2;
+		{{ end }}
+	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
 
@@ -104,10 +117,16 @@ upstream {{ $host }} {
 }
 
 {{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
-{{ $default_server := index (dict $host "" $default_host "default_server") $host }}
+{{ $default_server := index (dict $host 0 $default_host 1) $host }}
 
 {{/* Get the VIRTUAL_PROTO defined by containers w/ the same vhost, falling back to "http" */}}
 {{ $proto := or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http" }}
+
+{{/* Get the port to listen on for HTTP connections, falling back to 80 */}}
+{{ $http_port := or (first (groupByKeys $containers "Env.VIRTUAL_LISTEN_PORT_HTTP")) "80" }}
+
+{{/* Get the port to listen on for HTTPS connections, falling back to 443 */}}
+{{ $https_port := or (first (groupByKeys $containers "Env.VIRTUAL_LISTEN_PORT_HTTPS")) "443" }}
 
 {{/* Get the HTTPS_METHOD defined by containers w/ the same vhost, falling back to "redirect" */}}
 {{ $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) "redirect" }}
@@ -132,7 +151,16 @@ upstream {{ $host }} {
 {{ if eq $https_method "redirect" }}
 server {
 	server_name {{ $host }};
-	listen 80 {{ $default_server }};
+	{{ if eq $default_server 1 }}
+		listen 80 default_server;
+		{{ range $port := $http_ports }}
+			{{ if ne $port "80" }}
+				listen {{ $port }} default_server;
+			{{ end }}
+		{{ end }}
+	{{ else }}
+		listen {{ $http_port }};
+	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 301 https://$host$request_uri;
 }
@@ -140,7 +168,16 @@ server {
 
 server {
 	server_name {{ $host }};
-	listen 443 ssl http2 {{ $default_server }};
+	{{ if eq $default_server 1 }}
+		listen 443 ssl http2 default_server;
+		{{ range $port := $http_ports }}
+			{{ if ne $port "443" }}
+				listen {{ $port }} ssl http2 default_server;
+			{{ end }}
+		{{ end }}
+	{{ else }}
+		listen {{ $https_port }} ssl http2;
+	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 
 	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
@@ -193,7 +230,16 @@ server {
 
 server {
 	server_name {{ $host }};
-	listen 80 {{ $default_server }};
+	{{ if eq $default_server 1 }}
+		listen 80 default_server;
+		{{ range $port := $http_ports }}
+			{{ if ne $port "80" }}
+				listen {{ $port }} default_server;
+			{{ end }}
+		{{ end }}
+	{{ else }}
+		listen {{ $http_port }};
+	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
@@ -224,7 +270,16 @@ server {
 {{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name {{ $host }};
-	listen 443 ssl http2 {{ $default_server }};
+	{{ if eq $default_server 1 }}
+		listen 443 ssl http2 default_server;
+		{{ range $port := $https_ports }}
+			{{ if ne $port "443" }}
+				listen {{ $port }} ssl http2 default_server;
+			{{ end }}
+		{{ end }}
+	{{ else }}
+		listen {{ $https_port }} ssl http2;
+	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 500;
 

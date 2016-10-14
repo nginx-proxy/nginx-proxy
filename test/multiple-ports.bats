@@ -27,6 +27,16 @@ function setup {
 	assert_response_is_from_port 80
 }
 
+@test "[$TEST_FILE] nginx-proxy defaults to the service running on port 80 when listening on another port" {
+	# WHEN
+	prepare_web_container bats-web-${TEST_FILE}-1 "80 90" -e VIRTUAL_HOST=web.bats -e VIRTUAL_LISTEN_PORT_HTTP=90
+	dockergen_wait_for_event $SUT_CONTAINER start bats-web-${TEST_FILE}-1
+	sleep 1
+
+	# THEN
+	assert_response_is_from_port 80 90
+}
+
 
 @test "[$TEST_FILE] VIRTUAL_PORT=90 while port 80 is also exposed" {
 	# GIVEN
@@ -38,6 +48,15 @@ function setup {
 	assert_response_is_from_port 90
 }
 
+@test "[$TEST_FILE] VIRTUAL_PORT=90 while port 80 is also exposed when listening on another port" {
+	# GIVEN
+	prepare_web_container bats-web-${TEST_FILE}-2 "80 90" -e VIRTUAL_HOST=web.bats -e VIRTUAL_PORT=90 -e VIRTUAL_LISTEN_PORT_HTTP=90
+	dockergen_wait_for_event $SUT_CONTAINER start bats-web-${TEST_FILE}-2
+	sleep 1
+
+	# THEN
+	assert_response_is_from_port 90 90
+}
 
 @test "[$TEST_FILE] single exposed port != 80" {
 	# GIVEN
@@ -49,6 +68,16 @@ function setup {
 	assert_response_is_from_port 1234
 }
 
+@test "[$TEST_FILE] single exposed port != 80 when listening on another port" {
+	# GIVEN
+	prepare_web_container bats-web-${TEST_FILE}-3 1234 -e VIRTUAL_HOST=web.bats -e VIRTUAL_LISTEN_PORT_HTTP=1234
+	dockergen_wait_for_event $SUT_CONTAINER start bats-web-${TEST_FILE}-3
+	sleep 1
+
+	# THEN
+	assert_response_is_from_port 1234 1234
+}
+
 @test "[$TEST_FILE] stop all bats containers" {
 	stop_bats_containers
 }
@@ -58,7 +87,12 @@ function setup {
 # $1 port we are expecting an response from
 function assert_response_is_from_port {
 	local -r port=$1
-	run curl_container $SUT_CONTAINER /data --header "Host: web.bats"
+	local -r curl_port=$2
+
+	if [ -z "${curl_port}" ]; then
+		run curl_container $SUT_CONTAINER /data --header "Host: web.bats"
+	else
+		run curl_container_port $SUT_CONTAINER /data ${curl_port} --header "Host: web.bats"
+	fi
 	assert_output "answer from port $port"
 }
-

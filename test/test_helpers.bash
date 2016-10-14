@@ -22,7 +22,7 @@ load ${DIR}/lib/docker_helpers.bash
 
 # Define functions specific to our test suite
 
-# run the SUT docker container 
+# run the SUT docker container
 # and makes sure it remains started
 # and displays the nginx-proxy start logs
 #
@@ -57,7 +57,7 @@ function wait_for_nginxproxy_container_to_start {
 }
 
 
-# Send a HTTP request to container $1 for path $2 and 
+# Send a HTTP request to container $1 for path $2 and
 # Additional curl options can be passed as $@
 #
 # $1 container name
@@ -74,7 +74,26 @@ function curl_container {
 		http://$(docker_ip $container)${path}
 }
 
-# Send a HTTPS request to container $1 for path $2 and 
+# Send a HTTP request to container $1 for path $2 and port $3
+# Additional curl options can be passed as $@
+#
+# $1 container name
+# $2 HTTP path to query
+# $3 HTTP port
+# $@ additional options to pass to the curl command
+function curl_container_port {
+	local -r container=$1
+	local -r path=$2
+	local -r port=$3
+	shift 3
+	docker run --label bats-type="curl" appropriate/curl --silent \
+		--connect-timeout 5 \
+		--max-time 20 \
+		"$@" \
+		http://$(docker_ip $container):${port}${path}
+}
+
+# Send a HTTPS request to container $1 for path $2 and
 # Additional curl options can be passed as $@
 #
 # $1 container name
@@ -90,6 +109,26 @@ function curl_container_https {
 		--insecure \
 		"$@" \
 		https://$(docker_ip $container)${path}
+}
+
+# Send a HTTPS request to container $1 for path $2 and
+# Additional curl options can be passed as $@
+#
+# $1 container name
+# $2 HTTPS path to query
+# $3 HTTP port
+# $@ additional options to pass to the curl command
+function curl_container_https_port {
+	local -r container=$1
+	local -r path=$2
+	local -r port=$3
+	shift 3
+	docker run --label bats-type="curl" appropriate/curl --silent \
+		--connect-timeout 5 \
+		--max-time 20 \
+		--insecure \
+		"$@" \
+		https://$(docker_ip $container):${port}${path}
 }
 
 # start a container running (one or multiple) webservers listening on given ports
@@ -181,4 +220,3 @@ function dockergen_wait_for_event {
 	local -r did=$(docker_id "$other")
 	docker_wait_for_log "$container" 9 "Received event $event for container ${did:0:12}"
 }
-
