@@ -1,7 +1,6 @@
 # Test if requirements are met
 (
 	type docker &>/dev/null || ( echo "docker is not available"; exit 1 )
-	type curl &>/dev/null || ( echo "curl is not available"; exit 1 )
 )>&2
 
 
@@ -34,6 +33,7 @@ function nginxproxy {
 	shift
 	docker_clean $container_name \
 	&& docker run -d \
+		--label bats-type="nginx-proxy" \
 		--name $container_name \
 		"$@" \
 		$SUT_IMAGE \
@@ -67,13 +67,30 @@ function curl_container {
 	local -r container=$1
 	local -r path=$2
 	shift 2
-	curl --silent \
+	docker run --label bats-type="curl" appropriate/curl --silent \
 		--connect-timeout 5 \
 		--max-time 20 \
 		"$@" \
 		http://$(docker_ip $container)${path}
 }
 
+# Send a HTTPS request to container $1 for path $2 and 
+# Additional curl options can be passed as $@
+#
+# $1 container name
+# $2 HTTPS path to query
+# $@ additional options to pass to the curl command
+function curl_container_https {
+	local -r container=$1
+	local -r path=$2
+	shift 2
+	docker run --label bats-type="curl" appropriate/curl --silent \
+		--connect-timeout 5 \
+		--max-time 20 \
+		--insecure \
+		"$@" \
+		https://$(docker_ip $container)${path}
+}
 
 # start a container running (one or multiple) webservers listening on given ports
 #
@@ -87,6 +104,7 @@ function prepare_web_container {
 	local -r options="$@"
 
 	local expose_option=""
+	IFS=$' \t\n' # See https://github.com/sstephenson/bats/issues/89
 	for port in $ports; do
 		expose_option="${expose_option}--expose=$port "
 	done
@@ -108,21 +126,59 @@ function prepare_web_container {
 		-w /var/www/ \
 		$options \
 		-e PYTHON_PORTS="$ports" \
-		python:3 sh -c "
+		python:3 bash -c "
+			trap '[ \${#PIDS[@]} -gt 0 ] && kill -TERM \${PIDS[@]}' TERM
+			declare -a PIDS
 			for port in \$PYTHON_PORTS; do
 				echo starting a web server listening on port \$port;
 				mkdir /var/www/\$port
 				cd /var/www/\$port
 				echo \"answer from port \$port\" > data
 				python -m http.server \$port &
+				PIDS+=(\$!)
 			done
-			wait
+			wait \${PIDS[@]}
+			trap - TERM
+			wait \${PIDS[@]}
 		"
 	assert_success
 
 	# THEN querying directly port works
+	IFS=$' \t\n' # See https://github.com/sstephenson/bats/issues/89
 	for port in $ports; do
-		run retry 5 1s curl --silent --fail http://$(docker_ip $container_name):$port/data
+		run retry 5 1s docker run --label bats-type="curl" appropriate/curl --silent --fail http://$(docker_ip $container_name):$port/data
 		assert_output "answer from port $port"
 	done
 }
+
+# stop all containers with the "bats-type" label (matching the optionally supplied value)
+#
+# $1 optional label value
+function stop_bats_containers {
+	local -r value=$1
+
+	if [ -z "$value" ]; then
+		CIDS=( $(docker ps -q --filter "label=bats-type") )
+	else
+		CIDS=( $(docker ps -q --filter "label=bats-type=$value") )
+	fi
+
+	if [ ${#CIDS[@]} -gt 0 ]; then
+		docker stop ${CIDS[@]} >&2
+	fi
+}
+
+# wait for a docker-gen container to receive a specified event from a
+# container with the specified ID/name
+#
+# $1 docker-gen container name
+# $2 event
+# $3 ID/name of container to receive event from
+function dockergen_wait_for_event {
+	local -r container=$1
+	local -r event=$2
+	local -r other=$3
+	local -r did=$(docker_id "$other")
+	docker_wait_for_log "$container" 9 "Received event $event for container ${did:0:12}"
+}
+
