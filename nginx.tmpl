@@ -102,7 +102,9 @@ upstream {{ $host }} {
 	{{ end }}
 {{ end }}
 
-	keepalive 10;
+	{{ if (exists "/etc/nginx/upstream/default") }}
+	include /etc/nginx/upstream/default;
+	{{ end }}
 }
 
 {{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
