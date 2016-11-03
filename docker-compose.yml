@@ -3,7 +3,7 @@ services:
   nginx-proxy:
     #image: jwilder/nginx-proxy
     build: .
-    container_name: 0nginx-proxy
+    container_name: 0-nginx-proxy
     ports:
       - "80:80"
     volumes:
@@ -12,7 +12,7 @@ services:
       - "./nginx/lua:/usr/local/openresty/nginx/lua"
 
   swagger-ui:
-    container_name: 0swagger-ui
+    container_name: 0-swagger-ui
     image: schickling/swagger-ui
     environment:
       API_URL: http://auth.presspage.dev/swagger.yml
