@@ -15,5 +15,4 @@ services:
     container_name: 0-swagger-ui
     image: schickling/swagger-ui
     environment:
-      API_URL: http://auth.presspage.dev/swagger.yml
       VIRTUAL_HOST: swagger-ui.presspage.dev
