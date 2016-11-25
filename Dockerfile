@@ -26,6 +26,9 @@ RUN wget https://github.com/jwilder/docker-gen/releases/download/$DOCKER_GEN_VER
 COPY . /app/
 WORKDIR /app/
 
+# Add nginx.conf
+ADD nginx.conf /etc/nginx/nginx.conf
+
 ENV DOCKER_HOST unix:///tmp/docker.sock
 
 VOLUME ["/etc/nginx/certs"]
