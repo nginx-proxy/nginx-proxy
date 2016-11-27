@@ -76,7 +76,7 @@ In this example, the `my-nginx-proxy` container will be connected to `my-network
 
 ### SSL Backends
 
-If you would like to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_PROTO=https` on the backend container.
+If you would like the reverse proxy to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_PROTO=https` on the backend container.
 
 ### uWSGI Backends
 
@@ -139,6 +139,10 @@ The contents of `/path/to/certs` should contain the certificates and private key
 hosts in use.  The certificate and keys should be named after the virtual host with a `.crt` and
 `.key` extension.  For example, a container with `VIRTUAL_HOST=foo.bar.com` should have a
 `foo.bar.com.crt` and `foo.bar.com.key` file in the certs directory.
+
+If you are running the container in a virtualized environment (Hyper-V, VirtualBox, etc...),
+/path/to/certs must exist in that environment or be made accessible to that environment.
+By default, Docker is not able to mount directories on the host machine to containers running in a virtual machine.
 
 #### Diffie-Hellman Groups
 
