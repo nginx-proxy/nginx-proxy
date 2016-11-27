@@ -19,9 +19,16 @@
 
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
-map $http_x_forwarded_proto $proxy_x_forwarded_proto {
+map $http_x_forwarded_proto $default_forwarded_proto {
   default $http_x_forwarded_proto;
   ''      $scheme;
+}
+
+# If we received a HTTP-CloudFront-Forwarded-Proto, pass it through; otherwise,
+# pass along the original value.
+map $http_cloudfront_forwarded_proto $proxy_x_forwarded_proto {
+  default $http_cloudfront_forwarded_proto;
+  ''      $default_forwarded_proto;
 }
 
 # If we receive Upgrade, set Connection to "upgrade"; otherwise, delete any

@@ -26,6 +26,14 @@ function setup {
 	# THEN querying the proxy with any other Host header → 200
 	run curl_container $SUT_CONTAINER / --head --header "Host: something.I.just.made.up"
 	assert_output -l 0 $'HTTP/1.1 200 OK\r'
+
+	# THEN querying the proxy with X-Forwarded-Proto → 200
+	run curl_container $SUT_CONTAINER / --head --header "X-Forwarded-Proto: https"
+	assert_output -l 0 $'HTTP/1.1 200 OK\r'
+
+	# THEN querying the proxy with HTTP-CloudFront-Forwarded-Proto → 200
+	run curl_container $SUT_CONTAINER / --head --header "HTTP-CloudFront-Forwarded-Proto: https"
+	assert_output -l 0 $'HTTP/1.1 200 OK\r'
 }
 
 @test "[$TEST_FILE] stop all bats containers" {
