@@ -124,6 +124,7 @@ function prepare_web_container {
 		--name $container_name \
 		$expose_option \
 		-w /var/www/ \
+		-v $DIR/web_helpers:/var/www:ro \
 		$options \
 		-e PYTHON_PORTS="$ports" \
 		python:3 bash -c "
@@ -131,10 +132,7 @@ function prepare_web_container {
 			declare -a PIDS
 			for port in \$PYTHON_PORTS; do
 				echo starting a web server listening on port \$port;
-				mkdir /var/www/\$port
-				cd /var/www/\$port
-				echo \"answer from port \$port\" > data
-				python -m http.server \$port &
+				./webserver.py \$port &
 				PIDS+=(\$!)
 			done
 			wait \${PIDS[@]}
@@ -146,7 +144,7 @@ function prepare_web_container {
 	# THEN querying directly port works
 	IFS=$' \t\n' # See https://github.com/sstephenson/bats/issues/89
 	for port in $ports; do
-		run retry 5 1s docker run --label bats-type="curl" appropriate/curl --silent --fail http://$(docker_ip $container_name):$port/data
+		run retry 5 1s docker run --label bats-type="curl" appropriate/curl --silent --fail http://$(docker_ip $container_name):$port/port
 		assert_output "answer from port $port"
 	done
 }
