@@ -1,15 +1,18 @@
 version: '2'
 services:
   nginx-proxy:
-    image: jwilder/nginx-proxy
-    container_name: nginx-proxy
+    #image: jwilder/nginx-proxy
+    build: .
+    container_name: 0-nginx-proxy
     ports:
       - "80:80"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+      - "./nginx/vhost:/etc/nginx/vhost.d"
+      - "./nginx/lua:/usr/local/openresty/nginx/lua"
 
-  whoami:
-    image: jwilder/whoami
+  swagger-ui:
+    container_name: 0-swagger-ui
+    image: schickling/swagger-ui
     environment:
-      - VIRTUAL_HOST=whoami.local
-
+      VIRTUAL_HOST: swagger-ui.presspage.dev

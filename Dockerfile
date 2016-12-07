@@ -1,17 +1,22 @@
-FROM nginx:1.11.3
-MAINTAINER Jason Wilder mail@jasonwilder.com
+FROM openresty/openresty:jessie
 
 # Install wget and install/updates certificates
 RUN apt-get update \
  && apt-get install -y -q --no-install-recommends \
     ca-certificates \
+    unzip \
     wget \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/*
 
+RUN /usr/local/openresty/luajit/bin/luarocks install date
+RUN /usr/local/openresty/luajit/bin/luarocks install lua-resty-http
+RUN /usr/local/openresty/luajit/bin/luarocks install lua-resty-jwt
+
 # Configure Nginx and apply fix for very long server names
-RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
- && sed -i 's/^http {/&\n    server_names_hash_bucket_size 128;/g' /etc/nginx/nginx.conf
+RUN mkdir -p /etc/nginx/conf.d
+RUN mkdir -p /var/log/nginx/
+COPY nginx/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 
 # Install Forego
 ADD https://github.com/jwilder/forego/releases/download/v0.16.1/forego /usr/local/bin/forego

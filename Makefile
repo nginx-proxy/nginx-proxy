@@ -1,6 +1,5 @@
-.SILENT :
-.PHONY : test
-
+start-docker:
+	docker-compose up -d
 update-dependencies:
 	docker pull jwilder/docker-gen:0.7.3
 	docker pull nginx:1.11.3
@@ -12,3 +11,5 @@ update-dependencies:
 test:
 	docker build -t jwilder/nginx-proxy:bats .
 	bats test
+
+.PHONY : start-docker
