@@ -1,0 +1,16 @@
+web1:
+  image: web
+  expose:
+    - "81"
+  environment:
+    WEB_PORTS: "81"
+    VIRTUAL_HOST: "*.nginx-proxy.tld"
+    CERT_NAME: "*.nginx-proxy.tld"
+
+
+sut:
+  image: jwilder/nginx-proxy:test
+  volumes:
+    - /var/run/docker.sock:/tmp/docker.sock:ro
+    - ./certs/*.nginx-proxy.tld.crt:/etc/nginx/certs/*.nginx-proxy.tld.crt:ro
+    - ./certs/*.nginx-proxy.tld.key:/etc/nginx/certs/*.nginx-proxy.tld.key:ro

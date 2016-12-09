@@ -1,5 +1,5 @@
 .SILENT :
-.PHONY : test
+.PHONY : test test2
 
 update-dependencies:
 	docker pull jwilder/docker-gen:0.7.3
@@ -19,3 +19,9 @@ test-alpine:
 	bats test
 
 test: test-debian test-alpine
+
+test2-debian:
+	$(MAKE) -C test2 test-debian
+
+test2-alpine:
+	$(MAKE) -C test2 test-alpine
