@@ -12,7 +12,8 @@ RUN apt-get update \
 # Configure Nginx and apply fix for very long server names
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
  && sed -i 's/^http {/&\n    server_names_hash_bucket_size 128;/g' /etc/nginx/nginx.conf \
- && echo "server_tokens off;" > /etc/nginx/conf.d/noservertokens.conf
+ && echo "server_tokens off;" > /etc/nginx/conf.d/noservertokens.conf \
+ && echo "client_max_body_size 10G" > /etc/nginx/conf.d/noservertokens.conf
 
 # Install Forego
 ADD https://github.com/jwilder/forego/releases/download/v0.16.1/forego /usr/local/bin/forego
