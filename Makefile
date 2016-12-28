@@ -3,8 +3,8 @@
 
 update-dependencies:
 	docker pull jwilder/docker-gen:0.7.3
-	docker pull nginx:1.11.3
-	docker pull nginx:1.11.3-alpine
+	docker pull nginx:1.11.6
+	docker pull nginx:1.11.8-alpine
 	docker pull python:3
 	docker pull rancher/socat-docker:latest
 	docker pull appropriate/curl:latest
