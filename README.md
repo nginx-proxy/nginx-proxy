@@ -1,4 +1,4 @@
-![nginx 1.11.3](https://img.shields.io/badge/nginx-1.11.3-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build Status](https://travis-ci.org/jwilder/nginx-proxy.svg?branch=master)](https://travis-ci.org/jwilder/nginx-proxy) [![](https://img.shields.io/docker/stars/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub') [![](https://img.shields.io/docker/pulls/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub')
+![nginx 1.11.6](https://img.shields.io/badge/nginx-1.11.6-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build Status](https://travis-ci.org/jwilder/nginx-proxy.svg?branch=master)](https://travis-ci.org/jwilder/nginx-proxy) [![](https://img.shields.io/docker/stars/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub') [![](https://img.shields.io/docker/pulls/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub')
 
 
 nginx-proxy sets up a container running nginx and [docker-gen][1].  docker-gen generates reverse proxy configs for nginx and reloads nginx when containers are started and stopped.
@@ -42,7 +42,7 @@ services:
 ```shell
 $ docker-compose up
 $ curl -H "Host: whoami.local" localhost
-I''m 5b129ab83266
+I'm 5b129ab83266
 ```
 
 ### Multiple Ports
@@ -76,7 +76,13 @@ In this example, the `my-nginx-proxy` container will be connected to `my-network
 
 ### SSL Backends
 
-If you would like to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_PROTO=https` on the backend container.
+If you would like the reverse proxy to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_PROTO=https` on the backend container.
+
+### uWSGI Backends
+
+If you would like to connect to uWSGI backend, set `VIRTUAL_PROTO=uwsgi` on the
+backend container. Your backend container should than listen on a port rather
+than a socket and expose that port.
 
 ### Default Host
 
@@ -91,6 +97,14 @@ nginx-proxy can also be run as two separate containers using the [jwilder/docker
 image and the official [nginx](https://registry.hub.docker.com/_/nginx/) image.
 
 You may want to do this to prevent having the docker socket bound to a publicly exposed container service.
+
+You can demo this pattern with docker-compose:
+
+```console
+$ docker-compose --file docker-compose-separate-containers.yml up
+$ curl -H "Host: whoami.local" localhost
+I'm 5b129ab83266
+```
 
 To run nginx proxy as a separate container you'll need to have [nginx.tmpl](https://github.com/jwilder/nginx-proxy/blob/master/nginx.tmpl) on your host system.
 
@@ -125,6 +139,10 @@ The contents of `/path/to/certs` should contain the certificates and private key
 hosts in use.  The certificate and keys should be named after the virtual host with a `.crt` and
 `.key` extension.  For example, a container with `VIRTUAL_HOST=foo.bar.com` should have a
 `foo.bar.com.crt` and `foo.bar.com.key` file in the certs directory.
+
+If you are running the container in a virtualized environment (Hyper-V, VirtualBox, etc...),
+/path/to/certs must exist in that environment or be made accessible to that environment.
+By default, Docker is not able to mount directories on the host machine to containers running in a virtual machine.
 
 #### Diffie-Hellman Groups
 
@@ -205,6 +223,7 @@ proxy_set_header Connection $proxy_connection;
 proxy_set_header X-Real-IP $remote_addr;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
 
 # Mitigate httpoxy attack (see README for details)
 proxy_set_header Proxy "";

@@ -24,6 +24,13 @@ map $http_x_forwarded_proto $proxy_x_forwarded_proto {
   ''      $scheme;
 }
 
+# If we receive X-Forwarded-Port, pass it through; otherwise, pass along the
+# server port the client connected to
+map $http_x_forwarded_port $proxy_x_forwarded_port {
+  default $http_x_forwarded_port;
+  ''      $server_port;
+}
+
 # If we receive Upgrade, set Connection to "upgrade"; otherwise, delete any
 # Connection header that may have been passed to this server
 map $http_upgrade $proxy_connection {
@@ -51,6 +58,7 @@ proxy_set_header Connection $proxy_connection;
 proxy_set_header X-Real-IP $remote_addr;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
 
 # Mitigate httpoxy attack (see README for details)
 proxy_set_header Proxy "";
@@ -70,6 +78,7 @@ server {
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
 
+	ssl_session_tickets off;
 	ssl_certificate /etc/nginx/certs/default.crt;
 	ssl_certificate_key /etc/nginx/certs/default.key;
 }
@@ -118,8 +127,8 @@ upstream {{ $host }} {
 {{ $vhostCert := (closest (dir "/etc/nginx/certs") (printf "%s.crt" $host))}}
 
 {{/* vhostCert is actually a filename so remove any suffixes since they are added later */}}
-{{ $vhostCert := replace $vhostCert ".crt" "" -1 }}
-{{ $vhostCert := replace $vhostCert ".key" "" -1 }}
+{{ $vhostCert := trimSuffix ".crt" $vhostCert }}
+{{ $vhostCert := trimSuffix ".key" $vhostCert }}
 
 {{/* Use the cert specified on the container or fallback to the best vhost match */}}
 {{ $cert := (coalesce $certName $vhostCert) }}
@@ -158,7 +167,7 @@ server {
 	{{ end }}
 
 	{{ if (ne $https_method "noredirect") }}
-	add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+	add_header Strict-Transport-Security "max-age=31536000";
 	{{ end }}
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
@@ -168,7 +177,12 @@ server {
 	{{ end }}
 
 	location / {
+		{{ if eq $proto "uwsgi" }}
+		include uwsgi_params;
+		uwsgi_pass {{ trim $proto }}://{{ trim $host }};
+		{{ else }}
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
+		{{ end }}
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
@@ -197,7 +211,12 @@ server {
 	{{ end }}
 
 	location / {
+		{{ if eq $proto "uwsgi" }}
+		include uwsgi_params;
+		uwsgi_pass {{ trim $proto }}://{{ trim $host }};
+		{{ else }}
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
+		{{ end }}
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
