@@ -111,13 +111,13 @@ function assert_nginxproxy_behaves {
 	assert_output -l 0 $'HTTP/1.1 503 Service Temporarily Unavailable\r'
 
 	# Querying the proxy with Host header → 200
-	run curl_container $container /data --header "Host: web1.bats"
+	run curl_container $container /port --header "Host: web1.bats"
 	assert_output "answer from port 81"
 
-	run curl_container $container /data --header "Host: web2.bats"
+	run curl_container $container /port --header "Host: web2.bats"
 	assert_output "answer from port 82"
 
 	# Querying the proxy with unknown Host header → 503
-	run curl_container $container /data --header "Host: webFOO.bats" --head
+	run curl_container $container /port --header "Host: webFOO.bats" --head
 	assert_output -l 0 $'HTTP/1.1 503 Service Temporarily Unavailable\r'
 }

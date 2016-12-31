@@ -26,15 +26,15 @@ function setup {
 	assert_output -l 0 $'HTTP/1.1 503 Service Temporarily Unavailable\r'
 
 	# THEN querying the proxy with unknown Host header → 503
-	run curl_container $SUT_CONTAINER /data --header "Host: webFOO.bats" --head
+	run curl_container $SUT_CONTAINER /port --header "Host: webFOO.bats" --head
 	assert_output -l 0 $'HTTP/1.1 503 Service Temporarily Unavailable\r'
 
 	# THEN
-	run curl_container $SUT_CONTAINER /data --header 'Host: multiple-hosts-1-A.bats'
+	run curl_container $SUT_CONTAINER /port --header 'Host: multiple-hosts-1-A.bats'
 	assert_output "answer from port 80"
 
 	# THEN
-	run curl_container $SUT_CONTAINER /data --header 'Host: multiple-hosts-1-B.bats'
+	run curl_container $SUT_CONTAINER /port --header 'Host: multiple-hosts-1-B.bats'
 	assert_output "answer from port 80"
 }
 
