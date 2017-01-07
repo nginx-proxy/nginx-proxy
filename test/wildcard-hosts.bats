@@ -50,6 +50,7 @@ function setup {
 	# THEN
 	assert_200 foo.bar.whatever.bats
 	assert_200 foo.bar.why.not.bats
+	assert_200 foo.bar.why.not.bats-to-infinity-and-beyond
 	assert_503 unexpected.host.bats
 
 }
