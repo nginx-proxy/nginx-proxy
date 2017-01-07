@@ -1,3 +1,4 @@
+dist: trusty
 sudo: required
 services:
   - docker
@@ -18,5 +19,10 @@ before_install:
   - sudo apt-get install -qq bats
   - make update-dependencies
 
+matrix:
+  include:
+    - env: TEST_ID=test-debian
+    - env: TEST_ID=test-alpine
+
 script:
-  - make test
+  - make $TEST_ID
