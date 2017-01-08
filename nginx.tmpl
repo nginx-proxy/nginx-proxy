@@ -85,8 +85,8 @@ server {
 {{ end }}
 
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
-
-upstream {{ $host }} {
+{{ $upstream_name := sha1 $host }}
+upstream {{ $upstream_name }} {
 {{ range $container := $containers }}
 	{{ $addrLen := len $container.Addresses }}
 
@@ -179,9 +179,9 @@ server {
 	location / {
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
-		uwsgi_pass {{ trim $proto }}://{{ trim $host }};
+		uwsgi_pass {{ trim $proto }}://{{ trim $upstream_name }};
 		{{ else }}
-		proxy_pass {{ trim $proto }}://{{ trim $host }};
+		proxy_pass {{ trim $proto }}://{{ trim $upstream_name }};
 		{{ end }}
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
@@ -213,9 +213,9 @@ server {
 	location / {
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
-		uwsgi_pass {{ trim $proto }}://{{ trim $host }};
+		uwsgi_pass {{ trim $proto }}://{{ trim $upstream_name }};
 		{{ else }}
-		proxy_pass {{ trim $proto }}://{{ trim $host }};
+		proxy_pass {{ trim $proto }}://{{ trim $upstream_name }};
 		{{ end }}
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
