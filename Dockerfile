@@ -9,9 +9,8 @@ RUN apt-get update \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/*
 
-# Generate dhparam.pem, configure nginx
-RUN openssl dhparam -out /etc/nginx/dhparam.pem 2048 \
- && echo "daemon off;" >> /etc/nginx/nginx.conf
+# Configure nginx
+RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 
 # Install Forego
 ADD https://github.com/jwilder/forego/releases/download/v0.16.1/forego /usr/local/bin/forego
@@ -28,7 +27,7 @@ WORKDIR /app/
 
 ENV DOCKER_HOST unix:///tmp/docker.sock
 
-VOLUME ["/etc/nginx/certs"]
+VOLUME ["/etc/nginx/certs", "/etc/nginx/dhparam"]
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]
