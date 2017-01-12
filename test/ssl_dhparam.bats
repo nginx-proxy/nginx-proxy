@@ -7,7 +7,7 @@ function setup {
 	stop_bats_containers web
 }
 
-@test "[$TEST_FILE] test dhparam.pem is generated if missing (WARNING: this test is slow!):" {
+@test "[$TEST_FILE] test dhparam.pem is generated if missing (WARNING: this test is slow)" {
 	SUT_CONTAINER=bats-nginx-proxy-${TEST_FILE}-1
 
 	# WHEN

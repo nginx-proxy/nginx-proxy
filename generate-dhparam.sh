@@ -23,7 +23,7 @@ if [[ -f $DHPARAM_FILE ]]; then
 fi
 
 cat >&2 <<-EOT
-WARNING: $DHPARAM_FILE was not found. A pregenerated dhparam.pem will be used for now while a new one
+WARNING: $DHPARAM_FILE was not found. A pre-generated dhparam.pem will be used for now while a new one
 is being generated in the background.  Once the new dhparam.pem is in place, nginx will be reloaded.
 EOT
 
