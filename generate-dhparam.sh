@@ -39,4 +39,4 @@ touch $GEN_LOCKFILE
         && nginx -s reload
     ) | grep -vE '^[\.+]+'
     rm $GEN_LOCKFILE
-) &
+) &disown

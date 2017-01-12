@@ -35,6 +35,7 @@ function nginxproxy {
 	&& docker run -d \
 		--label bats-type="nginx-proxy" \
 		--name $container_name \
+		-v $DIR/lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro \
 		"$@" \
 		$SUT_IMAGE \
 	&& wait_for_nginxproxy_container_to_start $container_name \
