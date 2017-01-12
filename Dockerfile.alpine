@@ -6,7 +6,7 @@ RUN apk add --no-cache --virtual .run-deps \
     ca-certificates bash wget openssl \
     && update-ca-certificates
 
-# Configure Nginx and apply fix for very long server names
+# Configure Nginx
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 
 # Install Forego

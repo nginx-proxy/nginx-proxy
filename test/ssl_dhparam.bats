@@ -78,9 +78,11 @@ function setup {
 	assert_success
 	docker_wait_for_log $SUT_CONTAINER 9 "Watching docker events"
 
+	sleep 3
+	run docker logs $SUT_CONTAINER
+
 	# THEN
-	run docker exec $SUT_CONTAINER ps aux
-	refute_output -p "openssl"
+	refute_output -p "Generating DH parameters"
 }
 
 @test "[$TEST_FILE] stop all bats containers" {
