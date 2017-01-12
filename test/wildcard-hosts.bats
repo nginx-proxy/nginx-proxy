@@ -43,13 +43,28 @@ function setup {
 
 @test "[$TEST_FILE] VIRTUAL_HOST=~^foo\.bar\..*\.bats" {
 	# WHEN
-	prepare_web_container bats-wildcard-hosts-2 80 -e VIRTUAL_HOST=~^foo\.bar\..*\.bats
-	dockergen_wait_for_event $SUT_CONTAINER start bats-wildcard-hosts-2
+	prepare_web_container bats-wildcard-hosts-3 80 -e VIRTUAL_HOST=~^foo\.bar\..*\.bats
+	dockergen_wait_for_event $SUT_CONTAINER start bats-wildcard-hosts-3
 	sleep 1
 
 	# THEN
 	assert_200 foo.bar.whatever.bats
 	assert_200 foo.bar.why.not.bats
+	assert_200 foo.bar.why.not.bats-to-infinity-and-beyond
+	assert_503 unexpected.host.bats
+
+}
+
+@test "[$TEST_FILE] VIRTUAL_HOST=~^foo\.bar\..*\.bats$" {
+	# WHEN
+	prepare_web_container bats-wildcard-hosts-4 80 -e VIRTUAL_HOST=~^foo\.bar\..*\.bats$
+	dockergen_wait_for_event $SUT_CONTAINER start bats-wildcard-hosts-4
+	sleep 1
+
+	# THEN
+	assert_200 foo.bar.whatever.bats
+	assert_200 foo.bar.why.not.bats
+	assert_503 foo.bar.why.not.bats-to-infinity-and-beyond
 	assert_503 unexpected.host.bats
 
 }
