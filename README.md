@@ -151,11 +151,16 @@ By default, Docker is not able to mount directories on the host machine to conta
 
 #### Diffie-Hellman Groups
 
-Diffie-Hellman groups are enabled by default, with a pregenerated key in `/etc/nginx/dhparam.pem`.
+Diffie-Hellman groups are enabled by default, with a pregenerated key in `/etc/nginx/dhparam/dhparam.pem`.
 You can mount a different `dhparam.pem` file at that location to override the default cert.
 To use custom `dhparam.pem` files per-virtual-host, the files should be named after the virtual host with a
 `dhparam` suffix and `.pem` extension. For example, a container with `VIRTUAL_HOST=foo.bar.com`
 should have a `foo.bar.com.dhparam.pem` file in the `/etc/nginx/certs` directory.
+
+> NOTE: If you don't mount a `dhparam.pem` file at `/etc/nginx/dhparam/dhparam.pem`, one will be generated
+at startup.  Since it can take minutes to generate a new `dhparam.pem`, it is done at low priority in the
+background.  Once generation is complete, the `dhparams.pem` is saved on a persistent volume and nginx
+is reloaded.  This generation process only occurs the first time you start `nginx-proxy`.
 
 #### Wildcard Certificates
 
