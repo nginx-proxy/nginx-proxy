@@ -8,30 +8,28 @@ function setup {
 }
 
 @test "[$TEST_FILE] test dhparam.pem is generated if missing (WARNING: this test is slow)" {
-	SUT_CONTAINER=bats-nginx-proxy-${TEST_FILE}-1
+    SUT_CONTAINER=bats-nginx-proxy-${TEST_FILE}-1
 
-	# WHEN
-	run docker_clean $SUT_CONTAINER \
-	&& docker run -d \
-		--label bats-type="nginx-proxy" \
-		--name $SUT_CONTAINER \
-		-v /var/run/docker.sock:/tmp/docker.sock:ro \
-		$SUT_IMAGE \
-	&& wait_for_nginxproxy_container_to_start $SUT_CONTAINER \
-	&& docker logs $SUT_CONTAINER
+    # WHEN
+    run docker_clean $SUT_CONTAINER \
+    && docker run -d \
+        --label bats-type="nginx-proxy" \
+        --name $SUT_CONTAINER \
+        -v /var/run/docker.sock:/tmp/docker.sock:ro \
+        $SUT_IMAGE \
+    && wait_for_nginxproxy_container_to_start $SUT_CONTAINER \
+    && docker logs $SUT_CONTAINER
 
-	assert_success
-	docker_wait_for_log $SUT_CONTAINER 9 "Watching docker events"
+    DEFAULT_HASH=$(docker exec $SUT_CONTAINER md5sum /etc/nginx/dhparam/dhparam.pem | cut -d" " -f1)
 
-	# THEN
-	run docker exec $SUT_CONTAINER ps aux
-	assert_output -p "openssl"
+    assert_success
+    docker_wait_for_log $SUT_CONTAINER 9 "Generating DH parameters"
 
-	DEFAULT_HASH=$(docker exec $SUT_CONTAINER md5sum /etc/nginx/dhparam/dhparam.pem | cut -d" " -f1)
-	docker_wait_for_log $SUT_CONTAINER 240 "dhparam generation complete, reloading nginx"
+    # THEN
+    docker_wait_for_log $SUT_CONTAINER 240 "dhparam generation complete, reloading nginx"
 
-	run docker exec $SUT_CONTAINER md5sum /etc/nginx/dhparam/dhparam.pem
-	refute_output -p $DEFAULT_HASH
+    run docker exec $SUT_CONTAINER md5sum /etc/nginx/dhparam/dhparam.pem
+    refute_output -p $DEFAULT_HASH
 }
 
 @test "[$TEST_FILE] test dhparam.pem is generated if default one is present" {
@@ -42,6 +40,13 @@ function setup {
 	if [ ! -d $TMP_DIR ]; then
 		mkdir $TMP_DIR
 	fi
+
+	# If the previous test crashed, a dhparam is left that only root can delete, so we 
+	#  delete it from within a container as root
+	if [ -f $TMP_DIR/dhparam.pem ]; then
+		docker run --rm -v $TMP_DIR:/opt busybox rm /opt/dhparam.pem
+	fi
+
 	cp $DIR/../dhparam.pem.default $TMP_DIR/dhparam.pem
 
 	# WHEN
@@ -55,14 +60,9 @@ function setup {
 	&& wait_for_nginxproxy_container_to_start $SUT_CONTAINER \
 	&& docker logs $SUT_CONTAINER
 
-	docker logs $SUT_CONTAINER
-
-	assert_success
-	docker_wait_for_log $SUT_CONTAINER 9 "Watching docker events"
-
 	# THEN
-	run docker exec $SUT_CONTAINER ps aux
-	assert_output -p "openssl"
+	assert_success
+	docker_wait_for_log $SUT_CONTAINER 9 "Generating DH parameters"
 
 	docker exec $SUT_CONTAINER rm -rf /etc/nginx/dhparam/*
 }
