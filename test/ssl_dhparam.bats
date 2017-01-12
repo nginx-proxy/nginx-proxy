@@ -16,12 +16,12 @@ function setup {
         --label bats-type="nginx-proxy" \
         --name $SUT_CONTAINER \
         -v /var/run/docker.sock:/tmp/docker.sock:ro \
-        -e DHPARAM=256 \
+        -e DHPARAM_BITS=256 \
         $SUT_IMAGE \
     && wait_for_nginxproxy_container_to_start $SUT_CONTAINER \
     && docker logs $SUT_CONTAINER
 
-    DEFAULT_HASH=$(docker exec $SUT_CONTAINER md5sum /etc/nginx/dhparam/dhparam.pem | cut -d" " -f1)
+    DEFAULT_HASH=$(docker exec $SUT_CONTAINER md5sum /app/dhparam.pem.default | cut -d" " -f1)
 
     assert_success
     docker_wait_for_log $SUT_CONTAINER 30 "Generating DH parameters"
@@ -29,7 +29,8 @@ function setup {
     # THEN
     docker_wait_for_log $SUT_CONTAINER 240 "dhparam generation complete, reloading nginx"
 
-    run docker exec $SUT_CONTAINER md5sum /etc/nginx/dhparam/dhparam.pem
+    run docker exec $SUT_CONTAINER su -c "md5sum /etc/nginx/dhparam/dhparam.pem"
+
     refute_output -p $DEFAULT_HASH
 }
 
@@ -57,7 +58,7 @@ function setup {
 		--name $SUT_CONTAINER \
 		-v /var/run/docker.sock:/tmp/docker.sock:ro \
 		-v $TMP_DIR:/etc/nginx/dhparam \
-        -e DHPARAM=256 \
+        -e DHPARAM_BITS=256 \
 		$SUT_IMAGE \
 	&& wait_for_nginxproxy_container_to_start $SUT_CONTAINER \
 	&& docker logs $SUT_CONTAINER
