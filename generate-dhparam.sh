@@ -1,10 +1,12 @@
 #!/bin/bash -e
 
+# The first argument is the bit depth of the dhparam, or 2048 if unspecified
+DHPARAM_BITS=${1:-2048}
+
 # If a dhparam file is not available, use the pre-generated one and generate a new one in the background.
 # Note that /etc/nginx/dhparam is a volume, so this dhparam will persist restarts.
 PREGEN_DHPARAM_FILE="/app/dhparam.pem.default"
 DHPARAM_FILE="/etc/nginx/dhparam/dhparam.pem"
-DHPARAM_BITS="2048"
 GEN_LOCKFILE="/tmp/dhparam_generating.lock"
 
 # The hash of the pregenerated dhparam file is used to check if the pregen dhparam is already in use

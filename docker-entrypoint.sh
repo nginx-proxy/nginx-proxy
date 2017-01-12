@@ -15,7 +15,8 @@ if [[ $DOCKER_HOST = unix://* ]]; then
 fi
 
 # Generate dhparam file if required
-/app/generate-dhparam.sh
+# Note: if $DHPARAM_BITS is not defined, generate-dhparam.sh will use 2048 as a default
+/app/generate-dhparam.sh $DHPARAM_BITS
 
 # If the user has run the default command and the socket doesn't exist, fail
 if [ "$socketMissing" = 1 -a "$1" = forego -a "$2" = start -a "$3" = '-r' ]; then
