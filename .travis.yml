@@ -1,16 +1,17 @@
+dist: trusty
 sudo: required
 services:
   - docker
 
 env:
     global:
-        - DOCKER_VERSION=1.12.1-0~trusty
+        - DOCKER_VERSION=1.12.3-0~trusty
 
 before_install:
   # list docker-engine versions
   - apt-cache madison docker-engine
   # upgrade docker-engine to specific version
-  - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y docker-engine=${DOCKER_VERSION}
+  - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y --force-yes docker-engine=${DOCKER_VERSION}
   - docker version
   - docker info
   - sudo add-apt-repository ppa:duggan/bats --yes
@@ -18,5 +19,10 @@ before_install:
   - sudo apt-get install -qq bats
   - make update-dependencies
 
+matrix:
+  include:
+    - env: TEST_ID=test-debian
+    - env: TEST_ID=test-alpine
+
 script:
-  - make test
+  - make $TEST_ID
