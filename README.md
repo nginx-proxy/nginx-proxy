@@ -201,7 +201,7 @@ $ docker run -d -p 80:80 -p 443:443 \
 You'll need to create a password file for each virtualhost:
 
 ```shell
-docker run --rm -ti m31271n/htpasswd <username> <password> > htpasswd
+docker run --rm -ti m31271n/htpasswd <username> <password> > $VIRTUAL_HOST
 ```
 
 ### Custom Nginx Configuration
