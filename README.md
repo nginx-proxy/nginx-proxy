@@ -45,9 +45,21 @@ $ curl -H "Host: whoami.local" localhost
 I'm 5b129ab83266
 ```
 
+### Virtual Route Support
+
+If you want to reach your container not at the URL root of VIRTUAL_HOST, but rather at a specific path, just set the environment variable `VIRTUAL_PATH=/path`.
+
+By default, `/path` is removed from the forwarded requests. However, if your application requires the full URL (for example because it creates absolute URLs for assets), you might also want to set `VIRTUAL_PATH_PASS_THROUGH=true`.
+
+### Virtual Port Support
+
+You can tell nginx-proxy to publish the backend container on a non-standard port, different from 80 and 443. Just specify the environment variable `VIRTUAL_PORT` on the backend container. Depending on the variable `HTTPS_METHOD` (see below), nginx-proxy will be configured to support HTTPS on the non-standard port.
+
+Currently, this feature requires to run the nginx-proxy container with these ports already published as Docker doesn't yet provide a method to publish and unpublish ports on the fly.
+
 ### Multiple Ports
 
-If your container exposes multiple ports, nginx-proxy will default to the service running on port 80.  If you need to specify a different port, you can set a VIRTUAL_PORT env var to select a different one.  If your container only exposes one port and it has a VIRTUAL_HOST env var set, that port will be selected.
+If your container exposes multiple ports, nginx-proxy will default to the service running on port 80.  If you need to specify a different port, you can set a VIRTUAL_BACKEND_PORT env var to select a different one.  If your container only exposes one port and it has a VIRTUAL_HOST env var set, that port will be selected.
 
   [1]: https://github.com/jwilder/docker-gen
   [2]: http://jasonwilder.com/blog/2014/03/25/automated-nginx-reverse-proxy-for-docker/
@@ -76,11 +88,11 @@ In this example, the `my-nginx-proxy` container will be connected to `my-network
 
 ### SSL Backends
 
-If you would like the reverse proxy to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_PROTO=https` on the backend container.
+If you would like the reverse proxy to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_BACKEND_PROTO=https` on the backend container.
 
 ### uWSGI Backends
 
-If you would like to connect to uWSGI backend, set `VIRTUAL_PROTO=uwsgi` on the
+If you would like to connect to uWSGI backend, set `VIRTUAL_BACKEND_PROTO=uwsgi` on the
 backend container. Your backend container should than listen on a port rather
 than a socket and expose that port.
 
