@@ -4,7 +4,7 @@
 
 update-dependencies:
 	requirements/build.sh
-	pip install -U -r requirements.txt
+	pip install -U -r requirements/python-requirements.txt
 
 test-debian: update-dependencies
 	docker build -t jwilder/nginx-proxy:test ..

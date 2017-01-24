@@ -18,13 +18,14 @@ logging.getLogger('patched DNS').setLevel(logging.INFO)
 
 
 CA_ROOT_CERTIFICATE = os.path.join(os.path.dirname(__file__), 'certs/ca-root.crt')
-
+I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER = os.path.isfile("/.dockerenv")
 
 ###############################################################################
 # 
 # utilities
 # 
 ###############################################################################
+
 
 class requests_retry_on_error_502(object):
     """
@@ -113,6 +114,8 @@ def restore_urllib_dns_resolver(getaddrinfo_func):
 def remove_all_containers():
     docker_client = docker.from_env()
     for info in docker_client.containers(all=True):
+        if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER and info['Id'].startswith(socket.gethostname()):
+            continue  # pytest is running within a Docker container, so we do not want to remove that particular container
         docker_client.remove_container(info["Id"], v=True, force=True)
 
 
