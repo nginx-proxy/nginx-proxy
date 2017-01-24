@@ -37,37 +37,37 @@ class requests_retry_on_error_502(object):
             self.session.verify = CA_ROOT_CERTIFICATE
 
     def get(self, *args, **kwargs):
-        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=1, max_tries=30)
+        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
         def _get(*args, **kwargs):
             return self.session.get(*args, **kwargs)
         return _get(*args, **kwargs)
 
     def post(self, *args, **kwargs):
-        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=1, max_tries=30)
+        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
         def _post(*args, **kwargs):
             return self.session.post(*args, **kwargs)
         return _post(*args, **kwargs)
 
     def put(self, *args, **kwargs):
-        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=1, max_tries=30)
+        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
         def _put(*args, **kwargs):
             return self.session.put(*args, **kwargs)
         return _put(*args, **kwargs)
 
     def head(self, *args, **kwargs):
-        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=1, max_tries=30)
+        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
         def _head(*args, **kwargs):
             return self.session.head(*args, **kwargs)
         return _head(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=1, max_tries=30)
+        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
         def _delete(*args, **kwargs):
             return self.session.delete(*args, **kwargs)
         return _delete(*args, **kwargs)
 
     def options(self, *args, **kwargs):
-        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=1, max_tries=30)
+        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
         def _options(*args, **kwargs):
             return self.session.options(*args, **kwargs)
         return _options(*args, **kwargs)
