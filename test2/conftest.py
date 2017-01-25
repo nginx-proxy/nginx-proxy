@@ -130,8 +130,11 @@ def get_nginx_conf_from_container(container_id):
 
 
 def docker_compose_up(compose_file='docker-compose.yml'):
-    subprocess.check_output(shlex.split('docker-compose -f %s up -d' % compose_file))
-
+    try:
+        subprocess.check_output(shlex.split('docker-compose -f %s up -d' % compose_file))
+    except subprocess.CalledProcessError, e:
+        logging.error("Error while runninng 'docker-compose -f %s up -d':\n%s" % (compose_file, e.output))
+        raise
 
 def wait_for_nginxproxy_to_be_ready():
     """
@@ -147,7 +150,6 @@ def wait_for_nginxproxy_to_be_ready():
         if "Watching docker events" in line:
             logging.debug("nginx-proxy ready")
             break
-
 
 def find_docker_compose_file(request):
     """
@@ -182,6 +184,13 @@ def find_docker_compose_file(request):
     return docker_compose_file
 
 
+def check_sut_image():
+    """
+    Return True if jwilder/nginx-proxy:test image exists
+    """
+    docker_client = docker.from_env()
+    return any(map(lambda x: "jwilder/nginx-proxy:test" in x.get('RepoTags'), docker_client.images()))
+
 ###############################################################################
 # 
 # Py.test fixtures
@@ -197,6 +206,8 @@ def docker_compose(request):
     """
     docker_compose_file = find_docker_compose_file(request)
     original_dns_resolver = monkey_patch_urllib_dns_resolver()
+    if not check_sut_image():
+        pytest.exit("The docker image 'jwilder/nginx-proxy:test' is missing")
     remove_all_containers()
     docker_compose_up(docker_compose_file)
     wait_for_nginxproxy_to_be_ready()
