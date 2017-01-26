@@ -90,7 +90,13 @@ def monkey_patch_urllib_dns_resolver():
         log.debug("resolving domain name %s" % repr(args))
         if 'nginx-proxy' in args[0]:
             docker_client = docker.from_env()
-            ip = docker_client.containers(filters={"status": "running", "ancestor": "jwilder/nginx-proxy:test"})[0]["NetworkSettings"]["Networks"]["bridge"]["IPAddress"]
+            net_info = docker_client.containers(filters={"status": "running", "ancestor": "jwilder/nginx-proxy:test"})[0]["NetworkSettings"]["Networks"]
+            if "bridge" in net_info:
+                ip = net_info["bridge"]["IPAddress"]
+            else:
+                # not default bridge network, fallback on first network defined
+                network_name = net_info.keys()[0]
+                ip = net_info[network_name]["IPAddress"]
             log.info("resolving domain name %r as IP address is %s" % (args[0], ip))
             return [
                 (socket.AF_INET, socket.SOCK_STREAM, 6, '', (ip, args[1])), 
