@@ -27,7 +27,7 @@ docker run --rm -it \
 	-v ${DIR}/__pycache__/ \
 	-w ${DIR} \
 	-v /var/run/docker.sock:/var/run/docker.sock \
-	nginx-proxy-tester "${ARGS}"
+	nginx-proxy-tester ${ARGS}
 PYTEST_EXIT_CODE=$?
 
 # delete python cache
