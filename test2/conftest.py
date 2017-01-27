@@ -37,6 +37,18 @@ class requests_retry_on_error_502(object):
         if os.path.isfile(CA_ROOT_CERTIFICATE):
             self.session.verify = CA_ROOT_CERTIFICATE
 
+    def get_conf(self):
+        """
+        Return the nginx config file
+        """
+        docker_client = docker.from_env()
+        nginx_proxy_containers = docker_client.containers(filters={"ancestor": "jwilder/nginx-proxy:test"})
+        if len(nginx_proxy_containers) > 1:
+            pytest.failed("Too many running jwilder/nginx-proxy:test containers")
+        elif len(nginx_proxy_containers) == 0:
+            pytest.failed("No running jwilder/nginx-proxy:test container")
+        return get_nginx_conf_from_container(nginx_proxy_containers[0]['Id'])
+
     def get(self, *args, **kwargs):
         @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
         def _get(*args, **kwargs):
