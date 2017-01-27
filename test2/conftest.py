@@ -12,7 +12,7 @@ import docker
 import pytest
 import requests
 
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.INFO)
 logging.getLogger('backoff').setLevel(logging.INFO)
 logging.getLogger('patched DNS').setLevel(logging.INFO)
 
@@ -134,6 +134,7 @@ def remove_all_containers():
     for info in docker_client.containers(all=True):
         if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER and info['Id'].startswith(socket.gethostname()):
             continue  # pytest is running within a Docker container, so we do not want to remove that particular container
+        logging.info("removing container %s" % info["Id"])
         docker_client.remove_container(info["Id"], v=True, force=True)
 
 
@@ -151,6 +152,7 @@ def get_nginx_conf_from_container(container_id):
 
 
 def docker_compose_up(compose_file='docker-compose.yml'):
+    logging.info('docker-compose -f %s up -d' % compose_file)
     try:
         subprocess.check_output(shlex.split('docker-compose -f %s up -d' % compose_file))
     except subprocess.CalledProcessError, e:
@@ -201,7 +203,7 @@ def find_docker_compose_file(request):
     if not os.path.isfile(docker_compose_file):
         logging.error("Could not find any docker-compose file named either '{0}.yml', '{0}.yaml' or 'docker-compose.yml'".format(request.module.__name__))
 
-    logging.info("using docker compose file %s" % docker_compose_file)
+    logging.debug("using docker compose file %s" % docker_compose_file)
     return docker_compose_file
 
 
