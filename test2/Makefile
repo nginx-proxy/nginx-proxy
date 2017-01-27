@@ -8,10 +8,10 @@ update-dependencies:
 
 test-debian: update-dependencies
 	docker build -t jwilder/nginx-proxy:test ..
-	pytest
+	pytest -v
 
 test-alpine: update-dependencies
 	docker build -f ../Dockerfile.alpine -t jwilder/nginx-proxy:test ..
-	pytest
+	pytest -v
 
 test: test-debian test-alpine
