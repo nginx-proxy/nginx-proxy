@@ -317,7 +317,7 @@ If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=e
 #### Per-VIRTUAL_HOST location default configuration
 
 If you want most of your virtual hosts to use a default single `location` block configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default_location` file. This file
-will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}` file associated with it.
+will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}_location` file associated with it.
 
 ### Contributing
 
