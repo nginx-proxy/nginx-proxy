@@ -37,6 +37,29 @@ class requests_retry_on_error_502(object):
         if os.path.isfile(CA_ROOT_CERTIFICATE):
             self.session.verify = CA_ROOT_CERTIFICATE
 
+        docker_client = docker.from_env()
+
+        if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER:
+            # find the jwilder/nginx-proxy:test container
+            nginx_proxy_containers = docker_client.containers(filters={"ancestor": "jwilder/nginx-proxy:test"})
+            if len(nginx_proxy_containers) > 1:
+                pytest.failed("Too many running jwilder/nginx-proxy:test containers")
+            elif len(nginx_proxy_containers) == 0:
+                pytest.failed("No running jwilder/nginx-proxy:test container")
+            
+            # figure out the nginx-proxy container first network (we assume it has only one)
+            nproxy_network = nginx_proxy_containers[0]["NetworkSettings"]["Networks"].keys()[0]
+
+            # figure out our container networks
+            my_container_info = filter(lambda x: x['Id'].startswith(socket.gethostname()), docker_client.containers())[0]
+            my_networks = my_container_info["NetworkSettings"]["Networks"].keys()
+
+            # make sure our container is connected to the nginx-proxy's network
+            if nproxy_network not in my_networks:
+                logging.info("Connecting the test container to the nginx-proxy container's network")
+                docker_client.connect_container_to_network(my_container_info['Id'], nproxy_network)
+
+
     def get_conf(self):
         """
         Return the nginx config file
@@ -239,7 +262,7 @@ def docker_compose(request):
     restore_urllib_dns_resolver(original_dns_resolver)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def nginxproxy():
     """
     Provides the `nginxproxy` object that can be used in the same way the requests module is:
