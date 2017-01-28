@@ -17,20 +17,10 @@ if [[ "$(docker images -q nginx-proxy-tester 2>/dev/null)" == "" ]]; then
 	docker build -t nginx-proxy-tester -f $DIR/requirements/Dockerfile-nginx-proxy-tester $DIR/requirements
 fi
 
-# delete python cache
-[[ -d "${DIR}/__pycache__" ]] && rm "${DIR}/__pycache__" -rf
-
 # run the nginx-proxy-tester container setting the correct value for the working dir in order for 
 # docker-compose to work properly when run from within that container.
-docker run --rm -it \
-	-v ${DIR}:/${DIR} \
-	-v ${DIR}/__pycache__/ \
+exec docker run --rm -it \
+	-v ${DIR}:/${DIR}:ro \
 	-w ${DIR} \
 	-v /var/run/docker.sock:/var/run/docker.sock \
 	nginx-proxy-tester ${ARGS}
-PYTEST_EXIT_CODE=$?
-
-# delete python cache
-[[ -d "${DIR}/__pycache__" ]] && rm "${DIR}/__pycache__" -rf
-
-exit ${PYTEST_EXIT_CODE}
