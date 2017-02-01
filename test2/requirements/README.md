@@ -1,4 +1,4 @@
-This directory contains ressources to build Docker images tests depend on
+This directory contains resources to build Docker images tests depend on
 
 # Build images
 
@@ -27,7 +27,7 @@ Ports are specified using the `WEB_PORTS` environment variable:
     docker run -d -e WEB_PORTS=80 web  # will create a container running one webserver listening on port 80
     docker run -d -e WEB_PORTS="80 81" web  # will create a container running two webservers, one listening on port 80 and a second one listening on port 81
 
-The webserver answer for two paths:
+The webserver answers on two paths:
 
 - `/headers`
 - `/port`
@@ -49,6 +49,4 @@ answer from port 80
 
 This is an optional requirement which is usefull if you cannot (or don't want to) install pytest and its requirements on your computer. In this case, you can use the `nginx-proxy-tester` docker image to run the test suite from a Docker container.
 
-To use this image, it is mandatory to run the container using the `nginx-proxy-tester.sh` shell script. 
-
-
+To use this image, it is mandatory to run the container using the `nginx-proxy-tester.sh` shell script.
