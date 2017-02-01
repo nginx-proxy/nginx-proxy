@@ -16,4 +16,3 @@ def test_web2_HSTS_policy_is_active(docker_compose, nginxproxy):
     r = nginxproxy.get("https://web2.nginx-proxy.tld/port", allow_redirects=False)
     assert "answer from port 82\n" in r.text
     assert "Strict-Transport-Security" in r.headers
-
