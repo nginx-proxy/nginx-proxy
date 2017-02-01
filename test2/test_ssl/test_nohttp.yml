@@ -12,5 +12,4 @@ sut:
   image: jwilder/nginx-proxy:test
   volumes:
     - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ./certs/web2.nginx-proxy.tld.crt:/etc/nginx/certs/web2.nginx-proxy.tld.crt:ro
-    - ./certs/web2.nginx-proxy.tld.key:/etc/nginx/certs/web2.nginx-proxy.tld.key:ro
+    - ./certs:/etc/nginx/certs:ro

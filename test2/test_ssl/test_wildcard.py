@@ -21,4 +21,3 @@ def test_web1_HSTS_policy_is_active(docker_compose, nginxproxy, subdomain):
     r = nginxproxy.get("https://%s.nginx-proxy.tld/port" % subdomain, allow_redirects=False)
     assert "answer from port 81\n" in r.text
     assert "Strict-Transport-Security" in r.headers
-
