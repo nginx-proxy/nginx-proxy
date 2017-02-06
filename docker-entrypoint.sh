@@ -22,6 +22,7 @@ fi
 export RESOLVERS=$(awk '$1 == "nameserver" {print $2}' ORS=' ' /etc/resolv.conf | sed 's/ *$//g')
 if [ "x$RESOLVERS" = "x" ]; then
     echo "Warning: unable to determine DNS resolvers for nginx" >&2
+    unset RESOLVERS
 fi
 
 # If the user has run the default command and the socket doesn't exist, fail
