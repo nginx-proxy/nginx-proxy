@@ -30,10 +30,11 @@ docker_client = docker.from_env()
 ###############################################################################
 
 
-class requests_retry_on_error_502(object):
+class requests_for_docker(object):
     """
     Proxy for calling methods of the requests module. 
-    When a HTTP response failed due to HTTP Error 404 or 502, retry up to 30 times.
+    When a HTTP response failed due to HTTP Error 404 or 502, retry a few times.
+    Provides method `get_conf` to extract the nginx-proxy configuration content.
     """
     def __init__(self):
         self.session = requests.Session()
@@ -318,7 +319,7 @@ def nginxproxy():
     is under test.
     """
     network = connect_to_nginxproxy_network()
-    yield requests_retry_on_error_502()
+    yield requests_for_docker()
     disconnect_from_network(network)
 
 
