@@ -178,6 +178,7 @@ def wait_for_nginxproxy_to_be_ready():
     container = containers[0]
     for line in docker_client.logs(container['Id'], stream=True):
         if "Watching docker events" in line:
+            time.sleep(1)  # give time to docker-gen to produce the new nginx config and reload nginx
             logging.debug("nginx-proxy ready")
             break
 
@@ -298,7 +299,6 @@ def docker_compose(request):
     remove_all_containers()
     docker_compose_up(docker_compose_file)
     wait_for_nginxproxy_to_be_ready()
-    time.sleep(3)
     yield
     docker_compose_down(docker_compose_file)
     restore_urllib_dns_resolver(original_dns_resolver)
