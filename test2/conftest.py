@@ -15,10 +15,13 @@ import requests
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('backoff').setLevel(logging.INFO)
 logging.getLogger('patched DNS').setLevel(logging.INFO)
-
+logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
 CA_ROOT_CERTIFICATE = os.path.join(os.path.dirname(__file__), 'certs/ca-root.crt')
 I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER = os.path.isfile("/.dockerenv")
+
+docker_client = docker.from_env()
+
 
 ###############################################################################
 # 
@@ -41,7 +44,6 @@ class requests_retry_on_error_502(object):
         """
         Return the nginx config file
         """
-        docker_client = docker.from_env()
         nginx_proxy_containers = docker_client.containers(filters={"ancestor": "jwilder/nginx-proxy:test"})
         if len(nginx_proxy_containers) > 1:
             pytest.failed("Too many running jwilder/nginx-proxy:test containers")
@@ -101,7 +103,6 @@ def monkey_patch_urllib_dns_resolver():
     def new_getaddrinfo(*args):
         log.debug("resolving domain name %s" % repr(args))
         if 'nginx-proxy' in args[0]:
-            docker_client = docker.from_env()
             net_info = docker_client.containers(filters={"status": "running", "ancestor": "jwilder/nginx-proxy:test"})[0]["NetworkSettings"]["Networks"]
             if "bridge" in net_info:
                 ip = net_info["bridge"]["IPAddress"]
@@ -130,7 +131,6 @@ def restore_urllib_dns_resolver(getaddrinfo_func):
 
 
 def remove_all_containers():
-    docker_client = docker.from_env()
     for info in docker_client.containers(all=True):
         if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER and info['Id'].startswith(socket.gethostname()):
             continue  # pytest is running within a Docker container, so we do not want to remove that particular container
@@ -144,7 +144,6 @@ def get_nginx_conf_from_container(container_id):
     """
     import tarfile
     from cStringIO import StringIO
-    docker_client = docker.from_env()
     strm, stat = docker_client.get_archive(container_id, '/etc/nginx/conf.d/default.conf')
     with tarfile.open(fileobj=StringIO(strm.read())) as tf:
         conffile = tf.extractfile('default.conf')
@@ -169,10 +168,9 @@ def docker_compose_down(compose_file='docker-compose.yml'):
 
 def wait_for_nginxproxy_to_be_ready():
     """
-    If a one (and only one) container started from image jwilder/nginx-proxy:test is found, 
+    If one (and only one) container started from image jwilder/nginx-proxy:test is found, 
     wait for its log to contain substring "Watching docker events"
     """
-    docker_client = docker.from_env()
     containers = docker_client.containers(filters={"ancestor": "jwilder/nginx-proxy:test"})
     if len(containers) != 1:
         return
@@ -219,8 +217,43 @@ def check_sut_image():
     """
     Return True if jwilder/nginx-proxy:test image exists
     """
-    docker_client = docker.from_env()
     return any(map(lambda x: "jwilder/nginx-proxy:test" in x.get('RepoTags'), docker_client.images()))
+
+
+def connect_to_network(network):
+    """
+    If we are running from a container, connect our container to the given network
+
+    :return: the name of the network we were connected to, or None
+    """
+    if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER:
+        
+        # figure out our container networks
+        my_container_info = filter(lambda x: x['Id'].startswith(socket.gethostname()), docker_client.containers())[0]
+        my_networks = my_container_info["NetworkSettings"]["Networks"].keys()
+
+        # make sure our container is connected to the nginx-proxy's network
+        if network not in my_networks:
+            logging.info("Connecting to docker network: %s" % network)
+            docker_client.connect_container_to_network(my_container_info['Id'], network)
+            return network
+
+
+def disconnect_from_network(network=None):
+    """
+    If we are running from a container, disconnect our container from the given network.
+
+    :param network: name of a docker network to disconnect from
+    """
+    if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER and network is not None:
+        # figure out our container networks
+        my_container_info = filter(lambda x: x['Id'].startswith(socket.gethostname()), docker_client.containers())[0]
+        my_networks = my_container_info["NetworkSettings"]["Networks"].keys()
+
+        # disconnect our container from the given network
+        if network in my_networks:
+            logging.info("Disconnecting from network %s" % network)
+            docker_client.disconnect_container_from_network(my_container_info['Id'], network)
 
 
 def connect_to_nginxproxy_network():
@@ -231,7 +264,6 @@ def connect_to_nginxproxy_network():
     :return: the name of the network we were connected to, or None
     """
     if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER:
-        docker_client = docker.from_env()
         # find the jwilder/nginx-proxy:test container
         nginx_proxy_containers = docker_client.containers(filters={"ancestor": "jwilder/nginx-proxy:test"})
         if len(nginx_proxy_containers) > 1:
@@ -242,34 +274,7 @@ def connect_to_nginxproxy_network():
         # figure out the nginx-proxy container first network (we assume it has only one)
         nproxy_network = nginx_proxy_containers[0]["NetworkSettings"]["Networks"].keys()[0]
 
-        # figure out our container networks
-        my_container_info = filter(lambda x: x['Id'].startswith(socket.gethostname()), docker_client.containers())[0]
-        my_networks = my_container_info["NetworkSettings"]["Networks"].keys()
-
-        # make sure our container is connected to the nginx-proxy's network
-        if nproxy_network not in my_networks:
-            logging.info("Connecting to the nginx-proxy container's network: %s" % nproxy_network)
-            docker_client.connect_container_to_network(my_container_info['Id'], nproxy_network)
-            return nproxy_network
-
-
-def disconnect_from_network(network=None):
-    """
-    If we are running from a container, disconnect our container from the given network.
-
-    :param network: name of a docker network to disconnect from
-    """
-    if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER and network is not None:
-        docker_client = docker.from_env()
-      
-        # figure out our container networks
-        my_container_info = filter(lambda x: x['Id'].startswith(socket.gethostname()), docker_client.containers())[0]
-        my_networks = my_container_info["NetworkSettings"]["Networks"].keys()
-
-        # disconnect our container from the given network
-        if network in my_networks:
-            logging.info("Disconnecting from network %s" % network)
-            docker_client.disconnect_container_from_network(my_container_info['Id'], network)
+        return connect_to_network(nproxy_network)
 
 
 ###############################################################################
@@ -326,7 +331,6 @@ def nginxproxy():
 # pytest hook to display additionnal stuff in test report
 def pytest_runtest_logreport(report):
     if report.failed:
-        docker_client = docker.from_env()
         test_containers = docker_client.containers(all=True, filters={"ancestor": "jwilder/nginx-proxy:test"})
         for container in test_containers:
             report.longrepr.addsection('nginx-proxy logs', docker_client.logs(container['Id']))
