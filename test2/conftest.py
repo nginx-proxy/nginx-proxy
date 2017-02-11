@@ -290,8 +290,6 @@ def docker_compose(request):
     """
     docker_compose_file = find_docker_compose_file(request)
     original_dns_resolver = monkey_patch_urllib_dns_resolver()
-    if not check_sut_image():
-        pytest.exit("The docker image 'jwilder/nginx-proxy:test' is missing")
     remove_all_containers()
     docker_compose_up(docker_compose_file)
     networks = connect_to_all_networks()
@@ -330,3 +328,14 @@ def pytest_runtest_logreport(report):
             report.longrepr.addsection('nginx-proxy logs', docker_client.logs(container['Id']))
             report.longrepr.addsection('nginx-proxy conf', get_nginx_conf_from_container(container['Id']))
 
+
+
+###############################################################################
+# 
+# Check requirements
+# 
+###############################################################################
+
+
+if not check_sut_image():
+    pytest.exit("The docker image 'jwilder/nginx-proxy:test' is missing")

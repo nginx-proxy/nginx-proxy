@@ -60,8 +60,6 @@ So all the following domain names will resolve to the nginx-proxy container in t
 
 When using the `docker_compose` fixture in a test, pytest will try to find a yml file named after your test module filename. For instance, if your test module is `test_example.py`, then the `docker_compose` fixture will try to load a `test_example.yml` [docker compose file](https://docs.docker.com/compose/compose-file/).
 
-The only requirement within that compose file is to have a container declared from the docker image `jwilder/nginx-proxy:test`.
-
 Once the docker compose file found, the fixture will remove all containers, run `docker-compose up`, and finally your test will be executed.
 
 The fixture will run the _docker-compose_ command with the `-f` option to load the given compose file. So you can test your docker compose file syntax by running it yourself with:
