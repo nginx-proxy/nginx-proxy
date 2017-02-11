@@ -17,6 +17,10 @@ Prepare the nginx-proxy test image
 
     docker build -t jwilder/nginx-proxy:test ..
 
+or if you want to test the alpine flavor:
+
+    docker build -t jwilder/nginx-proxy:test -f Dockerfile.alpine ..
+
 make sure to tag that test image exactly `jwilder/nginx-proxy:test` or the test suite won't work.
 
 
@@ -44,17 +48,6 @@ This test suite uses [pytest](http://doc.pytest.org/en/latest/). The [conftest.p
 - docker_compose
 - nginxproxy
 
-Also _conftest.py_ alters the way the python interpreter resolves domain names to IP addresses in such a way that any domain name containing the substring `nginx-proxy` will resolve to the IP address of the container that was created from the `jwilder/nginx-proxy:test` image.
-
-So all the following domain names will resolve to the nginx-proxy container in tests:
-- `nginx-proxy`
-- `nginx-proxy.com`
-- `www.nginx-proxy.com`
-- `www.nginx-proxy.test`
-- `www.nginx-proxy`
-- `whatever.nginx-proxyooooooo`
-- ...
-
 
 ### docker_compose fixture
 
@@ -67,6 +60,26 @@ The fixture will run the _docker-compose_ command with the `-f` option to load t
     docker-compose -f test_example.yml up -d
 
 In the case you are running pytest from within a docker container, the `docker_compose` fixture will make sure the container running pytest is attached to all docker networks. That way, your test will be able to reach any of them.
+
+In your tests, you can use the `docker_compose` variable to query and command the docker daemon as it provides you with a [client from the docker python module](https://docker-py.readthedocs.io/en/2.0.2/client.html#client-reference).
+
+Also this fixture alters the way the python interpreter resolves domain names to IP addresses in the following ways:
+
+Any domain name containing the substring `nginx-proxy` will resolve to the IP address of the container that was created from the `jwilder/nginx-proxy:test` image. So all the following domain names will resolve to the nginx-proxy container in tests:
+- `nginx-proxy`
+- `nginx-proxy.com`
+- `www.nginx-proxy.com`
+- `www.nginx-proxy.test`
+- `www.nginx-proxy`
+- `whatever.nginx-proxyooooooo`
+- ...
+
+Any domain name ending with `XXX.container.docker` will resolve to the IP address of the XXX container.
+- `web1.container.docker` will resolve to the IP address of the `web1` container
+- `f00.web1.container.docker` will resolve to the IP address of the `web1` container
+- `anything.whatever.web2.container.docker` will resolve to the IP address of the `web2` container
+
+Otherwise, domain names are resoved as usual using your system DNS resolver.
 
 
 ### nginxproxy fixture

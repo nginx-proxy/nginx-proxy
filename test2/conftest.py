@@ -6,6 +6,7 @@ import shlex
 import socket
 import subprocess
 import time
+import re
 
 import backoff
 import docker
@@ -14,7 +15,7 @@ import requests
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('backoff').setLevel(logging.INFO)
-logging.getLogger('patched DNS').setLevel(logging.INFO)
+logging.getLogger('DNS').setLevel(logging.INFO)
 logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
 CA_ROOT_CERTIFICATE = os.path.join(os.path.dirname(__file__), 'certs/ca-root.crt')
@@ -92,33 +93,90 @@ class requests_for_docker(object):
         return getattr(requests, name)
 
 
+def container_ip(container):
+    """
+    return the IP address of a container
+    """
+    net_info = container.attrs["NetworkSettings"]["Networks"]
+    if "bridge" in net_info:
+        return net_info["bridge"]["IPAddress"]
+
+    # not default bridge network, fallback on first network defined
+    network_name = net_info.keys()[0]
+    return net_info[network_name]["IPAddress"]
+
+
+def nginx_proxy_dns_resolver(domain_name):
+    """
+    if "nginx-proxy" if found in domain_name, return the ip address of the docker container
+    issued from the docker image jwilder/nginx-proxy:test.
+
+    :return: IP or None
+    """
+    log = logging.getLogger('DNS')
+    log.debug("nginx_proxy_dns_resolver(%r)" % domain_name)
+    if 'nginx-proxy' in domain_name:
+        nginxproxy_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "jwilder/nginx-proxy:test"})
+        if len(nginxproxy_containers) == 0:
+            log.warn("no container found from image jwilder/nginx-proxy:test while resolving %r", domain_name)
+            return
+        nginxproxy_container = nginxproxy_containers[0]
+        ip = container_ip(nginxproxy_container)
+        log.info("resolving domain name %r as IP address %s of nginx-proxy container %s" % (domain_name, ip, nginxproxy_container.name))
+        return ip
+
+def docker_container_dns_resolver(domain_name):
+    """
+    if domain name is of the form "XXX.container.docker" or "anything.XXX.container.docker", return the ip address of the docker container
+    named XXX.
+
+    :return: IP or None
+    """
+    log = logging.getLogger('DNS')
+    log.debug("docker_container_dns_resolver(%r)" % domain_name)
+
+    match = re.search('(^|.+\.)(?P<container>[^.]+)\.container\.docker$', domain_name)
+    if not match:
+        log.debug("%r does not match" % domain_name)
+        return
+
+    container_name = match.group('container')
+    log.debug("looking for container %r" % container_name)
+    try:
+        container = docker_client.containers.get(container_name)
+    except docker.errors.NotFound:
+        log.warn("container named %r not found while resolving %r" % (container_name, domain_name))
+        return
+    log.debug("container %r found (%s)" % (container.name, container.short_id))
+
+    ip = container_ip(container)
+    log.info("resolving domain name %r as IP address %s of container %s" % (domain_name, ip, container.name))
+    return ip 
+
+
 def monkey_patch_urllib_dns_resolver():
     """
     Alter the behavior of the urllib DNS resolver so that any domain name
     containing substring 'nginx-proxy' will resolve to the IP address
     of the container created from image 'jwilder/nginx-proxy:test'.
     """
-    log = logging.getLogger("patched DNS")
     prv_getaddrinfo = socket.getaddrinfo
     dns_cache = {}
     def new_getaddrinfo(*args):
-        log.debug("resolving domain name %s" % repr(args))
-        if 'nginx-proxy' in args[0]:
-            nginxproxy_container = docker_client.containers.list(filters={"status": "running", "ancestor": "jwilder/nginx-proxy:test"})[0]
-            net_info = nginxproxy_container.attrs["NetworkSettings"]["Networks"]
-            if "bridge" in net_info:
-                ip = net_info["bridge"]["IPAddress"]
-            else:
-                # not default bridge network, fallback on first network defined
-                network_name = net_info.keys()[0]
-                ip = net_info[network_name]["IPAddress"]
-            log.info("resolving domain name %r as IP address is %s" % (args[0], ip))
+        logging.getLogger('DNS').debug("resolving domain name %s" % repr(args))
+
+        # custom DNS resolvers
+        ip = nginx_proxy_dns_resolver(args[0])
+        if ip is None:
+            ip = docker_container_dns_resolver(args[0])
+        if ip is not None:
             return [
                 (socket.AF_INET, socket.SOCK_STREAM, 6, '', (ip, args[1])), 
                 (socket.AF_INET, socket.SOCK_DGRAM, 17, '', (ip, args[1])), 
                 (socket.AF_INET, socket.SOCK_RAW, 0, '', (ip, args[1]))
             ]
 
+        # fallback on original DNS resolver
         try:
             return dns_cache[args]
         except KeyError:
@@ -179,7 +237,6 @@ def wait_for_nginxproxy_to_be_ready():
     container = containers[0]
     for line in container.logs(stream=True):
         if "Watching docker events" in line:
-            time.sleep(1)  # give time to docker-gen to produce the new nginx config and reload nginx
             logging.debug("nginx-proxy ready")
             break
 
@@ -223,7 +280,11 @@ def connect_to_network(network):
     :return: the name of the network we were connected to, or None
     """
     if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER:
-        my_container = docker_client.containers.get(socket.gethostname())
+        try:
+            my_container = docker_client.containers.get(socket.gethostname())
+        except docker.errors.NotFound:
+            logging.warn("container %r not found" % socket.gethostname())
+            return
 
         # figure out our container networks
         my_networks = my_container.attrs["NetworkSettings"]["Networks"].keys()
@@ -242,7 +303,11 @@ def disconnect_from_network(network=None):
     :param network: name of a docker network to disconnect from
     """
     if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER and network is not None:
-        my_container = docker_client.containers.get(socket.gethostname())
+        try:
+            my_container = docker_client.containers.get(socket.gethostname())
+        except docker.errors.NotFound:
+            logging.warn("container %r not found" % socket.gethostname())
+            return
 
         # figure out our container networks
         my_networks_names = my_container.attrs["NetworkSettings"]["Networks"].keys()
@@ -289,7 +354,8 @@ def docker_compose(request):
     docker_compose_up(docker_compose_file)
     networks = connect_to_all_networks()
     wait_for_nginxproxy_to_be_ready()
-    yield
+    time.sleep(3)  # give time to containers to be ready
+    yield docker_client
     for network in networks:
         disconnect_from_network(network)
     docker_compose_down(docker_compose_file)
