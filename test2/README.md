@@ -9,7 +9,7 @@ You need [python 2.7](https://www.python.org/) and [pip](https://pip.pypa.io/en/
     requirements/build.sh
     pip install -r requirements/python-requirements.txt
 
-If you can't install those requirements on your computer, you can alternatively use the _nginx-proxy-tester.sh_ script which will run the tests from a Docker container which has those requirements.
+If you can't install those requirements on your computer, you can alternatively use the _test.sh_ script which will run the tests from a Docker container which has those requirements.
 
 
 Prepare the nginx-proxy test image

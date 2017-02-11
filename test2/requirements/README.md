@@ -13,7 +13,7 @@ pip:
 
     pip install -r python-requirements.txt
 
-If you don't want to run the test from your computer, you can run the tests from a docker container, see the _nginx-proxy-tester.sh_ script.
+If you don't want to run the test from your computer, you can run the tests from a docker container, see the _test.sh_ script.
 
 
 # Images
@@ -49,4 +49,4 @@ answer from port 80
 
 This is an optional requirement which is usefull if you cannot (or don't want to) install pytest and its requirements on your computer. In this case, you can use the `nginx-proxy-tester` docker image to run the test suite from a Docker container.
 
-To use this image, it is mandatory to run the container using the `nginx-proxy-tester.sh` shell script.
+To use this image, it is mandatory to run the container using the `test.sh` shell script. The script will build the image and run a container from it with the appropriate volumes and settings.
