@@ -258,25 +258,18 @@ def disconnect_from_network(network=None):
             docker_client.disconnect_container_from_network(my_container_info['Id'], network)
 
 
-def connect_to_nginxproxy_network():
+def connect_to_all_networks():
     """
-    If we are running from a container, connect our container to the first network on the nginx-proxy
-    container.
+    If we are running from a container, connect our container to all current docker networks.
 
-    :return: the name of the network we were connected to, or None
+    :return: a list of networks we connected to
     """
-    if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER:
-        # find the jwilder/nginx-proxy:test container
-        nginx_proxy_containers = docker_client.containers(filters={"ancestor": "jwilder/nginx-proxy:test"})
-        if len(nginx_proxy_containers) > 1:
-            pytest.failed("Too many running jwilder/nginx-proxy:test containers")
-        elif len(nginx_proxy_containers) == 0:
-            pytest.failed("No running jwilder/nginx-proxy:test container")
-        
-        # figure out the nginx-proxy container first network (we assume it has only one)
-        nproxy_network = nginx_proxy_containers[0]["NetworkSettings"]["Networks"].keys()[0]
-
-        return connect_to_network(nproxy_network)
+    if not I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER:
+        return []
+    else:
+        # find the list of docker networks
+        networks = map(lambda x: x['Name'], filter(lambda x: len(x['Containers'].keys()) > 0 and x['Name'] != 'bridge', docker_client.networks()))
+        return [connect_to_network(network) for network in networks]
 
 
 ###############################################################################
@@ -291,6 +284,9 @@ def docker_compose(request):
     pytest fixture providing containers described in a docker compose file. After the tests, remove the created containers
     
     A custom docker compose file name can be defined in a variable named `docker_compose_file`.
+    
+    Also, in the case where pytest is running from a docker container, this fixture makes sure
+    our container will be attached to all the docker networks.
     """
     docker_compose_file = find_docker_compose_file(request)
     original_dns_resolver = monkey_patch_urllib_dns_resolver()
@@ -298,8 +294,11 @@ def docker_compose(request):
         pytest.exit("The docker image 'jwilder/nginx-proxy:test' is missing")
     remove_all_containers()
     docker_compose_up(docker_compose_file)
+    networks = connect_to_all_networks()
     wait_for_nginxproxy_to_be_ready()
     yield
+    for network in networks:
+        disconnect_from_network(network)
     docker_compose_down(docker_compose_file)
     restore_urllib_dns_resolver(original_dns_resolver)
 
@@ -313,14 +312,8 @@ def nginxproxy():
 
     The difference is that in case an HTTP requests has status code 404 or 502 (which mostly
     indicates that nginx has just reloaded), we retry up to 30 times the query
-    
-    Also, in the case where pytest is running from a docker container, this fixture makes sure
-    that container will be attached to the jwilder/nginx-proxy:test container's network which 
-    is under test.
     """
-    network = connect_to_nginxproxy_network()
     yield requests_for_docker()
-    disconnect_from_network(network)
 
 
 ###############################################################################
