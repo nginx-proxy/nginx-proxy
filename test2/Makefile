@@ -7,10 +7,10 @@ update-dependencies:
 
 test-debian: update-dependencies
 	docker build -t jwilder/nginx-proxy:test ..
-	./test.sh -v
+	./test.sh
 
 test-alpine: update-dependencies
 	docker build -f ../Dockerfile.alpine -t jwilder/nginx-proxy:test ..
-	./test.sh -v
+	./test.sh
 
 test: test-debian test-alpine
