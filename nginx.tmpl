@@ -71,10 +71,13 @@ proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
 proxy_set_header Proxy "";
 {{ end }}
 
+{{ $enable_ipv6 := eq (or ($.Env.ENABLE_IPV6) "") "true" }}
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
 	listen 80;
+	{{ if $enable_ipv6 }}
 	listen [::]:80;
+	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
 }
@@ -83,7 +86,9 @@ server {
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
 	listen 443 ssl http2;
+	{{ if $enable_ipv6 }}
 	listen [::]:443 ssl http2;
+	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
 
@@ -151,7 +156,9 @@ upstream {{ $upstream_name }} {
 server {
 	server_name {{ $host }};
 	listen 80 {{ $default_server }};
+	{{ if $enable_ipv6 }}
 	listen [::]:80 {{ $default_server }};
+	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 301 https://$host$request_uri;
 }
@@ -160,7 +167,9 @@ server {
 server {
 	server_name {{ $host }};
 	listen 443 ssl http2 {{ $default_server }};
+	{{ if $enable_ipv6 }}
 	listen [::]:443 ssl http2 {{ $default_server }};
+	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 
 	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
@@ -214,7 +223,9 @@ server {
 server {
 	server_name {{ $host }};
 	listen 80 {{ $default_server }};
+	{{ if $enable_ipv6 }}
 	listen [::]:80 {{ $default_server }};
+	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
@@ -246,7 +257,9 @@ server {
 server {
 	server_name {{ $host }};
 	listen 443 ssl http2 {{ $default_server }};
+	{{ if $enable_ipv6 }}
 	listen [::]:443 ssl http2 {{ $default_server }};
+	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 500;
 
