@@ -5,7 +5,7 @@ services:
 
 env:
     global:
-        - DOCKER_VERSION=1.12.3-0~trusty
+        - DOCKER_VERSION=1.13.1-0~ubuntu-trusty
 
 before_install:
   # list docker-engine versions
