@@ -6,7 +6,6 @@ services:
 env:
     global:
         - DOCKER_VERSION=1.12.3-0~trusty
-        - DOCKER_COMPOSE_VERSION=1.9.0
 
 before_install:
   # list docker-engine versions
@@ -15,12 +14,6 @@ before_install:
   - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y --force-yes docker-engine=${DOCKER_VERSION}
   - docker version
   - docker info
-  # install docker-compose
-  - sudo rm /usr/local/bin/docker-compose ||true
-  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
-  - chmod +x docker-compose
-  - sudo mv docker-compose /usr/local/bin/docker-compose
-  - docker-compose --version
   # install bats
   - sudo add-apt-repository ppa:duggan/bats --yes
   - sudo apt-get update -qq
