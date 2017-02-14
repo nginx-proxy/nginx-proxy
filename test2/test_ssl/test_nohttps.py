@@ -8,7 +8,5 @@ def test_http_is_forwarded(docker_compose, nginxproxy):
 
 
 def test_https_is_disabled(docker_compose, nginxproxy):
-    with pytest.raises(ConnectionError) as excinfo:
-        r = nginxproxy.get("https://web.nginx-proxy.tld/", allow_redirects=False)
-
-    assert "[Errno 93] Protocol not supported" in str(excinfo.value)
+    with pytest.raises(ConnectionError):
+        nginxproxy.get("https://web.nginx-proxy.tld/", allow_redirects=False)

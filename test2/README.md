@@ -88,6 +88,14 @@ The `nginxproxy` fixture will provide you with a replacement for the python [req
 
 Also this requests replacement is preconfigured to use the Certificate Authority root certificate [certs/ca-root.crt](certs/) to validate https connections.
 
+Furthermore, the nginxproxy methods accept an additional keyword parameter: `ipv6` which forces requests made against containers to use the containers IPv6 address when set to `True`. If IPv6 is not supported by the system or docker, that particular test will be skipped.
+
+    def test_forwards_to_web1_ipv6(docker_compose, nginxproxy):
+        r = nginxproxy.get("http://web1.nginx-proxy.tld/port", ipv6=True)
+        assert r.status_code == 200   
+        assert r.text == "answer from port 81\n"
+
+
 
 ### The web docker image
 

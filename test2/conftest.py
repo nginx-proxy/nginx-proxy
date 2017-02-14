@@ -1,5 +1,5 @@
 from __future__ import print_function
-import json
+import contextlib
 import logging
 import os
 import shlex
@@ -12,14 +12,18 @@ import backoff
 import docker
 import pytest
 import requests
+from _pytest._code.code import ReprExceptionInfo
+from requests.packages.urllib3.util.connection import HAS_IPV6
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('backoff').setLevel(logging.INFO)
-logging.getLogger('DNS').setLevel(logging.INFO)
+logging.getLogger('DNS').setLevel(logging.DEBUG)
 logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
 CA_ROOT_CERTIFICATE = os.path.join(os.path.dirname(__file__), 'certs/ca-root.crt')
 I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER = os.path.isfile("/.dockerenv")
+FORCE_CONTAINER_IPV6 = False  # ugly global state to consider containers' IPv6 address instead of IPv4
+
 
 docker_client = docker.from_env()
 
@@ -29,6 +33,24 @@ docker_client = docker.from_env()
 # utilities
 # 
 ###############################################################################
+
+@contextlib.contextmanager
+def ipv6(force_ipv6=True):
+    """
+    Meant to be used as a context manager to force IPv6 sockets:
+
+        with ipv6():
+            nginxproxy.get("http://something.nginx-proxy.local")  # force use of IPv6
+
+        with ipv6(False):
+            nginxproxy.get("http://something.nginx-proxy.local")  # legacy behavior
+
+
+    """
+    global FORCE_CONTAINER_IPV6
+    FORCE_CONTAINER_IPV6 = force_ipv6
+    yield
+    FORCE_CONTAINER_IPV6 = False
 
 
 class requests_for_docker(object):
@@ -54,40 +76,46 @@ class requests_for_docker(object):
         return get_nginx_conf_from_container(nginx_proxy_containers[0])
 
     def get(self, *args, **kwargs):
-        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
-        def _get(*args, **kwargs):
-            return self.session.get(*args, **kwargs)
-        return _get(*args, **kwargs)
+        with ipv6(kwargs.pop('ipv6', False)):
+            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
+            def _get(*args, **kwargs):
+                return self.session.get(*args, **kwargs)
+            return _get(*args, **kwargs)
 
     def post(self, *args, **kwargs):
-        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
-        def _post(*args, **kwargs):
-            return self.session.post(*args, **kwargs)
-        return _post(*args, **kwargs)
+        with ipv6(kwargs.pop('ipv6', False)):
+            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
+            def _post(*args, **kwargs):
+                return self.session.post(*args, **kwargs)
+            return _post(*args, **kwargs)
 
     def put(self, *args, **kwargs):
-        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
-        def _put(*args, **kwargs):
-            return self.session.put(*args, **kwargs)
-        return _put(*args, **kwargs)
+        with ipv6(kwargs.pop('ipv6', False)):
+            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
+            def _put(*args, **kwargs):
+                return self.session.put(*args, **kwargs)
+            return _put(*args, **kwargs)
 
     def head(self, *args, **kwargs):
-        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
-        def _head(*args, **kwargs):
-            return self.session.head(*args, **kwargs)
-        return _head(*args, **kwargs)
+        with ipv6(kwargs.pop('ipv6', False)):
+            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
+            def _head(*args, **kwargs):
+                return self.session.head(*args, **kwargs)
+            return _head(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
-        def _delete(*args, **kwargs):
-            return self.session.delete(*args, **kwargs)
-        return _delete(*args, **kwargs)
+        with ipv6(kwargs.pop('ipv6', False)):
+            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
+            def _delete(*args, **kwargs):
+                return self.session.delete(*args, **kwargs)
+            return _delete(*args, **kwargs)
 
     def options(self, *args, **kwargs):
-        @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
-        def _options(*args, **kwargs):
-            return self.session.options(*args, **kwargs)
-        return _options(*args, **kwargs)
+        with ipv6(kwargs.pop('ipv6', False)):
+            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
+            def _options(*args, **kwargs):
+                return self.session.options(*args, **kwargs)
+            return _options(*args, **kwargs)
 
     def __getattr__(self, name):
         return getattr(requests, name)
@@ -95,20 +123,45 @@ class requests_for_docker(object):
 
 def container_ip(container):
     """
-    return the IP address of a container
+    return the IP address of a container.
+
+    If the global FORCE_CONTAINER_IPV6 flag is set, return the IPv6 address
+    """
+    global FORCE_CONTAINER_IPV6
+    if FORCE_CONTAINER_IPV6:
+        if not HAS_IPV6:
+            pytest.skip("This system does not support IPv6")
+        ip = container_ipv6(container)
+        if ip == '':
+            pytest.skip("Container %s has no IPv6 address" % container.name)
+        else:
+            return ip
+    else:
+        net_info = container.attrs["NetworkSettings"]["Networks"]
+        if "bridge" in net_info:
+            return net_info["bridge"]["IPAddress"]
+
+        # not default bridge network, fallback on first network defined
+        network_name = net_info.keys()[0]
+        return net_info[network_name]["IPAddress"]
+
+
+def container_ipv6(container):
+    """
+    return the IPv6 address of a container.
     """
     net_info = container.attrs["NetworkSettings"]["Networks"]
     if "bridge" in net_info:
-        return net_info["bridge"]["IPAddress"]
+        return net_info["bridge"]["GlobalIPv6Address"]
 
     # not default bridge network, fallback on first network defined
     network_name = net_info.keys()[0]
-    return net_info[network_name]["IPAddress"]
+    return net_info[network_name]["GlobalIPv6Address"]
 
 
 def nginx_proxy_dns_resolver(domain_name):
     """
-    if "nginx-proxy" if found in domain_name, return the ip address of the docker container
+    if "nginx-proxy" if found in host, return the ip address of the docker container
     issued from the docker image jwilder/nginx-proxy:test.
 
     :return: IP or None
@@ -164,24 +217,21 @@ def monkey_patch_urllib_dns_resolver():
     dns_cache = {}
     def new_getaddrinfo(*args):
         logging.getLogger('DNS').debug("resolving domain name %s" % repr(args))
+        _args = list(args)
 
         # custom DNS resolvers
         ip = nginx_proxy_dns_resolver(args[0])
         if ip is None:
             ip = docker_container_dns_resolver(args[0])
         if ip is not None:
-            return [
-                (socket.AF_INET, socket.SOCK_STREAM, 6, '', (ip, args[1])), 
-                (socket.AF_INET, socket.SOCK_DGRAM, 17, '', (ip, args[1])), 
-                (socket.AF_INET, socket.SOCK_RAW, 0, '', (ip, args[1]))
-            ]
+            _args[0] = ip
 
-        # fallback on original DNS resolver
+        # call on original DNS resolver, with eventually the original host changed to the wanted IP address
         try:
-            return dns_cache[args]
+            return dns_cache[tuple(_args)]
         except KeyError:
-            res = prv_getaddrinfo(*args)
-            dns_cache[args] = res
+            res = prv_getaddrinfo(*_args)
+            dns_cache[tuple(_args)] = res
             return res
     socket.getaddrinfo = new_getaddrinfo
     return prv_getaddrinfo
@@ -370,7 +420,11 @@ def nginxproxy():
     r = nginxproxy.get("http://foo.com")
 
     The difference is that in case an HTTP requests has status code 404 or 502 (which mostly
-    indicates that nginx has just reloaded), we retry up to 30 times the query
+    indicates that nginx has just reloaded), we retry up to 30 times the query.
+
+    Also, the nginxproxy methods accept an additional keyword parameter: `ipv6` which forces requests
+    made against containers to use the containers IPv6 address when set to `True`. If IPv6 is not
+    supported by the system or docker, that particular test will be skipped.
     """
     yield requests_for_docker()
 
@@ -384,10 +438,11 @@ def nginxproxy():
 # pytest hook to display additionnal stuff in test report
 def pytest_runtest_logreport(report):
     if report.failed:
-        test_containers = docker_client.containers.list(all=True, filters={"ancestor": "jwilder/nginx-proxy:test"})
-        for container in test_containers:
-            report.longrepr.addsection('nginx-proxy logs', container.logs())
-            report.longrepr.addsection('nginx-proxy conf', get_nginx_conf_from_container(container))
+        if isinstance(report.longrepr, ReprExceptionInfo):
+            test_containers = docker_client.containers.list(all=True, filters={"ancestor": "jwilder/nginx-proxy:test"})
+            for container in test_containers:
+                report.longrepr.addsection('nginx-proxy logs', container.logs())
+                report.longrepr.addsection('nginx-proxy conf', get_nginx_conf_from_container(container))
 
 
 
