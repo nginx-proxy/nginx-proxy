@@ -263,18 +263,18 @@ def get_nginx_conf_from_container(container):
 def docker_compose_up(compose_file='docker-compose.yml'):
     logging.info('docker-compose -f %s up -d' % compose_file)
     try:
-        subprocess.check_output(shlex.split('docker-compose -f %s up -d' % compose_file))
+        subprocess.check_output(shlex.split('docker-compose -f %s up -d' % compose_file), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError, e:
-        logging.error("Error while runninng 'docker-compose -f %s up -d':\n%s" % (compose_file, e.output))
-        raise
+        pytest.fail("Error while runninng 'docker-compose -f %s up -d':\n%s" % (compose_file, e.output), pytrace=False)
+
 
 def docker_compose_down(compose_file='docker-compose.yml'):
     logging.info('docker-compose -f %s down' % compose_file)
     try:
-        subprocess.check_output(shlex.split('docker-compose -f %s down' % compose_file))
+        subprocess.check_output(shlex.split('docker-compose -f %s down' % compose_file), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError, e:
-        logging.error("Error while runninng 'docker-compose -f %s down':\n%s" % (compose_file, e.output))
-        raise
+        pytest.fail("Error while runninng 'docker-compose -f %s down':\n%s" % (compose_file, e.output), pytrace=False)
+
 
 def wait_for_nginxproxy_to_be_ready():
     """
