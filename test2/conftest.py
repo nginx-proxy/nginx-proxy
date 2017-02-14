@@ -48,9 +48,9 @@ class requests_for_docker(object):
         """
         nginx_proxy_containers = docker_client.containers.list(filters={"ancestor": "jwilder/nginx-proxy:test"})
         if len(nginx_proxy_containers) > 1:
-            pytest.failed("Too many running jwilder/nginx-proxy:test containers")
+            pytest.fail("Too many running jwilder/nginx-proxy:test containers", pytrace=False)
         elif len(nginx_proxy_containers) == 0:
-            pytest.failed("No running jwilder/nginx-proxy:test container")
+            pytest.fail("No running jwilder/nginx-proxy:test container", pytrace=False)
         return get_nginx_conf_from_container(nginx_proxy_containers[0])
 
     def get(self, *args, **kwargs):
