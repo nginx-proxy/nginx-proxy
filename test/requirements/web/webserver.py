@@ -4,9 +4,9 @@ import os, sys
 import http.server
 import socketserver
 
-class BatsHandler(http.server.SimpleHTTPRequestHandler):
+
+class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
-        root = os.getcwd()
         
         self.send_response(200)
         self.send_header("Content-Type", "text/plain")
@@ -20,8 +20,9 @@ class BatsHandler(http.server.SimpleHTTPRequestHandler):
         else:
             self.wfile.write("No route for this path!\n".encode())
 
+
 if __name__ == '__main__':
     PORT = int(sys.argv[1])
     socketserver.TCPServer.allow_reuse_address = True
-    httpd = socketserver.TCPServer(('0.0.0.0', PORT), BatsHandler)
+    httpd = socketserver.TCPServer(('0.0.0.0', PORT), Handler)
     httpd.serve_forever()

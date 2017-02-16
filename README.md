@@ -325,6 +325,22 @@ Before submitting pull requests or issues, please check github to make sure an e
 
 #### Running Tests Locally
 
-To run tests, you'll need to install [bats 0.4.0](https://github.com/sstephenson/bats).
+To run tests, you need to prepare the docker image to test which must be tagged `jwilder/nginx-proxy:test`:
+
+    docker build -t jwilder/nginx-proxy:test .  # build the Debian variant image
+    
+and call the [test/pytest.sh](test/pytest.sh) script.
+
+Then build the Alpine variant of the image:
+
+    docker build -f Dockerfile.alpine -t jwilder/nginx-proxy:test .  # build the Alpline variant image
+
+and call the [test/pytest.sh](test/pytest.sh) script again.
+
+
+If your system has the `make` command, you can automate those tasks by calling:
 
     make test
+    
+
+You can learn more about how the test suite works and how to write new tests in the [test/README.md](test/README.md) file.
