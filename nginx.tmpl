@@ -74,7 +74,6 @@ proxy_set_header Proxy "";
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
 	listen 80;
-	listen [::]:80;
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
 }
@@ -83,7 +82,6 @@ server {
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
 	listen 443 ssl http2;
-	listen [::]:443 ssl http2;
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
 
@@ -151,7 +149,6 @@ upstream {{ $upstream_name }} {
 server {
 	server_name {{ $host }};
 	listen 80 {{ $default_server }};
-	listen [::]:80 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
 	return 301 https://$host$request_uri;
 }
@@ -160,7 +157,6 @@ server {
 server {
 	server_name {{ $host }};
 	listen 443 ssl http2 {{ $default_server }};
-	listen [::]:443 ssl http2 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
 
 	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
@@ -214,7 +210,6 @@ server {
 server {
 	server_name {{ $host }};
 	listen 80 {{ $default_server }};
-	listen [::]:80 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
@@ -246,7 +241,6 @@ server {
 server {
 	server_name {{ $host }};
 	listen 443 ssl http2 {{ $default_server }};
-	listen [::]:443 ssl http2 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
 	return 500;
 
