@@ -17,6 +17,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif self.path == "/port":
             response = "answer from port %s\n" % PORT
             self.wfile.write(response.encode())
+        elif self.path == "/":
+            response = "I'm %s\n" % os.environ['HOSTNAME']
+            self.wfile.write(response.encode())
         else:
             self.wfile.write("No route for this path!\n".encode())
 

@@ -14,11 +14,14 @@ services:
       - ./nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl
       - nginx_conf:/etc/nginx/conf.d
 
-  whoami:
-    image: jwilder/whoami
+  web:
+    image: web
     container_name: whoami
+    expose:
+      - "80"
     environment:
-      - VIRTUAL_HOST=whoami.nginx.container.docker
+      WEB_PORTS: 80
+      VIRTUAL_HOST: whoami.nginx.container.docker
 
 volumes:
   nginx_conf: {}
