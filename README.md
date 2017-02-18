@@ -317,7 +317,7 @@ If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=e
 #### Per-VIRTUAL_HOST location default configuration
 
 If you want most of your virtual hosts to use a default single `location` block configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default_location` file. This file
-will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}` file associated with it.
+will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}_location` file associated with it.
 
 ### Contributing
 
@@ -325,6 +325,22 @@ Before submitting pull requests or issues, please check github to make sure an e
 
 #### Running Tests Locally
 
-To run tests, you'll need to install [bats 0.4.0](https://github.com/sstephenson/bats).
+To run tests, you need to prepare the docker image to test which must be tagged `jwilder/nginx-proxy:test`:
+
+    docker build -t jwilder/nginx-proxy:test .  # build the Debian variant image
+    
+and call the [test/pytest.sh](test/pytest.sh) script.
+
+Then build the Alpine variant of the image:
+
+    docker build -f Dockerfile.alpine -t jwilder/nginx-proxy:test .  # build the Alpline variant image
+
+and call the [test/pytest.sh](test/pytest.sh) script again.
+
+
+If your system has the `make` command, you can automate those tasks by calling:
 
     make test
+    
+
+You can learn more about how the test suite works and how to write new tests in the [test/README.md](test/README.md) file.

@@ -1,0 +1,5 @@
+FROM python:2.7
+COPY python-requirements.txt /requirements.txt
+RUN pip install -r /requirements.txt
+WORKDIR /test
+ENTRYPOINT ["pytest"]
