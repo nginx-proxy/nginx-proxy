@@ -17,7 +17,7 @@ from requests.packages.urllib3.util.connection import HAS_IPV6
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('backoff').setLevel(logging.INFO)
-logging.getLogger('DNS').setLevel(logging.DEBUG)
+logging.getLogger('DNS').setLevel(logging.INFO)
 logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
 CA_ROOT_CERTIFICATE = os.path.join(os.path.dirname(__file__), 'certs/ca-root.crt')
@@ -287,7 +287,7 @@ def wait_for_nginxproxy_to_be_ready():
     container = containers[0]
     for line in container.logs(stream=True):
         if "Watching docker events" in line:
-            logging.debug("nginx-proxy ready")
+            logging.info("nginx-proxy ready")
             break
 
 def find_docker_compose_file(request):
