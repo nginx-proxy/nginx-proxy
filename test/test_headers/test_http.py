@@ -63,7 +63,7 @@ def test_X_Forwarded_Ssl_is_overwritten(docker_compose, nginxproxy):
 def test_X_Real_IP_is_generated(docker_compose, nginxproxy):
     r = nginxproxy.get("http://web.nginx-proxy.tld/headers")
     assert r.status_code == 200
-    assert "X-Real-IP: " in r.text
+    assert "X-Real-IP: ".upper() in r.text.upper()
 
 def test_Host_is_passed_on(docker_compose, nginxproxy):
     r = nginxproxy.get("http://web.nginx-proxy.tld/headers")
