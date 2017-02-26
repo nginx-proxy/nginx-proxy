@@ -1,5 +1,22 @@
 {{ $CurrentContainer := where $ "ID" .Docker.CurrentContainerID | first }}
 
+{{/* When docker-gen is running from a separated container and with the
+	 -only-exposed (or -only-published) option, the template won't be provided
+	 with the current (docker-gen) container info, making $currentContainer `null`.
+*/}}
+{{ if not $CurrentContainer }}
+###############################################################################
+#                                                                             #
+#   Are you using using jwilder/nginx-proxy's nginx.tmpl with docker-gen      #
+#   running in a separated container?                                         #
+#                                                                             #
+#   Consider removing the docker-gen `-only-exposed` option and make sure     #
+#   the docker-gen container has access to the same networks as the nginx     #
+#   container.                                                                #
+#                                                                             #
+###############################################################################
+{{ end }}
+
 {{ define "upstream" }}
 	{{ if .Address }}
 		{{/* If we got the containers from swarm and this container's port is published to host, use host IP:PORT */}}
