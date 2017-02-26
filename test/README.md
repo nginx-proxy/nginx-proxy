@@ -47,6 +47,7 @@ This test suite uses [pytest](http://doc.pytest.org/en/latest/). The [conftest.p
 
 - docker_compose
 - nginxproxy
+- nginx_tmpl
 
 
 ### docker_compose fixture
@@ -95,6 +96,10 @@ Furthermore, the nginxproxy methods accept an additional keyword parameter: `ipv
         assert r.status_code == 200   
         assert r.text == "answer from port 81\n"
 
+
+### nginx_tmpl fixture
+
+The `nginx_tmpl` fixture extracts the `nginx.tmpl` template file from the `jwilder/nginx-proxy:test` image and copy it into the `test` directory. This is useful for tests which requires to mount the template file into a container as a volume.
 
 
 ### The web docker image

@@ -1,4 +1,23 @@
 {{ $CurrentContainer := where $ "ID" .Docker.CurrentContainerID | first }}
+{{ $NginxContainerName := coalesce $.Env.NGINX_CONTAINER $CurrentContainer.Name }}
+{{ $NginxContainer := where $ "Name" $NginxContainerName | first }}
+# -----------------------------------------------------------------------------
+# $.Env.NGINX_CONTAINER: {{ $.Env.NGINX_CONTAINER }}
+# Docker-gen container name: {{ $CurrentContainer.Name }}
+# Nginx container name: {{ $NginxContainerName }}
+# Nginx container found: {{ if $NginxContainer }}yes{{ else }}no{{ end }}
+# Nginx networks: {{ json $NginxContainer.Networks }}
+# -----------------------------------------------------------------------------
+
+{{ if not $NginxContainer }}
+###############################################################################
+#                                                                             #
+# Could not determine which container is running nginx.                       #
+# Make sure to provide a correct value for the `NGINX_CONTAINER` environment  #
+# variable.                                                                   #
+#                                                                             #
+###############################################################################
+{{ end }}
 
 {{ define "upstream" }}
 	{{ if .Address }}
@@ -106,7 +125,7 @@ upstream {{ $upstream_name }} {
 {{ range $container := $containers }}
 	{{ $addrLen := len $container.Addresses }}
 
-	{{ range $knownNetwork := $CurrentContainer.Networks }}
+	{{ range $knownNetwork := $NginxContainer.Networks }}
 		{{ range $containerNetwork := $container.Networks }}
 			{{ if eq $knownNetwork.Name $containerNetwork.Name }}
 				## Can be connect with "{{ $containerNetwork.Name }}" network
@@ -268,6 +287,5 @@ server {
 	ssl_certificate_key /etc/nginx/certs/default.key;
 }
 {{ end }}
-
 {{ end }}
 {{ end }}

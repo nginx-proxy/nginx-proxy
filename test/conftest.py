@@ -370,7 +370,8 @@ def disconnect_from_network(network=None):
 
 def connect_to_all_networks():
     """
-    If we are running from a container, connect our container to all current docker networks.
+    If we are running from a container, connect our container to all current docker networks but the 'bridge' and
+    'none' networks.
 
     :return: a list of networks we connected to
     """
@@ -378,7 +379,7 @@ def connect_to_all_networks():
         return []
     else:
         # find the list of docker networks
-        networks = filter(lambda network: len(network.containers) > 0 and network.name != 'bridge', docker_client.networks.list())
+        networks = filter(lambda network: len(network.containers) > 0 and network.name not in ('bridge', 'none'), docker_client.networks.list())
         return [connect_to_network(network) for network in networks]
 
 
@@ -427,6 +428,27 @@ def nginxproxy():
     supported by the system or docker, that particular test will be skipped.
     """
     yield requests_for_docker()
+
+
+@pytest.yield_fixture(scope="module")
+def nginx_tmpl():
+    """
+    pytest fixture which extracts the the nginx config template from
+    the jwilder/nginx-proxy:test image into the test directory
+    """
+    script_dir = os.path.dirname(__file__)
+    logging.info("extracting nginx.tmpl from jwilder/nginx-proxy:test")
+    print(docker_client.containers.run(
+        image='jwilder/nginx-proxy:test',
+        remove=True,
+        volumes=['{current_dir}:{current_dir}'.format(current_dir=script_dir)],
+        entrypoint='sh',
+        command='-xc "cp /app/nginx.tmpl {current_dir} && chmod 777 {current_dir}/nginx.tmpl"'.format(
+            current_dir=script_dir),
+        stderr=True))
+    yield os.path.join(script_dir, 'nginx.tmpl')
+    logging.info("removing nginx.tmpl")
+    os.remove(os.path.join(script_dir, "nginx.tmpl"))
 
 
 ###############################################################################
