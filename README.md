@@ -1,4 +1,4 @@
-![nginx 1.11.8](https://img.shields.io/badge/nginx-1.11.8-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build Status](https://travis-ci.org/jwilder/nginx-proxy.svg?branch=master)](https://travis-ci.org/jwilder/nginx-proxy) [![](https://img.shields.io/docker/stars/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub') [![](https://img.shields.io/docker/pulls/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub')
+![nginx 1.11.10](https://img.shields.io/badge/nginx-1.11.10-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build Status](https://travis-ci.org/jwilder/nginx-proxy.svg?branch=master)](https://travis-ci.org/jwilder/nginx-proxy) [![](https://img.shields.io/docker/stars/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub') [![](https://img.shields.io/docker/pulls/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub')
 
 
 nginx-proxy sets up a container running nginx and [docker-gen][1].  docker-gen generates reverse proxy configs for nginx and reloads nginx when containers are started and stopped.
@@ -15,9 +15,25 @@ Then start any containers you want proxied with an env var `VIRTUAL_HOST=subdoma
 
     $ docker run -e VIRTUAL_HOST=foo.bar.com  ...
 
-The containers being proxied must [expose](https://docs.docker.com/reference/run/#expose-incoming-ports) the port to be proxied, either by using the `EXPOSE` directive in their `Dockerfile` or by using the `--expose` flag to `docker run` or `docker create`.
+The containers being proxied must [expose](https://docs.docker.com/engine/reference/run/#expose-incoming-ports) the port to be proxied, either by using the `EXPOSE` directive in their `Dockerfile` or by using the `--expose` flag to `docker run` or `docker create`.
 
 Provided your DNS is setup to forward foo.bar.com to the a host running nginx-proxy, the request will be routed to a container with the VIRTUAL_HOST env var set.
+
+### Image variants
+
+The nginx-proxy images are available in two flavors.
+
+#### jwilder/nginx-proxy:latest
+
+This image uses the debian:jessie based nginx image.
+
+    $ docker pull jwilder/nginx-proxy:latest
+
+#### jwilder/nginx-proxy:alpine
+
+This image is based on the nginx:alpine image.
+
+    $ docker pull jwilder/nginx-proxy:alpine
 
 ### Docker Compose
 
@@ -44,6 +60,12 @@ $ docker-compose up
 $ curl -H "Host: whoami.local" localhost
 I'm 5b129ab83266
 ```
+
+### IPv6 support
+
+You can activate the IPv6 support for the nginx-proxy container by passing the value `true` to the `ENABLE_IPV6` environment variable:
+
+    $ docker run -d -p 80:80 -e ENABLE_IPV6=true -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
 ### Multiple Ports
 
@@ -129,7 +151,7 @@ Finally, start your containers with `VIRTUAL_HOST` environment variables.
     $ docker run -e VIRTUAL_HOST=foo.bar.com  ...
 ### SSL Support using letsencrypt
 
-[letsencrypt-nginx-proxy-companion](https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion)is a lightweight companion container for the nginx-proxy. It allow the creation/renewal of Let's Encrypt certificates automatically. 
+[letsencrypt-nginx-proxy-companion](https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion) is a lightweight companion container for the nginx-proxy. It allow the creation/renewal of Let's Encrypt certificates automatically. 
 
 ### SSL Support
 
@@ -307,7 +329,7 @@ If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=e
 #### Per-VIRTUAL_HOST location default configuration
 
 If you want most of your virtual hosts to use a default single `location` block configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default_location` file. This file
-will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}` file associated with it.
+will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}_location` file associated with it.
 
 ### Contributing
 
@@ -315,6 +337,22 @@ Before submitting pull requests or issues, please check github to make sure an e
 
 #### Running Tests Locally
 
-To run tests, you'll need to install [bats 0.4.0](https://github.com/sstephenson/bats).
+To run tests, you need to prepare the docker image to test which must be tagged `jwilder/nginx-proxy:test`:
+
+    docker build -t jwilder/nginx-proxy:test .  # build the Debian variant image
+    
+and call the [test/pytest.sh](test/pytest.sh) script.
+
+Then build the Alpine variant of the image:
+
+    docker build -f Dockerfile.alpine -t jwilder/nginx-proxy:test .  # build the Alpline variant image
+
+and call the [test/pytest.sh](test/pytest.sh) script again.
+
+
+If your system has the `make` command, you can automate those tasks by calling:
 
     make test
+    
+
+You can learn more about how the test suite works and how to write new tests in the [test/README.md](test/README.md) file.

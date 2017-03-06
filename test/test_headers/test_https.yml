@@ -1,0 +1,15 @@
+web:
+  image: web
+  expose:
+    - "80"
+  environment:
+    WEB_PORTS: 80
+    VIRTUAL_HOST: web.nginx-proxy.tld
+
+
+sut:
+  image: jwilder/nginx-proxy:test
+  volumes:
+    - /var/run/docker.sock:/tmp/docker.sock:ro
+    - ./certs/web.nginx-proxy.tld.crt:/etc/nginx/certs/web.nginx-proxy.tld.crt:ro
+    - ./certs/web.nginx-proxy.tld.key:/etc/nginx/certs/web.nginx-proxy.tld.key:ro

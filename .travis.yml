@@ -4,8 +4,11 @@ services:
   - docker
 
 env:
-    global:
-        - DOCKER_VERSION=1.12.3-0~trusty
+  global:
+  - DOCKER_VERSION=1.13.1-0~ubuntu-trusty
+  matrix:
+  - TEST_TARGET: test-debian
+  - TEST_TARGET: test-alpine
 
 before_install:
   # list docker-engine versions
@@ -14,15 +17,8 @@ before_install:
   - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y --force-yes docker-engine=${DOCKER_VERSION}
   - docker version
   - docker info
-  - sudo add-apt-repository ppa:duggan/bats --yes
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq bats
+  # prepare docker test requirements
   - make update-dependencies
 
-matrix:
-  include:
-    - env: TEST_ID=test-debian
-    - env: TEST_ID=test-alpine
-
 script:
-  - make $TEST_ID
+  - make $TEST_TARGET
