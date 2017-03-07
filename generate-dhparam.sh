@@ -15,6 +15,7 @@ if [[ -f $DHPARAM_FILE ]]; then
     CURRENT_HASH=$(md5sum $DHPARAM_FILE | cut -d" " -f1)
     if [[ $PREGEN_HASH != $CURRENT_HASH ]]; then
         # There is already a dhparam, and it's not the default
+        echo "Custom dhparam.pem file found, generation skipped"
         exit 0
     fi
 

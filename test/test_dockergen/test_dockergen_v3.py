@@ -2,11 +2,12 @@ import os
 import docker
 import logging
 import pytest
-
+import re
 
 def versiontuple(v):
+    # Temporary hack to fix version parsing until PR#755 is pulled
+    v = re.sub("[^\d\.]", "", v)
     return tuple(map(int, (v.split("."))))
-
 
 docker_version = docker.from_env().version()['Version']
 pytestmark = pytest.mark.skipif(versiontuple(docker_version) < versiontuple('1.13'),

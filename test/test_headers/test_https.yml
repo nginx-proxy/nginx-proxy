@@ -13,3 +13,4 @@ sut:
     - /var/run/docker.sock:/tmp/docker.sock:ro
     - ./certs/web.nginx-proxy.tld.crt:/etc/nginx/certs/web.nginx-proxy.tld.crt:ro
     - ./certs/web.nginx-proxy.tld.key:/etc/nginx/certs/web.nginx-proxy.tld.key:ro
+    - ../lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
