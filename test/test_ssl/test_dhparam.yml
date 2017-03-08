@@ -5,11 +5,11 @@ web5:
   environment:
     WEB_PORTS: "85"
     VIRTUAL_HOST: "web5.nginx-proxy.tld"
-    HTTPS_METHOD: nohttp
 
 
 sut:
   image: jwilder/nginx-proxy:test
+  container_name: nginxproxy
   volumes:
     - /var/run/docker.sock:/tmp/docker.sock:ro
     - ../lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
