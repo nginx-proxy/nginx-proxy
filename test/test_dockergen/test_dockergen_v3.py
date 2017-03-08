@@ -5,12 +5,26 @@ import pytest
 
 
 def versiontuple(v):
-    return tuple(map(int, (v.split("."))))
+    """
+    >>> versiontuple("1.12.3")
+    (1, 12, 3)
+
+    >>> versiontuple("1.13.0")
+    (1, 13, 0)
+
+    >>> versiontuple("17.03.0-ce")
+    (17, 3, 0)
+
+    >>> versiontuple("17.03.0-ce") < (1, 13)
+    False
+    """
+    return tuple(map(int, (v.split('-')[0].split("."))))
 
 
-docker_version = docker.from_env().version()['Version']
-pytestmark = pytest.mark.skipif(versiontuple(docker_version) < versiontuple('1.13'),
-                                reason="Docker compose syntax v3 requires docker engine v1.13")
+raw_version = docker.from_env().version()['Version']
+pytestmark = pytest.mark.skipif(
+    versiontuple(raw_version) < (1, 13),
+    reason="Docker compose syntax v3 requires docker engine v1.13 or later (got %s)" % raw_version)
 
 
 @pytest.yield_fixture(scope="module")
@@ -45,3 +59,8 @@ def test_forwards_to_whoami(nginx_tmpl, docker_compose, nginxproxy):
     assert r.status_code == 200
     whoami_container = docker_compose.containers.get("whoami")
     assert r.text == "I'm %s\n" % whoami_container.id[:12]
+
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
