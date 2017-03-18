@@ -31,7 +31,7 @@ This image uses the debian:jessie based nginx image.
 
 #### jwilder/nginx-proxy:alpine
 
-This image is based on the nginx:alpine image.
+This image is based on the nginx:alpine image. Use this image to fully support HTTP/2 (including ALPN required by recent Chrome versions). A valid certificate is required as well (see eg. below "SSL Support using letsencrypt" for more info).
 
     $ docker pull jwilder/nginx-proxy:alpine
 
