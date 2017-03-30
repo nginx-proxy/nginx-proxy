@@ -24,11 +24,20 @@ map $http_x_forwarded_proto $proxy_x_forwarded_proto {
   ''      $scheme;
 }
 
+# Set $docker_port to published port using PORT_HTTP or PORT_HTTPS
+{{ $httpPort := coalesce $.Env.PORT_HTTP "80" }}
+{{ $httpsPort := coalesce $.Env.PORT_HTTPS "443" }}
+map $scheme $docker_port {
+  default $server_port;
+  http    {{ $httpPort }};
+  https   {{ $httpsPort }};
+}
+
 # If we receive X-Forwarded-Port, pass it through; otherwise, pass along the
 # server port the client connected to
 map $http_x_forwarded_port $proxy_x_forwarded_port {
   default $http_x_forwarded_port;
-  ''      $server_port;
+  ''      $docker_port;
 }
 
 # If we receive Upgrade, set Connection to "upgrade"; otherwise, delete any
