@@ -103,7 +103,7 @@ If you would like the reverse proxy to connect to your backend using HTTPS inste
 ### uWSGI Backends
 
 If you would like to connect to uWSGI backend, set `VIRTUAL_PROTO=uwsgi` on the
-backend container. Your backend container should than listen on a port rather
+backend container. Your backend container should then listen on a port rather
 than a socket and expose that port.
 
 ### Default Host
