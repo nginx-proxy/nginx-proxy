@@ -1,4 +1,4 @@
-FROM nginx:1.11.9
+FROM nginx:1.11.13
 MAINTAINER Jason Wilder mail@jasonwilder.com
 
 # Install wget and install/updates certificates

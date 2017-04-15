@@ -1,0 +1,13 @@
+web1:
+  image: web
+  expose:
+    - "81"
+  environment:
+    WEB_PORTS: "81"
+    VIRTUAL_HOST: "*.nginx-proxy.tld"
+
+sut:
+  image: jwilder/nginx-proxy:test
+  volumes:
+    - /var/run/docker.sock:/tmp/docker.sock:ro
+    - ./certs:/etc/nginx/certs:ro
