@@ -14,8 +14,9 @@ RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
  && sed -i 's/^http {/&\n    server_names_hash_bucket_size 128;/g' /etc/nginx/nginx.conf
 
 # Install Forego
-ADD https://github.com/jwilder/forego/releases/download/v0.16.1/forego /usr/local/bin/forego
-RUN chmod u+x /usr/local/bin/forego
+RUN wget --quiet -O- https://bin.equinox.io/a/aHZqYk1TwYN/forego-20170111202937-linux-amd64.tar.gz \
+    | tar xz -C /usr/local/bin/ \
+    && chmod u+x /usr/local/bin/forego
 
 ENV DOCKER_GEN_VERSION 0.7.3
 
@@ -24,6 +25,7 @@ RUN wget https://github.com/jwilder/docker-gen/releases/download/$DOCKER_GEN_VER
  && rm /docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz
 
 COPY . /app/
+RUN chmod +x /app/*.sh
 WORKDIR /app/
 
 ENV DOCKER_HOST unix:///tmp/docker.sock
