@@ -28,7 +28,7 @@ WORKDIR /app/
 
 ENV DOCKER_HOST unix:///tmp/docker.sock
 
-VOLUME ["/etc/nginx/certs"]
+VOLUME ["/etc/nginx/certs", "/etc/nginx/htpasswd", "/etc/nginx/vhost.d"]
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]
