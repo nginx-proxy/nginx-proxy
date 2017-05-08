@@ -8,6 +8,8 @@ if [[ $DOCKER_HOST == unix://* ]]; then
 		cat >&2 <<-EOT
 			ERROR: you need to share your Docker host socket with a volume at $socket_file
 			Typically you should run your jwilder/nginx-proxy with: \`-v /var/run/docker.sock:$socket_file:ro\`
+			If you are running your daemon over TLS, make sure you are also exposing it over a Unix socket
+			with the -H unix:///var/run/docker.sock argument
 			See the documentation at http://git.io/vZaGJ
 		EOT
 		socketMissing=1
