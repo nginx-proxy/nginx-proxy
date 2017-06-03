@@ -19,8 +19,8 @@ updatessl() {
       $ACME_BIN --issue \
       -d $d_list \
       --nginx \
-      --fullchain-file "$CERTS\$d.crt" \
-      --key-file "$CERTS\$d.crt" \
+      --fullchain-file "$CERTS/$d.crt" \
+      --key-file "$CERTS/$d.key" \
       --reloadcmd "service nginx configtest && service force-reload"
     done
 
