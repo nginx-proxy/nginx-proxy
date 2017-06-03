@@ -98,7 +98,9 @@ server {
 }
 {{ end }}
 
-{{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
+{{ range $host_list, $containers := groupBy $ "Env.VIRTUAL_HOST" }}
+{{ $sl := split $host_list "," }}
+{{ $host := index $sl 0 }}
 {{ $is_regexp := hasPrefix "~" $host }}
 {{ $upstream_name := when $is_regexp (sha1 $host) $host }}
 # {{ $host }}
@@ -155,7 +157,7 @@ upstream {{ $upstream_name }} {
 
 {{ if eq $https_method "redirect" }}
 server {
-	server_name {{ $host }};
+	server_name {{ replace $host_list "," " " -1 }};
 	listen 80 {{ $default_server }};
 	{{ if $enable_ipv6 }}
 	listen [::]:80 {{ $default_server }};
@@ -166,7 +168,7 @@ server {
 {{ end }}
 
 server {
-	server_name {{ $host }};
+	server_name {{ replace $host_list "," " " -1 }};
 	listen 443 ssl http2 {{ $default_server }};
 	{{ if $enable_ipv6 }}
 	listen [::]:443 ssl http2 {{ $default_server }};
@@ -222,7 +224,7 @@ server {
 {{ if or (not $is_https) (eq $https_method "noredirect") }}
 
 server {
-	server_name {{ $host }};
+	server_name {{ replace $host_list "," " " -1 }};
 	listen 80 {{ $default_server }};
 	{{ if $enable_ipv6 }}
 	listen [::]:80 {{ $default_server }};
@@ -256,7 +258,7 @@ server {
 
 {{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
-	server_name {{ $host }};
+	server_name {{ replace $host_list "," " " -1 }};
 	listen 443 ssl http2 {{ $default_server }};
 	{{ if $enable_ipv6 }}
 	listen [::]:443 ssl http2 {{ $default_server }};
