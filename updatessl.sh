@@ -21,7 +21,7 @@ updatessl() {
       --nginx \
       --fullchain-file "$CERTS/$d.crt" \
       --key-file "$CERTS/$d.key" \
-      --reloadcmd "service nginx configtest && service force-reload"
+      --reloadcmd "service nginx configtest && service nginx force-reload"
     done
 
     #generate nginx conf again.
