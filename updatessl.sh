@@ -26,7 +26,7 @@ updatessl() {
 
     #generate nginx conf again.
     docker-gen /app/nginx.tmpl /etc/nginx/conf.d/default.conf
-    service nginx configtest && service force-reload
+    service nginx configtest && service nginx force-reload
   else
     echo "skip updatessl"
   fi
