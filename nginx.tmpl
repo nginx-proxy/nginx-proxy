@@ -103,6 +103,11 @@ server {
 {{ $host := index $sl 0 }}
 {{ $is_regexp := hasPrefix "~" $host }}
 {{ $upstream_name := when $is_regexp (sha1 $host) $host }}
+
+{{ $enable_acme := eq (or ($.Env.ENABLE_ACME) "") "true" }}
+{{ if $enable_acme }}
+#{{ACMD_DOMAINS $host_list}}
+{{ end }}
 # {{ $host }}
 upstream {{ $upstream_name }} {
 {{ range $container := $containers }}
@@ -159,6 +164,7 @@ upstream {{ $upstream_name }} {
 server {
 	server_name {{ replace $host_list "," " " -1 }};
 	listen 80 {{ $default_server }};
+#location ^~ /.well-known/acme-challenge/ {default_type "text/plain";root html;} location = /.well-known/acme-challenge/ {try_files $uri =404;} #acme
 	{{ if $enable_ipv6 }}
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
@@ -226,6 +232,7 @@ server {
 server {
 	server_name {{ replace $host_list "," " " -1 }};
 	listen 80 {{ $default_server }};
+#location ^~ /.well-known/acme-challenge/ {default_type "text/plain";root html;} location = /.well-known/acme-challenge/ {try_files $uri =404;} #acme
 	{{ if $enable_ipv6 }}
 	listen [::]:80 {{ $default_server }};
 	{{ end }}

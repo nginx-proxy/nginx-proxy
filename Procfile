@@ -1,2 +1,4 @@
-dockergen: docker-gen -watch -notify "nginx -s reload" /app/nginx.tmpl /etc/nginx/conf.d/default.conf
+dockergen: docker-gen -watch -notify "/app/updatessl.sh updatessl" /app/nginx.tmpl /etc/nginx/conf.d/default.conf
 nginx: nginx
+cron: cron
+

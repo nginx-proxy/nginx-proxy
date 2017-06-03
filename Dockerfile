@@ -6,8 +6,11 @@ RUN apt-get update \
  && apt-get install -y -q --no-install-recommends \
     ca-certificates \
     wget \
+    cron \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/*
+
+RUN AUTOUPGRADE=1 LE_WORKING_DIR=/acme.sh LE_CONFIG_HOME /acmecerts wget -O- https://get.acme.sh | sh
 
 # Configure Nginx and apply fix for very long server names
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
@@ -29,6 +32,8 @@ WORKDIR /app/
 ENV DOCKER_HOST unix:///tmp/docker.sock
 
 VOLUME ["/etc/nginx/certs"]
+
+VOLUME ["/acmecerts"]
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]
