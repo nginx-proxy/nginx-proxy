@@ -37,6 +37,7 @@ ENV DOCKER_HOST unix:///tmp/docker.sock
 VOLUME ["/etc/nginx/certs"]
 
 VOLUME ["/acmecerts"]
+EXPOSE 443
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]
