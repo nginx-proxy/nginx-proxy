@@ -111,7 +111,7 @@ upstream {{ $upstream_name }} {
 
 {{ $enable_acme := eq (or ($container.Env.ENABLE_ACME) "") "true" }}
 {{ if $enable_acme }}
-#ACME_DOMAINS{{$host_list}}
+#ACME_DOMAINS {{$host_list}}
 {{ end }}
 
 	{{ $addrLen := len $container.Addresses }}
