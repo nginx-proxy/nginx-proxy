@@ -106,7 +106,7 @@ server {
 
 {{ $enable_acme := eq (or ($.Env.ENABLE_ACME) "") "true" }}
 {{ if $enable_acme }}
-#{{ACMD_DOMAINS $host_list}}
+#ACME_DOMAINS{{$host_list}}
 {{ end }}
 # {{ $host }}
 upstream {{ $upstream_name }} {

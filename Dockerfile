@@ -10,7 +10,7 @@ RUN apt-get update \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/*
 
-RUN AUTOUPGRADE=1 LE_WORKING_DIR=/acme.sh LE_CONFIG_HOME /acmecerts wget -O- https://get.acme.sh | sh
+RUN AUTOUPGRADE=1 LE_WORKING_DIR=/acme.sh LE_CONFIG_HOME=/acmecerts wget -O- https://get.acme.sh | sh
 
 # Configure Nginx and apply fix for very long server names
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
