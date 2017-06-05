@@ -145,6 +145,7 @@ upstream {{ $upstream_name }} {
 
 {{/* Get the HTTPS_METHOD defined by containers w/ the same vhost, falling back to "redirect" */}}
 {{ $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) "redirect" }}
+{{ $enable_hsts := or (first (groupByKeys $containers "Env.ENABLE_HSTS")) "false" }}
 
 {{/* Get the first cert name defined by containers w/ the same vhost */}}
 {{ $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
@@ -200,7 +201,7 @@ server {
 	ssl_dhparam {{ printf "/etc/nginx/certs/%s.dhparam.pem" $cert }};
 	{{ end }}
 
-	{{ if (ne $https_method "noredirect") }}
+	{{ if (and (ne $https_method "noredirect") (ne $enable_hsts "true") ) }}
 	add_header Strict-Transport-Security "max-age=31536000";
 	{{ end }}
 
