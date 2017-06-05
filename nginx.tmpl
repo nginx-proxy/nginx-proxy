@@ -171,7 +171,9 @@ server {
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
-	return 301 https://$host$request_uri;
+	location / {
+		return 301 https://$host$request_uri;
+	}
 }
 {{ end }}
 
