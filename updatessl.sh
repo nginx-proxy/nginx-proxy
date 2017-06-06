@@ -10,6 +10,15 @@ DEFAULT_CONF="/etc/nginx/conf.d/default.conf"
 CERTS="/etc/nginx/certs"
 
 
+startcron() {
+  if service cron status | grep "cron is running"; then
+    echo "cron is running, skip"
+  else
+    service cron start
+  fi
+}
+
+
 updatessl() {
 
   if grep ACME_DOMAINS $DEFAULT_CONF ; then
@@ -33,6 +42,7 @@ updatessl() {
 }
 
 
+startcron
 
 "$@"
 
