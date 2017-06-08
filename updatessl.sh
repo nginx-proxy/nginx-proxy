@@ -11,7 +11,7 @@ CERTS="/etc/nginx/certs"
 
 
 updatessl() {
-
+  service nginx configtest && service nginx force-reload
   if grep ACME_DOMAINS $DEFAULT_CONF ; then
     for d_list in $(grep ACME_DOMAINS $DEFAULT_CONF | cut -d ' ' -f 2);
     do
