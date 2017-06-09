@@ -32,6 +32,7 @@ ENV DOCKER_HOST unix:///tmp/docker.sock
 
 VOLUME ["/etc/nginx/certs"]
 
+ENV ACME_BUILD_DATE=2017-06-09
 ENV AUTO_UPGRADE=1
 ENV LE_WORKING_DIR=/acme.sh
 ENV LE_CONFIG_HOME=/acmecerts
