@@ -11,7 +11,7 @@ CERTS="/etc/nginx/certs"
 
 
 updatessl() {
-  service nginx configtest && service nginx force-reload
+  nginx -t && nginx -s reload
   if grep ACME_DOMAINS $DEFAULT_CONF ; then
     for d_list in $(grep ACME_DOMAINS $DEFAULT_CONF | cut -d ' ' -f 2);
     do
@@ -21,7 +21,7 @@ updatessl() {
       --nginx \
       --fullchain-file "$CERTS/$d.crt" \
       --key-file "$CERTS/$d.key" \
-      --reloadcmd "service nginx configtest && service nginx force-reload"
+      --reloadcmd "nginx -t && nginx -s reload"
     done
 
     #generate nginx conf again.
@@ -29,7 +29,7 @@ updatessl() {
   else
     echo "skip updatessl"
   fi
-  service nginx configtest && service nginx force-reload
+  nginx -t && nginx -s reload
 }
 
 
