@@ -101,12 +101,14 @@ server {
 {{ range $host_list, $containers := groupBy $ "Env.VIRTUAL_HOST" }}
 {{ $sl := split $host_list "," }}
 {{ $host := index $sl 0 }}
+
+{{ $host := trim $host }}
 {{ $is_regexp := hasPrefix "~" $host }}
 {{ $upstream_name := when $is_regexp (sha1 $host) $host }}
 
-
 # {{ $host }}
 upstream {{ $upstream_name }} {
+
 {{ range $container := $containers }}
 
 {{ $enable_acme := eq (or ($container.Env.ENABLE_ACME) "") "true" }}
@@ -141,7 +143,7 @@ upstream {{ $upstream_name }} {
 {{ $default_server := index (dict $host "" $default_host "default_server") $host }}
 
 {{/* Get the VIRTUAL_PROTO defined by containers w/ the same vhost, falling back to "http" */}}
-{{ $proto := or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http" }}
+{{ $proto := trim (or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http") }}
 
 {{/* Get the HTTPS_METHOD defined by containers w/ the same vhost, falling back to "redirect" */}}
 {{ $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) "redirect" }}
@@ -218,6 +220,7 @@ server {
 		{{ else }}
 		proxy_pass {{ trim $proto }}://{{ trim $upstream_name }};
 		{{ end }}
+
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
