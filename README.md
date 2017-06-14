@@ -1,4 +1,4 @@
-![nginx 1.11.10](https://img.shields.io/badge/nginx-1.11.10-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build Status](https://travis-ci.org/jwilder/nginx-proxy.svg?branch=master)](https://travis-ci.org/jwilder/nginx-proxy) [![](https://img.shields.io/docker/stars/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub') [![](https://img.shields.io/docker/pulls/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub')
+![nginx 1.13.0](https://img.shields.io/badge/nginx-1.13.0-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build Status](https://travis-ci.org/jwilder/nginx-proxy.svg?branch=master)](https://travis-ci.org/jwilder/nginx-proxy) [![](https://img.shields.io/docker/stars/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub') [![](https://img.shields.io/docker/pulls/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub')
 
 
 nginx-proxy sets up a container running nginx and [docker-gen][1].  docker-gen generates reverse proxy configs for nginx and reloads nginx when containers are started and stopped.
@@ -17,7 +17,7 @@ Then start any containers you want proxied with an env var `VIRTUAL_HOST=subdoma
 
 The containers being proxied must [expose](https://docs.docker.com/engine/reference/run/#expose-incoming-ports) the port to be proxied, either by using the `EXPOSE` directive in their `Dockerfile` or by using the `--expose` flag to `docker run` or `docker create`.
 
-Provided your DNS is setup to forward foo.bar.com to the a host running nginx-proxy, the request will be routed to a container with the VIRTUAL_HOST env var set.
+Provided your DNS is setup to forward foo.bar.com to the host running nginx-proxy, the request will be routed to a container with the VIRTUAL_HOST env var set.
 
 ### Image variants
 
@@ -31,7 +31,7 @@ This image uses the debian:jessie based nginx image.
 
 #### jwilder/nginx-proxy:alpine
 
-This image is based on the nginx:alpine image.
+This image is based on the nginx:alpine image. Use this image to fully support HTTP/2 (including ALPN required by recent Chrome versions). A valid certificate is required as well (see eg. below "SSL Support using letsencrypt" for more info).
 
     $ docker pull jwilder/nginx-proxy:alpine
 
@@ -105,7 +105,7 @@ If you would like the reverse proxy to connect to your backend using HTTPS inste
 ### uWSGI Backends
 
 If you would like to connect to uWSGI backend, set `VIRTUAL_PROTO=uwsgi` on the
-backend container. Your backend container should than listen on a port rather
+backend container. Your backend container should then listen on a port rather
 than a socket and expose that port.
 
 ### Default Host
@@ -215,7 +215,7 @@ is always preferred when available.
 Note that in the latter case, a browser may get an connection error as no certificate is available
 to establish a connection.  A self-signed or generic cert named `default.crt` and `default.key`
 will allow a client browser to make a SSL connection (likely w/ a warning) and subsequently receive
-a 503.
+a 500.
 
 To serve traffic in both SSL and non-SSL modes without redirecting to SSL, you can include the
 environment variable `HTTPS_METHOD=noredirect` (the default is `HTTPS_METHOD=redirect`).  You can also

@@ -11,7 +11,7 @@ if [[ "$#" -eq 0 ]]; then
 
 	You can also create certificates for wildcard domains:
 	    $(basename $0) '*.my-domain.tdl'
-	
+
 	EOF
 	exit 0
 else
@@ -24,8 +24,8 @@ fi
 # Create a nginx container (which conveniently provides the `openssl` command)
 ###############################################################################
 
-CONTAINER=$(docker run -d -v $DIR:/work -w /work -e SAN="$ALTERNATE_DOMAINS" nginx:1.11.8)
-# Configure openssl 
+CONTAINER=$(docker run -d -v $DIR:/work -w /work -e SAN="$ALTERNATE_DOMAINS" nginx:1.13.0)
+# Configure openssl
 docker exec $CONTAINER bash -c '
 	mkdir -p /ca/{certs,crl,private,newcerts} 2>/dev/null
 	echo 1000 > /ca/serial
@@ -117,7 +117,7 @@ function openssl {
 }
 
 function exitfail {
-		echo 
+		echo
 		echo ERROR: "$@"
 		docker rm -f $CONTAINER
 		exit 1
@@ -129,15 +129,15 @@ function exitfail {
 ###############################################################################
 
 if ! [[ -f "$DIR/ca-root.key" ]]; then
-	echo 
+	echo
 	echo "> Create a Certificate Authority root key: $DIR/ca-root.key"
 	openssl genrsa -out ca-root.key 2048
 	[[ $? -eq 0 ]] || exitfail failed to generate CA root key
 fi
 
-# Create a CA root certificate 
+# Create a CA root certificate
 if ! [[ -f "$DIR/ca-root.crt" ]]; then
-	echo 
+	echo
 	echo "> Create a CA root certificate: $DIR/ca-root.crt"
 	openssl req -config /ca/openssl.cnf \
 	-key ca-root.key \
@@ -154,30 +154,30 @@ fi
 # create server key and certificate signed by the certificate authority
 ###############################################################################
 
-echo 
+echo
 echo "> Create a host key: $DIR/$DOMAIN.key"
 openssl genrsa -out "$DOMAIN.key" 2048
 
-echo 
+echo
 echo "> Create a host certificate signing request"
 
 SAN="$ALTERNATE_DOMAINS" openssl req -config /ca/openssl.cnf \
 	-key "$DOMAIN.key" \
-	-new -out "/ca/$DOMAIN.csr" -days 1000 -extensions san_env -subj "/CN=$DOMAIN" 
+	-new -out "/ca/$DOMAIN.csr" -days 1000 -extensions san_env -subj "/CN=$DOMAIN"
 	[[ $? -eq 0 ]] || exitfail failed to generate server certificate signing request
 
-echo 
+echo
 echo "> Create server certificate: $DIR/$DOMAIN.crt"
 SAN="$ALTERNATE_DOMAINS" openssl ca -config /ca/openssl.cnf -batch \
 		-extensions server_cert \
 		-extensions san_env \
 		-in "/ca/$DOMAIN.csr" \
-		-out "$DOMAIN.crt" 
+		-out "$DOMAIN.crt"
 	[[ $? -eq 0 ]] || exitfail failed to generate server certificate
 
 
 # Verify host certificate
-#openssl x509 -noout -text -in "$DOMAIN.crt" 
+#openssl x509 -noout -text -in "$DOMAIN.crt"
 
 
 docker rm -f $CONTAINER >/dev/null

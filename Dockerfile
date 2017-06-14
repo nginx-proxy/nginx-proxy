@@ -1,4 +1,4 @@
-FROM nginx:1.11.10
+FROM nginx:1.13.0
 MAINTAINER Jason Wilder mail@jasonwilder.com
 
 # Install wget and install/updates certificates
@@ -9,8 +9,11 @@ RUN apt-get update \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/*
 
-# Configure nginx
-RUN echo "daemon off;" >> /etc/nginx/nginx.conf
+
+# Configure Nginx and apply fix for very long server names
+RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
+ && sed -i 's/^http {/&\n    server_names_hash_bucket_size 128;/g' /etc/nginx/nginx.conf \
+ && sed -i 's/worker_processes  1/worker_processes  auto/' /etc/nginx/nginx.conf
 
 # Install Forego
 ADD https://github.com/jwilder/forego/releases/download/v0.16.1/forego /usr/local/bin/forego
