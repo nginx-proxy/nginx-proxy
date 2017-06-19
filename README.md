@@ -184,6 +184,11 @@ at startup.  Since it can take minutes to generate a new `dhparam.pem`, it is do
 background.  Once generation is complete, the `dhparams.pem` is saved on a persistent volume and nginx
 is reloaded.  This generation process only occurs the first time you start `nginx-proxy`.
 
+> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 2048 bits for A+ security.  Some 
+> older clients (like Java 6 and 7) do not support DH keys with over 1024 bits.  In order to support these
+> clients, you must either provide your own `dhparam.pem`, or tell `nginx-proxy` to generate a 1024-bit
+> key on startup by passing `-e DHPARAM_BITS=1024`.
+
 #### Wildcard Certificates
 
 Wildcard certificates and keys should be named after the domain name with a `.crt` and `.key` extension.
