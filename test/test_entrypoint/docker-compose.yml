@@ -1,0 +1,18 @@
+version: '2'
+
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy:test
+    container_name: nginx-proxy
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+#      - ../../docker-entrypoint.sh:/app/docker-entrypoint.sh:ro
+
+  web1:
+    container_name: web1
+    image: web
+    expose:
+      - 81
+    environment:
+      WEB_PORTS: "81"
+      VIRTUAL_HOST: web1.nginx-proxy

@@ -1,31 +1,26 @@
 #!/usr/bin/env python3
+import os
 
-import os, sys
-import http.server
-import socketserver
+import sys
+from flask import Flask, Response, request
+app = Flask(__name__)
 
 
-class Handler(http.server.SimpleHTTPRequestHandler):
-    def do_GET(self):
-        
-        self.send_response(200)
-        self.send_header("Content-Type", "text/plain")
-        self.end_headers()
+@app.route("/")
+def root():
+    return Response("I'm %s\n" % os.environ['HOSTNAME'], mimetype="text/plain")
 
-        if self.path == "/headers":
-            self.wfile.write(self.headers.as_string().encode())
-        elif self.path == "/port":
-            response = "answer from port %s\n" % PORT
-            self.wfile.write(response.encode())
-        elif self.path == "/":
-            response = "I'm %s\n" % os.environ['HOSTNAME']
-            self.wfile.write(response.encode())
-        else:
-            self.wfile.write("No route for this path!\n".encode())
+
+@app.route("/headers")
+def headers():
+    return Response("".join(["%s: %s\n" % (header, value) for header, value in request.headers.items()]), mimetype="text/plain")
+
+
+@app.route("/port")
+def port():
+    return Response("answer from port %s\n" % PORT, mimetype="text/plain")
 
 
 if __name__ == '__main__':
     PORT = int(sys.argv[1])
-    socketserver.TCPServer.allow_reuse_address = True
-    httpd = socketserver.TCPServer(('0.0.0.0', PORT), Handler)
-    httpd.serve_forever()
+    app.run(host="0.0.0.0", port=PORT)
