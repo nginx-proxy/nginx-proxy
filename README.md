@@ -100,6 +100,8 @@ In this example, the `my-nginx-proxy` container will be connected to `my-network
 
 If you would like the reverse proxy to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_PROTO=https` on the backend container.
 
+> Note: If you use `VIRTUAL_PROTO=https` and your backend container exposes port 80 and 443, `nginx-proxy` will use HTTPS on port 80.  This is almost certainly not what you want, so you should also include `VIRTUAL_PORT=443`.
+
 ### uWSGI Backends
 
 If you would like to connect to uWSGI backend, set `VIRTUAL_PROTO=uwsgi` on the
@@ -171,9 +173,21 @@ By default, Docker is not able to mount directories on the host machine to conta
 
 #### Diffie-Hellman Groups
 
-If you have Diffie-Hellman groups enabled, the files should be named after the virtual host with a
+Diffie-Hellman groups are enabled by default, with a pregenerated key in `/etc/nginx/dhparam/dhparam.pem`.
+You can mount a different `dhparam.pem` file at that location to override the default cert.
+To use custom `dhparam.pem` files per-virtual-host, the files should be named after the virtual host with a
 `dhparam` suffix and `.pem` extension. For example, a container with `VIRTUAL_HOST=foo.bar.com`
-should have a `foo.bar.com.dhparam.pem` file in the certs directory.
+should have a `foo.bar.com.dhparam.pem` file in the `/etc/nginx/certs` directory.
+
+> NOTE: If you don't mount a `dhparam.pem` file at `/etc/nginx/dhparam/dhparam.pem`, one will be generated
+at startup.  Since it can take minutes to generate a new `dhparam.pem`, it is done at low priority in the
+background.  Once generation is complete, the `dhparams.pem` is saved on a persistent volume and nginx
+is reloaded.  This generation process only occurs the first time you start `nginx-proxy`.
+
+> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 2048 bits for A+ security.  Some 
+> older clients (like Java 6 and 7) do not support DH keys with over 1024 bits.  In order to support these
+> clients, you must either provide your own `dhparam.pem`, or tell `nginx-proxy` to generate a 1024-bit
+> key on startup by passing `-e DHPARAM_BITS=1024`.
 
 #### Wildcard Certificates
 
@@ -189,10 +203,13 @@ and `CERT_NAME=shared` will then use this shared cert.
 
 #### How SSL Support Works
 
-The SSL cipher configuration is based on [mozilla nginx intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Nginx) which
+The SSL cipher configuration is based on the [Mozilla nginx intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Nginx) which
 should provide compatibility with clients back to Firefox 1, Chrome 1, IE 7, Opera 5, Safari 1,
-Windows XP IE8, Android 2.3, Java 7.  The configuration also enables HSTS, and SSL
-session caches.
+Windows XP IE8, Android 2.3, Java 7.  Note that the DES-based TLS ciphers were removed for security.
+The configuration also enables HSTS, PFS, and SSL session caches.  Currently TLS 1.0, 1.1 and 1.2
+are supported.  TLS 1.0 is deprecated but its end of life is not until June 30, 2018.  It is being 
+included because the following browsers will stop working when it is removed: Chrome < 22, Firefox < 27,
+IE < 11, Safari < 7, iOS < 5, Android Browser < 5.
 
 The default behavior for the proxy when port 80 and 443 are exposed is as follows:
 

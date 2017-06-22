@@ -9,12 +9,13 @@ services:
     image: jwilder/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
     networks:
       - net1
       - net2
 
   web1:
-    image: web 
+    image: web
     expose:
       - "81"
     environment:
@@ -24,7 +25,7 @@ services:
       - net1
 
   web2:
-    image: web 
+    image: web
     expose:
       - "82"
     environment:

@@ -1,0 +1,8 @@
+sut:
+  image: jwilder/nginx-proxy:test
+  container_name: nginxproxy
+  volumes:
+    - /var/run/docker.sock:/tmp/docker.sock:ro
+    - ./certs:/etc/nginx/certs:ro
+  environment:
+    - DHPARAM_BITS=256
