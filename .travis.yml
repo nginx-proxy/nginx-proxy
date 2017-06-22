@@ -1,20 +1,17 @@
 dist: trusty
 sudo: required
-services:
-  - docker
 
 env:
-  global:
-  - DOCKER_VERSION=1.13.1-0~ubuntu-trusty
   matrix:
   - TEST_TARGET: test-debian
   - TEST_TARGET: test-alpine
 
 before_install:
-  # list docker-engine versions
-  - apt-cache madison docker-engine
-  # upgrade docker-engine to specific version
-  - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y --force-yes docker-engine=${DOCKER_VERSION}
+  - sudo apt-get remove docker docker-engine
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - sudo apt-get update
+  - sudo apt-get -y install docker-ce
   - docker version
   - docker info
   # prepare docker test requirements
