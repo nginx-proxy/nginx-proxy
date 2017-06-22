@@ -10,12 +10,14 @@ services:
 
   dockergen:
     image: jwilder/docker-gen
-    command: -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    command: -notify-sighup nginx -only-exposed -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
     volumes_from:
       - nginx
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl
+    environment:
+      - NGINX_CONTAINER=nginx
 
   whoami:
     image: jwilder/whoami

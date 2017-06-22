@@ -135,13 +135,17 @@ First start nginx with a volume:
 
     $ docker run -d -p 80:80 --name nginx -v /tmp/nginx:/etc/nginx/conf.d -t nginx
 
-Then start the docker-gen container with the shared volume and template:
+Then start the docker-gen container with:
+- the `NGINX_CONTAINER` environment variable set to the name of the container running nginx
+- the shared volume
+- the template
 
 ```
 $ docker run --volumes-from nginx \
+    -e NGINX_CONTAINER=nginx \
     -v /var/run/docker.sock:/tmp/docker.sock:ro \
     -v $(pwd):/etc/docker-gen/templates \
-    -t jwilder/docker-gen -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    -t jwilder/docker-gen -notify-sighup nginx -only-exposed -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
 ```
 
 Finally, start your containers with `VIRTUAL_HOST` environment variables.

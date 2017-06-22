@@ -1,0 +1,50 @@
+# In this compose file, we define a dockergen container which has no network.
+# This should not be an issue since the docker-gen process is not binding to any port or isn't making any
+# network connection to any other container.
+
+---
+
+version: '2'
+
+networks:
+  nginx-net: {}
+
+
+volumes:
+  nginx_conf: {}
+  nginx_certs: {}
+
+services:
+  nginx:
+    image: nginx
+    container_name: nginx
+    volumes:
+      - nginx_conf:/etc/nginx/conf.d
+      - nginx_certs:/etc/nginx/certs
+    networks:
+      - nginx-net
+
+  dockergen:
+    image: jwilder/docker-gen
+    command: -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    volumes_from:
+      - nginx
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - nginx_conf:/etc/nginx/conf.d
+      - nginx_certs:/etc/nginx/certs
+      - ../nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl
+    environment:
+      NGINX_CONTAINER: nginx
+    networks: []
+
+  web:
+    image: web
+    container_name: whoami
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: whoami.nginx.container.docker
+    networks:
+      - nginx-net
