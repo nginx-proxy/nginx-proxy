@@ -108,6 +108,17 @@ If you would like to connect to uWSGI backend, set `VIRTUAL_PROTO=uwsgi` on the
 backend container. Your backend container should then listen on a port rather
 than a socket and expose that port.
 
+### FastCGI Backends
+ 
+If you would like to connect to FastCGI backend, set `VIRTUAL_PROTO=fastcgi` on the
+backend container. Your backend container should then listen on a port rather
+than a socket and expose that port.
+ 
+### FastCGI Filr Root Directory
+
+If you use fastcgi,you can set `VIRTUAL_ROOT=xxx`  for your root directory
+
+
 ### Default Host
 
 To set the default host for nginx use the env var `DEFAULT_HOST=foo.bar.com` for example
