@@ -152,6 +152,10 @@ Finally, start your containers with `VIRTUAL_HOST` environment variables.
 
 [letsencrypt-nginx-proxy-companion](https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion) is a lightweight companion container for the nginx-proxy. It allow the creation/renewal of Let's Encrypt certificates automatically. 
 
+Set `GENERATE_DHPARAM` environment variable to `false` to disabled Diffie-Hellman parameters completely. This will also ignore auto-generation made by `nginx-proxy`.
+The default value is `true`
+
+     $ docker run -e GENERATE_DHPARAM=false ....
 ### SSL Support
 
 SSL is supported using single host, wildcard and SNI certificates using naming conventions for
