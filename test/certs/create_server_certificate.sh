@@ -19,12 +19,18 @@ else
 	ALTERNATE_DOMAINS="DNS:$( echo "$@" | sed 's/ /,DNS:/g')"
 fi
 
+###############################################################################
+# Create a `nginx-openssl` image (`nginx` image with `openssl` installed)
+###############################################################################
+
+NGINX_OPENSSL_IMAGE="nginx-proxy/nginx-openssl"
+docker build . -t "$NGINX_OPENSSL_IMAGE"
 
 ###############################################################################
 # Create a nginx container (which conveniently provides the `openssl` command)
 ###############################################################################
 
-CONTAINER=$(docker run -d -v $DIR:/work -w /work -e SAN="$ALTERNATE_DOMAINS" nginx:1.13)
+CONTAINER=$(docker run -d -v $DIR:/work -w /work -e SAN="$ALTERNATE_DOMAINS" "$NGINX_OPENSSL_IMAGE")
 # Configure openssl
 docker exec $CONTAINER bash -c '
 	mkdir -p /ca/{certs,crl,private,newcerts} 2>/dev/null
