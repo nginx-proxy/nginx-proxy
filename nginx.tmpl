@@ -13,8 +13,13 @@
 		{{ end }}
 	{{ else if .Network }}
 		# {{ .Container.Name }}
-		server {{ .Network.IP }} down;
+		{{ if .Network.IP }}
+			server {{ .Network.IP }} down;
+		{{ else }}
+			server 127.0.0.1 down;
+		{{ end }}
 	{{ end }}
+	
 {{ end }}
 
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
