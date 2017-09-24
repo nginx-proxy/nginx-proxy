@@ -150,12 +150,12 @@ Finally, start your containers with `VIRTUAL_HOST` environment variables.
     $ docker run -e VIRTUAL_HOST=foo.bar.com  ...
 ### SSL Support using letsencrypt
 
-[letsencrypt-nginx-proxy-companion](https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion) is a lightweight companion container for the nginx-proxy. It allow the creation/renewal of Let's Encrypt certificates automatically. 
+[letsencrypt-nginx-proxy-companion](https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion) is a lightweight companion container for the nginx-proxy. It allow the creation/renewal of Let's Encrypt certificates automatically.
 
-Set `GENERATE_DHPARAM` environment variable to `false` to disabled Diffie-Hellman parameters completely. This will also ignore auto-generation made by `nginx-proxy`.
+Set `DHPARAM_GENERATION` environment variable to `false` to disabled Diffie-Hellman parameters completely. This will also ignore auto-generation made by `nginx-proxy`.
 The default value is `true`
 
-     $ docker run -e GENERATE_DHPARAM=false ....
+     $ docker run -e DHPARAM_GENERATION=false ....
 ### SSL Support
 
 SSL is supported using single host, wildcard and SNI certificates using naming conventions for
@@ -187,7 +187,7 @@ at startup.  Since it can take minutes to generate a new `dhparam.pem`, it is do
 background.  Once generation is complete, the `dhparams.pem` is saved on a persistent volume and nginx
 is reloaded.  This generation process only occurs the first time you start `nginx-proxy`.
 
-> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 2048 bits for A+ security.  Some 
+> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 2048 bits for A+ security.  Some
 > older clients (like Java 6 and 7) do not support DH keys with over 1024 bits.  In order to support these
 > clients, you must either provide your own `dhparam.pem`, or tell `nginx-proxy` to generate a 1024-bit
 > key on startup by passing `-e DHPARAM_BITS=1024`.
@@ -210,7 +210,7 @@ The SSL cipher configuration is based on the [Mozilla nginx intermediate profile
 should provide compatibility with clients back to Firefox 1, Chrome 1, IE 7, Opera 5, Safari 1,
 Windows XP IE8, Android 2.3, Java 7.  Note that the DES-based TLS ciphers were removed for security.
 The configuration also enables HSTS, PFS, OCSP stapling and SSL session caches.  Currently TLS 1.0, 1.1 and 1.2
-are supported.  TLS 1.0 is deprecated but its end of life is not until June 30, 2018.  It is being 
+are supported.  TLS 1.0 is deprecated but its end of life is not until June 30, 2018.  It is being
 included because the following browsers will stop working when it is removed: Chrome < 22, Firefox < 27,
 IE < 11, Safari < 7, iOS < 5, Android Browser < 5.
 
@@ -227,12 +227,12 @@ a 500.
 
 To serve traffic in both SSL and non-SSL modes without redirecting to SSL, you can include the
 environment variable `HTTPS_METHOD=noredirect` (the default is `HTTPS_METHOD=redirect`).  You can also
-disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`, or disable the HTTPS site with 
-`HTTPS_METHOD=nohttps`. `HTTPS_METHOD` must be specified on each container for which you want to 
-override the default behavior.  If `HTTPS_METHOD=noredirect` is used, Strict Transport Security (HSTS) 
-is disabled to prevent HTTPS users from being redirected by the client.  If you cannot get to the HTTP 
-site after changing this setting, your browser has probably cached the HSTS policy and is automatically 
-redirecting you back to HTTPS.  You will need to clear your browser's HSTS cache or use an incognito 
+disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`, or disable the HTTPS site with
+`HTTPS_METHOD=nohttps`. `HTTPS_METHOD` must be specified on each container for which you want to
+override the default behavior.  If `HTTPS_METHOD=noredirect` is used, Strict Transport Security (HSTS)
+is disabled to prevent HTTPS users from being redirected by the client.  If you cannot get to the HTTP
+site after changing this setting, your browser has probably cached the HSTS policy and is automatically
+redirecting you back to HTTPS.  You will need to clear your browser's HSTS cache or use an incognito
 window / different browser.
 
 ### Basic Authentication Support
@@ -348,7 +348,7 @@ Before submitting pull requests or issues, please check github to make sure an e
 To run tests, you need to prepare the docker image to test which must be tagged `jwilder/nginx-proxy:test`:
 
     docker build -t jwilder/nginx-proxy:test .  # build the Debian variant image
-    
+
 and call the [test/pytest.sh](test/pytest.sh) script.
 
 Then build the Alpine variant of the image:
@@ -361,6 +361,6 @@ and call the [test/pytest.sh](test/pytest.sh) script again.
 If your system has the `make` command, you can automate those tasks by calling:
 
     make test
-    
+
 
 You can learn more about how the test suite works and how to write new tests in the [test/README.md](test/README.md) file.
