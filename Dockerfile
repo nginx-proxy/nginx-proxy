@@ -1,4 +1,4 @@
-FROM nginx:1.13
+FROM arm32v7/nginx:1.13
 MAINTAINER Jason Wilder mail@jasonwilder.com
 
 # Install wget and install/updates certificates
