@@ -42,7 +42,7 @@ map $http_upgrade $proxy_connection {
 server_names_hash_bucket_size 128;
 
 # Default dhparam
-ssl_dhparam /etc/nginx/dhparam/dhparam.pem;
+ssl_dhparam /etc/nginx/certs/dhparam.pem;
 
 # Set appropriate X-Forwarded-Ssl header
 map $scheme $proxy_x_forwarded_ssl {
