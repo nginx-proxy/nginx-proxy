@@ -114,6 +114,26 @@ When internal-only access is enabled, external clients with be denied with an `H
 
 > If there is a load-balancer / reverse proxy in front of `nginx-proxy` that hides the client IP (example: AWS Application/Elastic Load Balancer), you will need to use the nginx `realip` module (already installed) to extract the client's IP from the HTTP request headers.  Please see the [nginx realip module configuration](http://nginx.org/en/docs/http/ngx_http_realip_module.html) for more details.  This configuration can be added to a new config file and mounted in `/etc/nginx/conf.d/`.
 
+### Proxy Groups
+
+You can limit proxy services to a specific group of containers. Setting
+the env var VIRTUAL_GROUP on a nginx-proxy container to an arbitrary name
+will restrict it to servicing only containers having an env var VIRTUAL_GROUP
+with the same name. Unlike Local Network Access or other restrictions,
+groups restrict what a nginx-proxy instance knows about other virtual hosts.
+
+Consider a docker host running two nginx-proxy containers; one for public
+services and another for publicly acessible, secured "backend" services. By
+default, both proxy servers will contain directives (e.g. `upstream`,
+`server`, etc.) for all virtual hosts. Defining two groups `PUBLIC`
+and `BACKEND` and applying them to their respective nginx-proxy instance
+and virtual hosts ensures that each proxy server only knows about and
+serves their intended virtual hosts.
+
+> Grouping only affects nginx-proxy configurations. Each nginx-proxy must
+still be attached to appropriate networks to access containers for which
+they are proxies.
+
 ### SSL Backends
 
 If you would like the reverse proxy to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_PROTO=https` on the backend container.

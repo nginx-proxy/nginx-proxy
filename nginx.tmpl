@@ -110,7 +110,10 @@ server {
 }
 {{ end }}
 
-{{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
+{{/* Filter containers by VIRTUAL_GROUP, if set; otherwise use all containers */}}
+{{ $vgrp := or $.Env.VIRTUAL_GROUP "" }}
+{{ $filtered := or (where $ "Env.VIRTUAL_GROUP" $vgrp) $ }}
+{{ range $host, $containers := groupByMulti $filtered "Env.VIRTUAL_HOST" "," }}
 
 {{ $host := trim $host }}
 {{ $is_regexp := hasPrefix "~" $host }}
