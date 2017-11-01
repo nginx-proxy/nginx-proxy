@@ -215,8 +215,8 @@ server {
 	ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $cert) }};
 	ssl_certificate_key /etc/nginx/certs/{{ (printf "%s.key" $cert) }};
 
-	{{ if (exists (printf "/etc/nginx/certs/%s.dhparam.pem" $cert)) }}
-	ssl_dhparam {{ printf "/etc/nginx/certs/%s.dhparam.pem" $cert }};
+	{{ if (exists (printf "/etc/nginx/dhparam/%s.dhparam.pem" $cert)) }}
+	ssl_dhparam {{ printf "/etc/nginx/dhparam/%s.dhparam.pem" $cert }};
 	{{ end }}
 
 	{{ if (exists (printf "/etc/nginx/certs/%s.chain.crt" $cert)) }}
