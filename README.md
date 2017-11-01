@@ -210,13 +210,19 @@ should have a `foo.bar.com.dhparam.pem` file in the `/etc/nginx/certs` directory
 
 > NOTE: If you don't mount a `dhparam.pem` file at `/etc/nginx/dhparam/dhparam.pem`, one will be generated
 at startup.  Since it can take minutes to generate a new `dhparam.pem`, it is done at low priority in the
-background.  Once generation is complete, the `dhparams.pem` is saved on a persistent volume and nginx
+background.  Once generation is complete, the `dhparam.pem` is saved on a persistent volume and nginx
 is reloaded.  This generation process only occurs the first time you start `nginx-proxy`.
 
 > COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 2048 bits for A+ security.  Some 
 > older clients (like Java 6 and 7) do not support DH keys with over 1024 bits.  In order to support these
 > clients, you must either provide your own `dhparam.pem`, or tell `nginx-proxy` to generate a 1024-bit
 > key on startup by passing `-e DHPARAM_BITS=1024`.
+
+In the separate container setup, no pregenerated key will be available and neither the
+[jwilder/docker-gen](https://index.docker.io/u/jwilder/docker-gen/) image nor the offical
+[nginx](https://registry.hub.docker.com/_/nginx/) image will generate one. If you still want A+ security
+in a separate container setup, you'll have to generate a 2048 bits DH key file manually and mount it on the
+nginx container, at `/etc/nginx/dhparam/dhparam.pem`.
 
 #### Wildcard Certificates
 
