@@ -1,5 +1,6 @@
 import pytest
 from backports.ssl_match_hostname import CertificateError
+from requests.exceptions import SSLError
 
 
 @pytest.mark.parametrize("subdomain,should_redirect_to_https", [
@@ -23,7 +24,7 @@ def test_https_get_served(docker_compose, nginxproxy, subdomain):
 
 
 def test_web3_https_is_500_and_SSL_validation_fails(docker_compose, nginxproxy):
-    with pytest.raises(CertificateError) as excinfo:
+    with pytest.raises( (CertificateError, SSLError) ) as excinfo:
         nginxproxy.get("https://3.web.nginx-proxy.tld/port")
     assert """hostname '3.web.nginx-proxy.tld' doesn't match 'nginx-proxy.tld'""" in str(excinfo.value)
 
