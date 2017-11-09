@@ -267,6 +267,13 @@ site after changing this setting, your browser has probably cached the HSTS poli
 redirecting you back to HTTPS.  You will need to clear your browser's HSTS cache or use an incognito 
 window / different browser.
 
+By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security) 
+is enabled with `max-age=31536000` for HTTPS sites.  You can disable HSTS with the environment variable 
+`HSTS=off` or use a custom HSTS configuration like `HSTS=max-age=31536000; includeSubDomains; preload`.  
+*WARNING*: HSTS will force your users to visit the HTTPS version of your site for the `max-age` time - 
+even if they type in `http://` manually.  The only way to get to an HTTP site after receiving an HSTS 
+response is to clear your browser's HSTS cache.
+
 ### Basic Authentication Support
 
 In order to be able to secure your virtual host, you have to create a file named as its equivalent VIRTUAL_HOST variable on directory
