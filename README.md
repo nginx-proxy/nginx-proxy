@@ -182,6 +182,8 @@ Finally, start your containers with `VIRTUAL_HOST` environment variables.
 
 [letsencrypt-nginx-proxy-companion](https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion) is a lightweight companion container for the nginx-proxy. It allow the creation/renewal of Let's Encrypt certificates automatically. 
 
+[docker-compose-letsencrypt-nginx-proxy-companion](https://github.com/evertramos/docker-compose-letsencrypt-nginx-proxy-companion) also offers a simple set up for your nginx-proxy using docker-compose.
+
 ### SSL Support
 
 SSL is supported using single host, wildcard and SNI certificates using naming conventions for
