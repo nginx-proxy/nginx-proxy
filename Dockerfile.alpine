@@ -6,6 +6,8 @@ RUN apk add --no-cache --virtual .run-deps \
     ca-certificates bash wget openssl \
     && update-ca-certificates
 
+# Install timezone
+RUN apk add --update --no-cache tzdata
 
 # Configure Nginx and apply fix for very long server names
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
