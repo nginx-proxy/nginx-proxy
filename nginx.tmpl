@@ -54,9 +54,15 @@ map $scheme $proxy_x_forwarded_ssl {
 
 gzip_types text/plain text/css application/javascript application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 
+{{ if $.Env.TIMEFMT_ISO }}
+log_format vhost '$host $remote_addr - $remote_user [$time_iso8601] '
+                 '"$request" $status $body_bytes_sent '
+                 '"$http_referer" "$http_user_agent"';
+{{ else }}
 log_format vhost '$host $remote_addr - $remote_user [$time_local] '
                  '"$request" $status $body_bytes_sent '
                  '"$http_referer" "$http_user_agent"';
+{{ end }}
 
 access_log off;
 
