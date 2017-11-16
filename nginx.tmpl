@@ -1,6 +1,7 @@
 {{ $CurrentContainer := where $ "ID" .Docker.CurrentContainerID | first }}
 
 {{ define "upstream" }}
+	{{ $rancherIP := or (index .Container.Labels "io.rancher.container.ip") "" }}
 	{{ if .Address }}
 		{{/* If we got the containers from swarm and this container's port is published to host, use host IP:PORT */}}
 		{{ if and .Container.Node.ID .Address.HostPort }}
@@ -11,6 +12,10 @@
 			# {{ .Container.Name }}
 			server {{ .Network.IP }}:{{ .Address.Port }};
 		{{ end }}
+	{{ else if $rancherIP }}
+		# rancher: {{ index .Container.Labels "io.rancher.container.name" }} {{ printf "%s" $rancherIP }}
+		{{ $port := coalesce .Container.Env.VIRTUAL_PORT "80" }}
+		server {{ printf "%s" (index (splitN $rancherIP "/" 2) 0) }}:{{ printf "%s" $port }};
 	{{ else if .Network }}
 		# {{ .Container.Name }}
 		server {{ .Network.IP }} down;
