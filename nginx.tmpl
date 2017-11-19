@@ -222,10 +222,10 @@ server {
 	ssl_dhparam {{ printf "/etc/nginx/certs/%s.dhparam.pem" $cert }};
 	{{ end }}
 
-	{{ if (exists (printf "/etc/nginx/certs/%s.chain.crt" $cert)) }}
+	{{ if (exists (printf "/etc/nginx/certs/%s.chain.pem" $cert)) }}
 	ssl_stapling on;
 	ssl_stapling_verify on;
-	ssl_trusted_certificate {{ printf "/etc/nginx/certs/%s.chain.crt" $cert }};
+	ssl_trusted_certificate {{ printf "/etc/nginx/certs/%s.chain.pem" $cert }};
 	{{ end }}
 
 	{{ if (and (ne $https_method "noredirect") (ne $hsts "off")) }}
