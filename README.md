@@ -238,13 +238,26 @@ and `CERT_NAME=shared` will then use this shared cert.
 
 #### How SSL Support Works
 
-The SSL cipher configuration is based on the [Mozilla nginx intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Nginx) which
+The default SSL cipher configuration is based on the [Mozilla intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28default.29) which
 should provide compatibility with clients back to Firefox 1, Chrome 1, IE 7, Opera 5, Safari 1,
 Windows XP IE8, Android 2.3, Java 7.  Note that the DES-based TLS ciphers were removed for security.
 The configuration also enables HSTS, PFS, OCSP stapling and SSL session caches.  Currently TLS 1.0, 1.1 and 1.2
-are supported.  TLS 1.0 is deprecated but its end of life is not until June 30, 2018.  It is being 
+are supported.  TLS 1.0 is deprecated but its end of life is not until June 30, 2018.  It is being
 included because the following browsers will stop working when it is removed: Chrome < 22, Firefox < 27,
 IE < 11, Safari < 7, iOS < 5, Android Browser < 5.
+
+If you don't require backward compatibility, you can use the [Mozilla modern profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility)
+profile instead by including the environment variable `SSL_POLICY=Mozilla-Modern` to your container.
+This profile is compatible with clients back to Firefox 27, Chrome 30, IE 11 on Windows 7,
+Edge, Opera 17, Safari 9, Android 5.0, and Java 8.
+
+Other policies available through the `SSL_POLICY` environment variable are [`Mozilla-Old`](https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility)
+and the [AWS ELB Security Policies](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html)
+`AWS-TLS-1-2-2017-01`, `AWS-TLS-1-1-2017-01`, `AWS-2016-08`, `AWS-2015-05`, `AWS-2015-03` and `AWS-2015-02`.
+
+Note that the `Mozilla-Old` policy should use a 1024 bits DH key for compatibility but this container generates
+a 2048 bits key. The [Diffie-Hellman Groups](#diffie-hellman-groups) section details different methods of bypassing
+this, either globally or per virtual-host.
 
 The default behavior for the proxy when port 80 and 443 are exposed is as follows:
 
