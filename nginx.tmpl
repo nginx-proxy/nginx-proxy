@@ -152,9 +152,6 @@ upstream {{ $upstream_name }} {
 {{/* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external" */}}
 {{ $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
 
-{{/* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external" */}}
-{{ $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
-
 {{/* Get the HTTPS_METHOD defined by containers w/ the same vhost, falling back to "redirect" */}}
 {{ $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) "redirect" }}
 
