@@ -7,6 +7,7 @@ services:
       - "80:80"
     volumes:
       - /etc/nginx/conf.d
+    network_mode: "bridge"
 
   dockergen:
     image: jwilder/docker-gen
@@ -16,8 +17,10 @@ services:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl
+    network_mode: "bridge"
 
   whoami:
     image: jwilder/whoami
     environment:
       - VIRTUAL_HOST=whoami.local
+    network_mode: "bridge"

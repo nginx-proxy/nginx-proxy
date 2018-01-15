@@ -7,8 +7,10 @@ services:
       - "80:80"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+    network_mode: "bridge"
 
   whoami:
     image: jwilder/whoami
     environment:
       - VIRTUAL_HOST=whoami.local
+    network_mode: "bridge"
