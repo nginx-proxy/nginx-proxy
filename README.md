@@ -85,7 +85,7 @@ You can also use wildcards at the beginning and the end of host name, like `*.ba
 
 You can have multiple containers proxied by the same `VIRTUAL_HOST` by adding a `VIRTUAL_PATH` environment variable containing the absolute path to where the container should be mounted. For example with `VIRTUAL_HOST=foo.example.com` and `VIRTUAL_PATH=/api/v2/service`, then requests to http://foo.example.com/api/v2/service will be routed to the container. If you wish to have a container serve the root while other containers serve other paths, make give the root container a `VIRTUAL_PATH` of `/`.  Unmatched paths will be served by the container at `/` or will return the default nginx error page if no container has been assigned `/`.
 
-The full request URI will be forwarded to the serving container in the `X-Forwarded-Path` header.
+The full request URI will be forwarded to the serving container in the `X-Original-URI` header.
 
 ### Multiple Networks
 
