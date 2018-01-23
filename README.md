@@ -136,6 +136,15 @@ than a socket and expose that port.
 
 If you use fastcgi,you can set `VIRTUAL_ROOT=xxx`  for your root directory
 
+### Static File Backends
+
+If you want your container to only serve static content, set `VIRTUAL_PROTO=static` on the container.
+You can then set `VIRTUAL_ROOT=xxx` to your static files' root directory. If your static files live in a stopped
+container, be sure to set the `INCLUDE_STOPPED_CONTAINERS=true` environment variable on the nginx-proxy container as
+stopped containers will otherwise be ignored.
+
+You can create a minimal docker container with your static website files in a volume. The volume can then be mounted
+into the nginx-proxy container and be served with this "backend".
 
 ### Default Host
 

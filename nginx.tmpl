@@ -277,6 +277,8 @@ server {
 		root   {{ trim $vhost_root }};
 		include fastcgi.conf;
 		fastcgi_pass {{ trim $upstream_name }};
+		{{ else if eq $proto "static" }}
+		root   {{ trim $vhost_root }};
 		{{ else }}
 		proxy_pass {{ trim $proto }}://{{ trim $upstream_name }};
 		{{ end }}
@@ -324,6 +326,8 @@ server {
 		root   {{ trim $vhost_root }};
 		include fastcgi.conf;
 		fastcgi_pass {{ trim $upstream_name }};
+		{{ else if eq $proto "static" }}
+		root   {{ trim $vhost_root }};
 		{{ else }}
 		proxy_pass {{ trim $proto }}://{{ trim $upstream_name }};
 		{{ end }}
