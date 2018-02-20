@@ -445,6 +445,18 @@ def pytest_runtest_logreport(report):
                 report.longrepr.addsection('nginx-proxy conf', get_nginx_conf_from_container(container))
 
 
+# Py.test `incremental` marker, see http://stackoverflow.com/a/12579625/107049
+def pytest_runtest_makereport(item, call):
+    if "incremental" in item.keywords:
+        if call.excinfo is not None:
+            parent = item.parent
+            parent._previousfailed = item
+
+
+def pytest_runtest_setup(item):
+    previousfailed = getattr(item.parent, "_previousfailed", None)
+    if previousfailed is not None:
+        pytest.xfail("previous test failed (%s)" % previousfailed.name)
 
 ###############################################################################
 # 
