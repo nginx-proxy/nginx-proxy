@@ -260,7 +260,7 @@ server {
 	{{ end }}
 
 	{{ if (and (ne $https_method "noredirect") (ne $hsts "off")) }}
-	add_header Strict-Transport-Security "{{ trim $hsts }}";
+	add_header Strict-Transport-Security "{{ trim $hsts }}" always;
 	{{ end }}
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
