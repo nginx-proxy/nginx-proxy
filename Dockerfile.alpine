@@ -21,6 +21,8 @@ RUN wget --quiet https://github.com/jwilder/docker-gen/releases/download/$DOCKER
  && tar -C /usr/local/bin -xvzf docker-gen-alpine-linux-amd64-$DOCKER_GEN_VERSION.tar.gz \
  && rm /docker-gen-alpine-linux-amd64-$DOCKER_GEN_VERSION.tar.gz
 
+COPY network_internal.conf /etc/nginx/
+
 COPY . /app/
 WORKDIR /app/
 
