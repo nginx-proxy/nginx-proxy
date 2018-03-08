@@ -130,7 +130,7 @@ upstream {{ $upstream_name }} {
 	{{ range $knownNetwork := $CurrentContainer.Networks }}
 		{{ range $containerNetwork := $container.Networks }}
 			{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
-				## Can be connect with "{{ $containerNetwork.Name }}" network
+				## Can be connected with "{{ $containerNetwork.Name }}" network
 
 				{{/* If only 1 port exposed, use that */}}
 				{{ if eq $addrLen 1 }}
