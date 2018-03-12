@@ -170,6 +170,10 @@ upstream {{ $upstream_name }} {
 {{ $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
 
 
+{{/* Get the CLEAR_SERVER_HEADER to restrict server response header */}}
+{{ $clear_server_header := eq (or ($.Env.CLEAR_SERVER_HEADER) "") "true" }}
+
+
 {{/* Get the first cert name defined by containers w/ the same vhost */}}
 {{ $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
 
@@ -195,6 +199,9 @@ server {
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
+	{{ if $clear_server_header }}
+	more_clear_headers Server;
+	{{ end }}
 	return 301 https://$host$request_uri;
 }
 {{ end }}
@@ -206,6 +213,9 @@ server {
 	listen [::]:443 ssl http2 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
+	{{ if $clear_server_header }}
+	more_clear_headers Server;
+	{{ end }}
 
 	{{ if eq $network_tag "internal" }}
 	# Only allow traffic from internal clients
@@ -304,6 +314,9 @@ server {
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
+	{{ if $clear_server_header }}
+	more_clear_headers Server;
+	{{ end }}
 
 	{{ if eq $network_tag "internal" }}
 	# Only allow traffic from internal clients
@@ -347,6 +360,9 @@ server {
 	listen [::]:443 ssl http2 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
+	{{ if $clear_server_header }}
+	more_clear_headers Server;
+	{{ end }}
 	return 500;
 
 	ssl_certificate /etc/nginx/certs/default.crt;

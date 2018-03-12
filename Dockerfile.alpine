@@ -3,7 +3,7 @@ LABEL maintainer="Jason Wilder mail@jasonwilder.com"
 
 # Install wget and install/updates certificates
 RUN apk add --no-cache --virtual .run-deps \
-    ca-certificates bash wget openssl \
+    ca-certificates bash wget openssl nginx-extras \
     && update-ca-certificates
 
 
