@@ -416,3 +416,7 @@ If your system has the `make` command, you can automate those tasks by calling:
     
 
 You can learn more about how the test suite works and how to write new tests in the [test/README.md](test/README.md) file.
+
+### Need help?
+
+If you have questions on how to use the image, please ask them on the [Q&A Group](https://groups.google.com/forum/#!forum/nginx-proxy)
