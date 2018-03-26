@@ -19,7 +19,7 @@
 			server 127.0.0.1 down;
 		{{ end }}
 	{{ end }}
-	
+
 {{ end }}
 
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
@@ -262,7 +262,7 @@ server {
 	ssl_trusted_certificate {{ printf "/etc/nginx/certs/%s.chain.pem" $cert }};
 	{{ end }}
 
-	{{ if (and (ne $https_method "noredirect") (ne $hsts "off")) }}
+	{{ if (not (or (eq $https_method "noredirect") (eq $hsts "off"))) }}
 	add_header Strict-Transport-Security "{{ trim $hsts }}" always;
 	{{ end }}
 
