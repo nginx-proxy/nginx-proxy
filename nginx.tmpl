@@ -88,6 +88,8 @@ proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
 proxy_set_header Proxy "";
 {{ end }}
 
+{{ $access_log := (or (and (not $.Env.DISABLE_ACCESS_LOGS) "access_log /var/log/nginx/access.log vhost;") "") }}
+
 {{ $enable_ipv6 := eq (or ($.Env.ENABLE_IPV6) "") "true" }}
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
@@ -95,7 +97,7 @@ server {
 	{{ if $enable_ipv6 }}
 	listen [::]:80;
 	{{ end }}
-	access_log /var/log/nginx/access.log vhost;
+	{{ $access_log }}
 	return 503;
 }
 
@@ -106,7 +108,7 @@ server {
 	{{ if $enable_ipv6 }}
 	listen [::]:443 ssl http2;
 	{{ end }}
-	access_log /var/log/nginx/access.log vhost;
+	{{ $access_log }}
 	return 503;
 
 	ssl_session_tickets off;
@@ -197,7 +199,7 @@ server {
 	{{ if $enable_ipv6 }}
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
-	access_log /var/log/nginx/access.log vhost;
+	{{ $access_log }}
 	return 301 https://$host$request_uri;
 }
 {{ end }}
@@ -208,7 +210,7 @@ server {
 	{{ if $enable_ipv6 }}
 	listen [::]:443 ssl http2 {{ $default_server }};
 	{{ end }}
-	access_log /var/log/nginx/access.log vhost;
+	{{ $access_log }}
 
 	{{ if eq $network_tag "internal" }}
 	# Only allow traffic from internal clients
@@ -306,7 +308,7 @@ server {
 	{{ if $enable_ipv6 }}
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
-	access_log /var/log/nginx/access.log vhost;
+	{{ $access_log }}
 
 	{{ if eq $network_tag "internal" }}
 	# Only allow traffic from internal clients
@@ -349,7 +351,7 @@ server {
 	{{ if $enable_ipv6 }}
 	listen [::]:443 ssl http2 {{ $default_server }};
 	{{ end }}
-	access_log /var/log/nginx/access.log vhost;
+	{{ $access_log }}
 	return 500;
 
 	ssl_certificate /etc/nginx/certs/default.crt;
