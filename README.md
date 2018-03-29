@@ -237,6 +237,15 @@ to identify the certificate to be used.  For example, a certificate for `*.foo.c
 could be named `shared.crt` and `shared.key`.  A container running with `VIRTUAL_HOST=foo.bar.com`
 and `CERT_NAME=shared` will then use this shared cert.
 
+#### OCSP Stapling
+To enable OCSP Stapling for a domain, `nginx-proxy` looks for a PEM certificate containing the trusted
+CA certificate chain at `/etc/nginx/certs/<domain>.chain.pem`, where `<domain>` is the domain name in
+the `VIRTUAL_HOST` directive.  The format of this file is a concatenation of the public PEM CA
+certificates starting with the intermediate CA most near the SSL certificate, down to the root CA.  This is
+often referred to as the "SSL Certificate Chain".  If found, this filename is passed to the NGINX
+[`ssl_trusted_certificate` directive](http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_trusted_certificate)
+and OCSP Stapling is enabled.
+
 #### How SSL Support Works
 
 The default SSL cipher configuration is based on the [Mozilla intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28default.29) which
