@@ -27,7 +27,7 @@ location {{ .Path }} {
 		include fastcgi.conf;
 		fastcgi_pass {{ trim .Upstream }};
 	{{ else }}
-		proxy_pass {{ trim .Proto }}://{{ trim .Upstream }}/;
+		proxy_pass {{ trim .Proto }}://{{ trim .Upstream }};
 	{{ end }}
 
 	{{ if (exists (printf "/etc/nginx/htpasswd/%s" .Host)) }}
@@ -44,15 +44,14 @@ location {{ .Path }} {
 {{ end }}
 
 {{ define "upstream-definition" }}
+	{{ $networks := .Networks }}
 	upstream {{ .Upstream }} {
 		{{ range $container := .Containers }}
 			{{ $addrLen := len $container.Addresses }}
-			{{ $networks := .Networks }}
 			{{ range $knownNetwork := $networks }}
 				{{ range $containerNetwork := $container.Networks }}
 					{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
-						## Can be connect with "{{ $containerNetwork.Name }}" network
-
+						## Can be connected with "{{ $containerNetwork.Name }}" network
 						{{/* If only 1 port exposed, use that */}}
 						{{ if eq $addrLen 1 }}
 							{{ $address := index $container.Addresses 0 }}
@@ -63,6 +62,9 @@ location {{ .Path }} {
 							{{ $address := where $container.Addresses "Port" $port | first }}
 							{{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork) }}
 						{{ end }}
+					{{ else }}
+						# Cannot connect to network of this container
+						server 127.0.0.1 down;
 					{{ end }}
 				{{ end }}
 			{{ end }}
@@ -167,16 +169,20 @@ server {
 
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
 
+{{ $host := trim $host }}
+{{ $is_regexp := hasPrefix "~" $host }}
+{{ $upstream_name := when $is_regexp (sha1 $host) $host }}
+
 {{ $paths := groupBy $containers "Env.VIRTUAL_PATH" }}
 {{ $nPaths := len $paths }}
 
 {{ if eq $nPaths 0 }}
 	# {{ $host }}
-	{{ template "upstream-definition" (dict "Upstream" $host "Containers" $containers "Networks" (json $CurrentContainer.Networks)) }}
+	{{ template "upstream-definition" (dict "Upstream" $upstream_name "Containers" $containers "Networks" $CurrentContainer.Networks) }}
 {{ else }}
 	{{ range $path, $containers := $paths }}
 		{{ $sum := sha1 $path }}
-		{{ $upstream := printf "%s-%s" $host $sum }}
+		{{ $upstream := printf "%s-%s" $upstream_name $sum }}
 		# {{ $host }}{{ $path }}
 		{{ template "upstream-definition" (dict "Upstream" $upstream "Containers" $containers "Networks" $CurrentContainer.Networks) }}
 	{{ end }}
@@ -307,11 +313,11 @@ server {
 	{{ end }}
 
 	{{ if eq $nPaths 0 }}
-		{{ template "location" (dict "Path" "/" "Proto" $proto "Upstream" $host "Host" $host "VHostRoot" $vhost_root) }}
+		{{ template "location" (dict "Path" "/" "Proto" $proto "Upstream" $upstream_name "Host" $host "VHostRoot" $vhost_root) }}
 	{{ else }}
 		{{ range $path, $containers := $paths }}
 			{{ $sum := sha1 $path }}
-			{{ $upstream := printf "%s-%s" $host $sum }}
+			{{ $upstream := printf "%s-%s" $upstream_name $sum }}
 			{{ template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "VHostRoot" $vhost_root) }}
 		{{ end }}
 	{{ end }}
@@ -341,11 +347,11 @@ server {
 	{{ end }}
 
 	{{ if eq $nPaths 0 }}
-		{{ template "location" (dict "Path" "/" "Proto" $proto "Upstream" $host "Host" $host "VHostRoot" $vhost_root) }}
+		{{ template "location" (dict "Path" "/" "Proto" $proto "Upstream" $upstream_name "Host" $host "VHostRoot" $vhost_root) }}
 	{{ else }}
 		{{ range $path, $containers := $paths }}
 			{{ $sum := sha1 $path }}
-			{{ $upstream := printf "%s-%s" $host $sum }}
+			{{ $upstream := printf "%s-%s" $upstream_name $sum }}
 			{{ template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "VHostRoot" $vhost_root) }}
 		{{ end }}
 	{{ end }}

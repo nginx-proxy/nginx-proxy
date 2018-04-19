@@ -87,6 +87,8 @@ You can have multiple containers proxied by the same `VIRTUAL_HOST` by adding a 
 
 The full request URI will be forwarded to the serving container in the `X-Original-URI` header.
 
+When you want to forward many paths to the same container you can set the variable using a regular expresion. For example VIRTUAL_PATH="~^/(path1|path2)" will answer to requests that start with /path1 or /path2.
+
 ### Multiple Networks
 
 With the addition of [overlay networking](https://docs.docker.com/engine/userguide/networking/get-started-overlay/) in Docker 1.9, your `nginx-proxy` container may need to connect to backend containers on multiple networks. By default, if you don't pass the `--net` flag when your `nginx-proxy` container is created, it will only be attached to the default `bridge` network. This means that it will not be able to connect to containers on networks other than `bridge`.
@@ -329,7 +331,7 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 proxy_set_header X-Forwarded-Ssl $proxy_x_forwarded_ssl;
 proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
-proxy_set_header X-Forwarded-Path $request_uri;
+proxy_set_header X-Original-URI $request_uri;
 
 # Mitigate httpoxy attack (see README for details)
 proxy_set_header Proxy "";
