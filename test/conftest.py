@@ -469,5 +469,5 @@ try:
 except docker.errors.ImageNotFound:
     pytest.exit("The docker image 'jwilder/nginx-proxy:test' is missing")
 
-if docker.__version__ != "2.0.2":
-    pytest.exit("This test suite is meant to work with the python docker module v2.0.2")
+if docker.__version__ != "2.1.0":
+    pytest.exit("This test suite is meant to work with the python docker module v2.1.0")
