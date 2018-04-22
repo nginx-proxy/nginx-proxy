@@ -257,7 +257,7 @@ def get_nginx_conf_from_container(container):
     strm, stat = container.get_archive('/etc/nginx/conf.d/default.conf')
     with tarfile.open(fileobj=StringIO(strm.read())) as tf:
         conffile = tf.extractfile('default.conf')
-    return conffile.read()
+        return conffile.read()
 
 
 def docker_compose_up(compose_file='docker-compose.yml'):
@@ -469,5 +469,5 @@ try:
 except docker.errors.ImageNotFound:
     pytest.exit("The docker image 'jwilder/nginx-proxy:test' is missing")
 
-if docker.__version__ != "2.0.2":
-    pytest.exit("This test suite is meant to work with the python docker module v2.0.2")
+if docker.__version__ != "2.1.0":
+    pytest.exit("This test suite is meant to work with the python docker module v2.1.0")
