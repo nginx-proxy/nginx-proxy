@@ -257,7 +257,7 @@ def get_nginx_conf_from_container(container):
     strm, stat = container.get_archive('/etc/nginx/conf.d/default.conf')
     with tarfile.open(fileobj=StringIO(strm.read())) as tf:
         conffile = tf.extractfile('default.conf')
-    return conffile.read()
+        return conffile.read()
 
 
 def docker_compose_up(compose_file='docker-compose.yml'):
