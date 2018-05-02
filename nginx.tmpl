@@ -1,3 +1,6 @@
+{{/* Load the json that returns a list of rule names mapped to its respective filepath */}}
+{{ $RULES := parseJson $.Env.RULES }}
+
 {{ $CurrentContainer := where $ "ID" .Docker.CurrentContainerID | first }}
 
 {{ define "upstream" }}
@@ -293,6 +296,26 @@ server {
 		{{ else if (exists "/etc/nginx/vhost.d/default_location") }}
 		include /etc/nginx/vhost.d/default_location;
 		{{ end }}
+
+		{{/* $INCLUDES return the resulting list of rules to be included */}}
+		{{ $INCLUDES := keys ( groupByMulti $containers "Env.INCLUDES" "," ) }}
+
+		{{ if ( ne ( len $INCLUDES ) 0 ) }} 
+			modsecurity on;
+			modsecurity_rules '
+				{{/* Loop through each rule in the order specified in $RULES */}}
+				{{ range $index, $obj := $RULES }}
+					{{ $NAME := index $obj "NAME" }}
+					{{ $PATH := index $obj "PATH" }}
+					{{/* If the rule is required to be included*/}}
+					{{ range $INCLUDE := $INCLUDES }}
+						{{ if (eq $NAME $INCLUDE ) }}
+							Include {{ $PATH }}
+						{{ end }}
+					{{ end }}
+				{{ end }}
+			';
+		{{ end }}
 	}
 }
 
@@ -338,6 +361,26 @@ server {
 		include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
 		{{ else if (exists "/etc/nginx/vhost.d/default_location") }}
 		include /etc/nginx/vhost.d/default_location;
+		{{ end }}
+
+		{{/* $INCLUDES return the resulting list of rules to be included */}}
+		{{ $INCLUDES := keys ( groupByMulti $containers "Env.INCLUDES" "," ) }}
+
+		{{ if ( ne ( len $INCLUDES ) 0 ) }} 
+			modsecurity on;
+			modsecurity_rules '
+				{{/* Loop through each rule in the order specified in $RULES */}}
+				{{ range $index, $obj := $RULES }}
+					{{ $NAME := index $obj "NAME" }}
+					{{ $PATH := index $obj "PATH" }}
+					{{/* If the rule is required to be included*/}}
+					{{ range $INCLUDE := $INCLUDES }}
+						{{ if (eq $NAME $INCLUDE ) }}
+							Include {{ $PATH }}
+						{{ end }}
+					{{ end }}
+				{{ end }}
+			';
 		{{ end }}
 	}
 }
