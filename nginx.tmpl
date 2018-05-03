@@ -1,5 +1,5 @@
 {{/* Load the json that returns a list of rule names mapped to its respective filepath */}}
-{{ $RULES := parseJson $.Env.RULES }}
+{{ $RULES := parseJson ( or $.Env.RULES "[]" ) }}
 
 {{ $CurrentContainer := where $ "ID" .Docker.CurrentContainerID | first }}
 
