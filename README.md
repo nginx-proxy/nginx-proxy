@@ -342,24 +342,6 @@ proxy_set_header Proxy "";
 
 ***NOTE***: The default configuration blocks the `Proxy` HTTP request header from being sent to downstream servers.  This prevents attackers from using the so-called [httpoxy attack](http://httpoxy.org).  There is no legitimate reason for a client to send this header, and there are many vulnerable languages / platforms (`CVE-2016-5385`, `CVE-2016-5386`, `CVE-2016-5387`, `CVE-2016-5388`, `CVE-2016-1000109`, `CVE-2016-1000110`, `CERT-VU#797896`).
 
-#### Proxy-wide
-
-To add settings on a proxy-wide basis, add your configuration file under `/etc/nginx/conf.d` using a name ending in `.conf`.
-
-This can be done in a derived image by creating the file in a `RUN` command or by `COPY`ing the file into `conf.d`:
-
-```Dockerfile
-FROM jwilder/nginx-proxy
-RUN { \
-      echo 'server_tokens off;'; \
-      echo 'client_max_body_size 100m;'; \
-    } > /etc/nginx/conf.d/my_proxy.conf
-```
-
-Or it can be done by mounting in your custom configuration in your `docker run` command:
-
-    $ docker run -d -p 80:80 -p 443:443 -v /path/to/my_proxy.conf:/etc/nginx/conf.d/my_proxy.conf:ro -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
-
 #### Per-VIRTUAL_HOST
 
 To add settings on a per-`VIRTUAL_HOST` basis, add your configuration file under `/etc/nginx/vhost.d`. Unlike in the proxy-wide case, which allows multiple config files with any name ending in `.conf`, the per-`VIRTUAL_HOST` file must be named exactly after the `VIRTUAL_HOST`.
@@ -396,7 +378,12 @@ If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=e
     $ { echo 'proxy_cache my-cache;'; echo 'proxy_cache_valid  200 302  60m;'; echo 'proxy_cache_valid  404 1m;' } > /path/to/vhost.d/app.example.com_location
     $ ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
 
-#### Per-VIRTUAL_HOST location default configuration
+#### Per-VIRTUAL_HOST location 
+
+
+
+
+configuration
 
 If you want most of your virtual hosts to use a default single `location` block configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default_location` file. This file
 will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}_location` file associated with it.
