@@ -57,11 +57,35 @@ map $scheme $proxy_x_forwarded_ssl {
   https on;
 }
 
+
+
 gzip_types text/plain text/css application/javascript application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 
+{{ if $.Env.ANONYMIZE_LOGGING }}
+map $remote_addr $ip_anonym1 {
+ default 0.0.0;
+ "~(?P<ip>(\d+)\.(\d+)\.(\d+))\.\d+" $ip;
+ "~(?P<ip>[^:]+:[^:]+):" $ip;
+}
+
+map $remote_addr $ip_anonym2 {
+ default .0;
+ "~(?P<ip>(\d+)\.(\d+)\.(\d+))\.\d+" .0;
+ "~(?P<ip>[^:]+:[^:]+):" ::;
+}
+
+map $ip_anonym1$ip_anonym2 $ip_anonymized {
+ default 0.0.0.0;
+ "~(?P<ip>.*)" $ip;
+}
+log_format vhost '$host $ip_anonymized [$time_local] '
+                 '"$request" $status $body_bytes_sent ';
+
+{{ else }}
 log_format vhost '$host $remote_addr - $remote_user [$time_local] '
                  '"$request" $status $body_bytes_sent '
                  '"$http_referer" "$http_user_agent"';
+{{ end }}
 
 access_log off;
 
