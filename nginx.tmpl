@@ -130,7 +130,7 @@ upstream {{ $upstream_name }} {
 	{{ range $knownNetwork := $CurrentContainer.Networks }}
 		{{ range $containerNetwork := $container.Networks }}
 			{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
-				## Can be connect with "{{ $containerNetwork.Name }}" network
+				## Can be connected with "{{ $containerNetwork.Name }}" network
 
 				{{/* If only 1 port exposed, use that */}}
 				{{ if eq $addrLen 1 }}
@@ -142,6 +142,9 @@ upstream {{ $upstream_name }} {
 					{{ $address := where $container.Addresses "Port" $port | first }}
 					{{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork) }}
 				{{ end }}
+			{{ else }}
+				# Cannot connect to network of this container
+				server 127.0.0.1 down;
 			{{ end }}
 		{{ end }}
 	{{ end }}
@@ -253,14 +256,14 @@ server {
 	ssl_dhparam {{ printf "/etc/nginx/certs/%s.dhparam.pem" $cert }};
 	{{ end }}
 
-	{{ if (exists (printf "/etc/nginx/certs/%s.chain.crt" $cert)) }}
+	{{ if (exists (printf "/etc/nginx/certs/%s.chain.pem" $cert)) }}
 	ssl_stapling on;
 	ssl_stapling_verify on;
-	ssl_trusted_certificate {{ printf "/etc/nginx/certs/%s.chain.crt" $cert }};
+	ssl_trusted_certificate {{ printf "/etc/nginx/certs/%s.chain.pem" $cert }};
 	{{ end }}
 
 	{{ if (and (ne $https_method "noredirect") (ne $hsts "off")) }}
-	add_header Strict-Transport-Security "{{ trim $hsts }}";
+	add_header Strict-Transport-Security "{{ trim $hsts }}" always;
 	{{ end }}
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}

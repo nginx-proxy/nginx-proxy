@@ -257,7 +257,7 @@ def get_nginx_conf_from_container(container):
     strm, stat = container.get_archive('/etc/nginx/conf.d/default.conf')
     with tarfile.open(fileobj=StringIO(strm.read())) as tf:
         conffile = tf.extractfile('default.conf')
-    return conffile.read()
+        return conffile.read()
 
 
 def docker_compose_up(compose_file='docker-compose.yml'):
@@ -445,6 +445,18 @@ def pytest_runtest_logreport(report):
                 report.longrepr.addsection('nginx-proxy conf', get_nginx_conf_from_container(container))
 
 
+# Py.test `incremental` marker, see http://stackoverflow.com/a/12579625/107049
+def pytest_runtest_makereport(item, call):
+    if "incremental" in item.keywords:
+        if call.excinfo is not None:
+            parent = item.parent
+            parent._previousfailed = item
+
+
+def pytest_runtest_setup(item):
+    previousfailed = getattr(item.parent, "_previousfailed", None)
+    if previousfailed is not None:
+        pytest.xfail("previous test failed (%s)" % previousfailed.name)
 
 ###############################################################################
 # 
@@ -457,5 +469,5 @@ try:
 except docker.errors.ImageNotFound:
     pytest.exit("The docker image 'jwilder/nginx-proxy:test' is missing")
 
-if docker.__version__ != "2.0.2":
-    pytest.exit("This test suite is meant to work with the python docker module v2.0.2")
+if docker.__version__ != "2.1.0":
+    pytest.exit("This test suite is meant to work with the python docker module v2.1.0")

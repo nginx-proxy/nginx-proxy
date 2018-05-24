@@ -1,3 +1,4 @@
+![latest 0.7.0](https://img.shields.io/badge/latest-0.7.0-green.svg?style=flat)
 ![nginx 1.13](https://img.shields.io/badge/nginx-1.13-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build Status](https://travis-ci.org/jwilder/nginx-proxy.svg?branch=master)](https://travis-ci.org/jwilder/nginx-proxy) [![](https://img.shields.io/docker/stars/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub') [![](https://img.shields.io/docker/pulls/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub')
 
 
@@ -245,6 +246,15 @@ to identify the certificate to be used.  For example, a certificate for `*.foo.c
 could be named `shared.crt` and `shared.key`.  A container running with `VIRTUAL_HOST=foo.bar.com`
 and `CERT_NAME=shared` will then use this shared cert.
 
+#### OCSP Stapling
+To enable OCSP Stapling for a domain, `nginx-proxy` looks for a PEM certificate containing the trusted
+CA certificate chain at `/etc/nginx/certs/<domain>.chain.pem`, where `<domain>` is the domain name in
+the `VIRTUAL_HOST` directive.  The format of this file is a concatenation of the public PEM CA
+certificates starting with the intermediate CA most near the SSL certificate, down to the root CA.  This is
+often referred to as the "SSL Certificate Chain".  If found, this filename is passed to the NGINX
+[`ssl_trusted_certificate` directive](http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_trusted_certificate)
+and OCSP Stapling is enabled.
+
 #### How SSL Support Works
 
 The default SSL cipher configuration is based on the [Mozilla intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28default.29) which
@@ -425,3 +435,7 @@ If your system has the `make` command, you can automate those tasks by calling:
     
 
 You can learn more about how the test suite works and how to write new tests in the [test/README.md](test/README.md) file.
+
+### Need help?
+
+If you have questions on how to use the image, please ask them on the [Q&A Group](https://groups.google.com/forum/#!forum/nginx-proxy)
