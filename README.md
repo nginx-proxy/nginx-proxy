@@ -396,10 +396,20 @@ If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=e
     $ { echo 'proxy_cache my-cache;'; echo 'proxy_cache_valid  200 302  60m;'; echo 'proxy_cache_valid  404 1m;' } > /path/to/vhost.d/app.example.com_location
     $ ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
 
+Be aware that using a per-VIRTUAL_HOST location configuration, the default location configuration will be overridden, resulting in HSTS being disabled. To re-enable HSTS, add the following line to your newly created per-VIRTUAL_HOST location file:
+
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
+
 #### Per-VIRTUAL_HOST location default configuration
 
 If you want most of your virtual hosts to use a default single `location` block configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default_location` file. This file
 will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}_location` file associated with it.
+
+Be aware that using a default_location configuration, the default location configuration will be overridden, resulting in HSTS being disabled. To re-enable HSTS, add the following line to your newly created default_location file:
+
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
 
 ### Contributing
 
