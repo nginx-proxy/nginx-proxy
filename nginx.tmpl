@@ -62,6 +62,8 @@ map $scheme $proxy_x_forwarded_ssl {
 gzip_types text/plain text/css application/javascript application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 
 {{ if $.Env.ANONYMIZE_LOGGING }}
+# Anonymize the ip address
+# https://stackoverflow.com/a/27749834/3135319
 map $remote_addr $ip_anonym1 {
  default 0.0.0;
  "~(?P<ip>(\d+)\.(\d+)\.(\d+))\.\d+" $ip;
