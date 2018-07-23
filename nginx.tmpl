@@ -205,6 +205,7 @@ server {
 server {
 	server_name {{ $host }};
 	listen 443 ssl http2 {{ $default_server }};
+	client_max_body_size 0;
 	{{ if $enable_ipv6 }}
 	listen [::]:443 ssl http2 {{ $default_server }};
 	{{ end }}
@@ -303,6 +304,7 @@ server {
 server {
 	server_name {{ $host }};
 	listen 80 {{ $default_server }};
+	client_max_body_size 0;
 	{{ if $enable_ipv6 }}
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
