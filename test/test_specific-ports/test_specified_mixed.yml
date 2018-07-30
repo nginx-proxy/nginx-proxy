@@ -2,9 +2,10 @@ web:
   image: web
   expose:
     - "80"
+    - "5001"
   environment:
-    WEB_PORTS: 80
-    VIRTUAL_HOST: webA.nginx-proxy.tld,webB.nginx-proxy.tld
+    WEB_PORTS: "80 5001"
+    VIRTUAL_HOST: webA.nginx-proxy.tld,webB.nginx-proxy.tld:5001
 
 
 sut:

@@ -119,9 +119,9 @@ server {
 
 {{ $host := trim $host }}
 {{ $is_regexp := hasPrefix "~" $host }}
-{{ $upstream_name := when $is_regexp (sha1 $host) $host }}
-{{ $specific_port := eq (or ($.Env.VIRTUAL_HOST_SPECIFIC_PORT) "") "true" }}
-{{ $server_name := when $specific_port (coalesce (index (split $host ":") 0) $host) $host }}
+{{ $is_specific_port := eq (or ($.Env.VIRTUAL_HOST_SPECIFIC_PORT) "") "true" }}
+{{ $upstream_name := when (or $is_regexp $is_specific_port) (sha1 $host) $host }}
+{{ $server_name := when $is_specific_port (index (split $host ":") 0) $host }}
 
 # {{ $host }}
 upstream {{ $upstream_name }} {
@@ -134,9 +134,10 @@ upstream {{ $upstream_name }} {
 			{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
 				## Can be connected with "{{ $containerNetwork.Name }}" network
 
-                {{ if $specific_port }}
-                {{/* If ports per virtual host specified, use that, falling back to standard web port $container.Env.VIRTUAL_PORT and 80 */}}
-                    {{ $port := coalesce (index (split $host ":") 1) $container.Env.VIRTUAL_PORT "80" }}
+                {{ $split_host_port := split $host ":" }}
+                {{ if (and $is_specific_port (eq (len $split_host_port) 2)) }}
+                {{/* If ports per virtual host specified, use that */}}
+                    {{ $port := index $split_host_port 1 }}
                     {{ $address := where $container.Addresses "Port" $port | first }}
                     {{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork) }}
 				{{/* If only 1 port exposed, use that */}}

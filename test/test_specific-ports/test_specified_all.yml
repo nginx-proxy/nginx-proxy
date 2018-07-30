@@ -1,15 +1,17 @@
 web:
   image: web
   expose:
-    - "81"
+    - "5000"
+    - "5001"
   environment:
-    WEB_PORTS: 81
+    WEB_PORTS: "5000 5001"
     VIRTUAL_HOST: webA.nginx-proxy.tld:5000,webB.nginx-proxy.tld:5001
-    VIRTUAL_HOST_SPECIFIC_PORT: "true"
 
 
 sut:
   image: jwilder/nginx-proxy:test
   volumes:
     - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ./lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
+    - ../lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
+  environment:
+    VIRTUAL_HOST_SPECIFIC_PORT: "true"

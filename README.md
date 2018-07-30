@@ -401,6 +401,12 @@ If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=e
 If you want most of your virtual hosts to use a default single `location` block configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default_location` file. This file
 will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}_location` file associated with it.
 
+#### Multiple ports per virtual host
+
+A container can expose multiple ports that you want to proxy to different host names. In order to achieve this, you need
+to activate pass `VIRTUAL_HOST_SPECIFIC_PORT` with the value `true` to *nginx-proxy*. Then you can start start any container
+and pass multiple host names and ports `VIRTUAL_HOST=subdomain1.youdomain.com,subdomain2.youdomain.com:5000`
+
 ### Contributing
 
 Before submitting pull requests or issues, please check github to make sure an existing issue or pull request is not already open.
