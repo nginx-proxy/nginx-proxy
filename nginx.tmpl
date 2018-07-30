@@ -206,7 +206,7 @@ server {
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
-	return 301 https://$server_name$request_uri;
+	return 301 https://$host$request_uri;
 }
 {{ end }}
 
