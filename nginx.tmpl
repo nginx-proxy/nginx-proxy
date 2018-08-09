@@ -170,7 +170,7 @@ server {
 	server_name {{ $host }};
 	{{ if eq $default_server 1 }}
 		listen 443 ssl http2 default_server;
-		{{ range $port := $http_ports }}
+		{{ range $port := $https_ports }}
 			{{ if ne $port "443" }}
 				listen {{ $port }} ssl http2 default_server;
 			{{ end }}
