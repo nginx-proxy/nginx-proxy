@@ -88,12 +88,20 @@ proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
 proxy_set_header Proxy "";
 {{ end }}
 
+{{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
+
+{{/* Get the VIRTUAL_LISTEN_HTTP defined by containers w/ the same vhost, falling back to "80" */}}
+{{ $listen_http := trim (or (first (groupByKeys $containers "Env.VIRTUAL_LISTEN_HTTP")) "80") }}
+
+{{/* Get the VIRTUAL_LISTEN_HTTPS defined by containers w/ the same vhost, falling back to "443" */}}
+{{ $listen_https := trim (or (first (groupByKeys $containers "Env.VIRTUAL_LISTEN_HTTPS")) "443") }}
+
 {{ $enable_ipv6 := eq (or ($.Env.ENABLE_IPV6) "") "true" }}
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
-	listen 80;
+	listen {{ $listen_http }};
 	{{ if $enable_ipv6 }}
-	listen [::]:80;
+	listen [::]:{{ $listen_http }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
@@ -102,9 +110,9 @@ server {
 {{ if (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
-	listen 443 ssl http2;
+	listen {{ $listen_https }} ssl http2;
 	{{ if $enable_ipv6 }}
-	listen [::]:443 ssl http2;
+	listen [::]:{{ $listen_https }} ssl http2;
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
@@ -114,8 +122,6 @@ server {
 	ssl_certificate_key /etc/nginx/certs/default.key;
 }
 {{ end }}
-
-{{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
 
 {{ $host := trim $host }}
 {{ $is_regexp := hasPrefix "~" $host }}
@@ -193,9 +199,9 @@ upstream {{ $upstream_name }} {
 {{ if eq $https_method "redirect" }}
 server {
 	server_name {{ $host }};
-	listen 80 {{ $default_server }};
+	listen {{ $listen_http }} {{ $default_server }};
 	{{ if $enable_ipv6 }}
-	listen [::]:80 {{ $default_server }};
+	listen [::]:{{ $listen_http }} {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 301 https://$host$request_uri;
@@ -204,9 +210,9 @@ server {
 
 server {
 	server_name {{ $host }};
-	listen 443 ssl http2 {{ $default_server }};
+	listen {{ $listen_https }} ssl http2 {{ $default_server }};
 	{{ if $enable_ipv6 }}
-	listen [::]:443 ssl http2 {{ $default_server }};
+	listen [::]:{{ $listen_https }} ssl http2 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 
@@ -302,9 +308,9 @@ server {
 
 server {
 	server_name {{ $host }};
-	listen 80 {{ $default_server }};
+	listen {{ $listen_http }} {{ $default_server }};
 	{{ if $enable_ipv6 }}
-	listen [::]:80 {{ $default_server }};
+	listen [::]:{{ $listen_http }} {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 
@@ -345,9 +351,9 @@ server {
 {{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name {{ $host }};
-	listen 443 ssl http2 {{ $default_server }};
+	listen {{ $listen_https }} ssl http2 {{ $default_server }};
 	{{ if $enable_ipv6 }}
-	listen [::]:443 ssl http2 {{ $default_server }};
+	listen [::]:{{ $listen_https }} ssl http2 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 500;
