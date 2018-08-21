@@ -172,7 +172,7 @@ server {
 
 {{ $host := trim $host }}
 {{ $is_regexp := hasPrefix "~" $host }}
-{{ $upstream_name := when $is_regexp (sha1 $host) $host }}
+{{ $upstream_name := (print (when $is_regexp (sha1 $host) $host) "-upstream") }}
 
 # {{ $host }}
 upstream {{ $upstream_name }} {
