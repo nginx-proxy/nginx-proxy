@@ -151,6 +151,12 @@ upstream {{ $upstream_name }} {
 {{ end }}
 }
 
+{{/* Get the VIRTUAL_LISTEN_HTTP defined by containers w/ the same vhost, falling back to "80" */}}
+{{ $listen_http := (groupByKeys $containers "Env.VIRTUAL_LISTEN_HTTP")  }}
+
+{{/* Get the VIRTUAL_LISTEN_HTTPS defined by containers w/ the same vhost, falling back to "443" */}}
+{{ $listen_https := (groupByKeys $containers "Env.VIRTUAL_LISTEN_HTTPS") }}
+
 {{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
 {{ $default_server := index (dict $host "" $default_host "default_server") $host }}
 
@@ -193,9 +199,17 @@ upstream {{ $upstream_name }} {
 {{ if eq $https_method "redirect" }}
 server {
 	server_name {{ $host }};
+	{{ if not (intersect $listen_http (split "80" ",")) }}
 	listen 80 {{ $default_server }};
+	{{ end }}
+	{{ range $i, $lport := $listen_http }}
+	listen {{ $lport }} {{ $default_server }};
+	{{ end }}
 	{{ if $enable_ipv6 }}
-	listen [::]:80 {{ $default_server }};
+	{{ range $i, $lport := $listen_http }}
+	listen [::]:{{ $lport }} {{ $default_server }};
+	{{ end }}
+
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 301 https://$host$request_uri;
@@ -204,9 +218,20 @@ server {
 
 server {
 	server_name {{ $host }};
+	{{ if not (intersect $listen_https (split "443" ",")) }}
 	listen 443 ssl http2 {{ $default_server }};
+	{{ end }}
+
+	{{ range $i, $lport := $listen_https }}
+	listen {{ $lport }} ssl http2 {{ $default_server }};
+	{{ end }}
 	{{ if $enable_ipv6 }}
+	{{ if not (intersect $listen_https (split "443" ",")) }}
 	listen [::]:443 ssl http2 {{ $default_server }};
+	{{ end }}
+	{{ range $i, $lport := $listen_https }}
+	listen [::]:{{ $lport }} ssl http2 {{ $default_server }};
+	{{ end }}
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 
@@ -302,9 +327,20 @@ server {
 
 server {
 	server_name {{ $host }};
+	{{ if not (intersect $listen_http (split "80" ",")) }}
 	listen 80 {{ $default_server }};
+	{{ end }}
+	
+	{{ range $i, $lport := $listen_http }}
+	listen {{ $lport }} {{ $default_server }};
+	{{ end }}
 	{{ if $enable_ipv6 }}
+	{{ if not (intersect $listen_http (split "80" ",")) }}
 	listen [::]:80 {{ $default_server }};
+	{{ end }}
+	{{ range $i, $lport := $listen_http }}
+	listen [::]:{{ $lport }} {{ $default_server }};
+	{{ end }}
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 
@@ -345,9 +381,19 @@ server {
 {{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name {{ $host }};
-	listen 443 ssl http2 {{ $default_server }};
+	{{ if not (intersect $listen_https (split "443" ",")) }}
+	listen 443 {{ $default_server }};
+	{{ end }}
+	{{ range $i, $lport := $listen_https }}
+	listen {{ $lport }} {{ $default_server }};
+	{{ end }}
 	{{ if $enable_ipv6 }}
-	listen [::]:443 ssl http2 {{ $default_server }};
+	{{ if not (intersect $listen_https (split "443" ",")) }}
+	listen [::]:443 {{ $default_server }};
+	{{ end }}
+	{{ range $i, $lport := $listen_https }}
+	listen [::]:{{ $lport }} {{ $default_server }};
+	{{ end }}
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 500;
