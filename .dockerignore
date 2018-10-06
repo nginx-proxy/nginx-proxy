@@ -4,3 +4,4 @@ circle.yml
 Makefile
 README.md
 test
+Dockerfile*
