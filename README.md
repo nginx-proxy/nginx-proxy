@@ -20,7 +20,7 @@ The containers being proxied must [expose](https://docs.docker.com/engine/refere
 
 Provided your DNS is setup to forward foo.bar.com to the host running nginx-proxy, the request will be routed to a container with the VIRTUAL_HOST env var set.
 
-### Image variants
+### Image variants  
 
 The nginx-proxy images are available in two flavors.
 
