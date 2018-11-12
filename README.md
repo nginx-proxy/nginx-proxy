@@ -138,6 +138,12 @@ than a socket and expose that port.
 If you use fastcgi,you can set `VIRTUAL_ROOT=xxx`  for your root directory
 
 
+### GRPC Backends
+ 
+If you would like to connect to GRPC backend, set `VIRTUAL_PROTO=grpc` on the
+backend container. Your backend container should then listen on a port rather
+than a socket and expose that port.
+
 ### Default Host
 
 To set the default host for nginx use the env var `DEFAULT_HOST=foo.bar.com` for example
