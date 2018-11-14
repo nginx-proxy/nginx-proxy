@@ -310,6 +310,22 @@ $ docker run -d -p 80:80 -p 443:443 \
     jwilder/nginx-proxy
 ```
 
+### Client-Side Certificate Authentication
+#### Certificate Authority (CA)
+In order to secure your virtual host, you have to copy your CA certificate file (ca.crt) named as its equivalent VIRTUAL_HOST variable on directory
+/etc/nginx/ca/$VIRTUAL_HOST.crt
+
+#### Certificate Revocation List (CLR)
+In oder to use a certificate revocation list, you have to copy your .clr file named as its equivalent VIRTUAL_HOST variable on the same directory /etc/nginx/ca/$VIRTUAL_HOST.clr
+
+```
+$ docker run -d -p 80:80 -p 443:443 \
+    -v /path/to/ca:/etc/nginx/ca \
+    -v /path/to/certs:/etc/nginx/certs \
+    -v /var/run/docker.sock:/tmp/docker.sock:ro \
+    jwilder/nginx-proxy
+```
+
 You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
 
 ### Custom Nginx Configuration
