@@ -256,6 +256,15 @@ server {
 	ssl_dhparam {{ printf "/etc/nginx/certs/%s.dhparam.pem" $cert }};
 	{{ end }}
 
+        {{ if (exists (printf "/etc/nginx/ca/%s.crt" $host)) }}
+        ssl_client_certificate {{ (printf "/etc/nginx/ca/%s.crt" $host) }};
+        ssl_verify_client on;
+        {{ end }}
+
+        {{ if (exists (printf "/etc/nginx/ca/%s.crl" $host)) }}
+        ssl_crl {{ (printf "/etc/nginx/ca/%s.crl" $host) }};
+        {{ end }}
+	
 	{{ if (exists (printf "/etc/nginx/certs/%s.chain.pem" $cert)) }}
 	ssl_stapling on;
 	ssl_stapling_verify on;
