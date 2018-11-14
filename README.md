@@ -128,11 +128,11 @@ backend container. Your backend container should then listen on a port rather
 than a socket and expose that port.
 
 ### FastCGI Backends
- 
+
 If you would like to connect to FastCGI backend, set `VIRTUAL_PROTO=fastcgi` on the
 backend container. Your backend container should then listen on a port rather
 than a socket and expose that port.
- 
+
 ### FastCGI Filr Root Directory
 
 If you use fastcgi,you can set `VIRTUAL_ROOT=xxx`  for your root directory
@@ -181,7 +181,7 @@ Finally, start your containers with `VIRTUAL_HOST` environment variables.
     $ docker run -e VIRTUAL_HOST=foo.bar.com  ...
 ### SSL Support using letsencrypt
 
-[letsencrypt-nginx-proxy-companion](https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion) is a lightweight companion container for the nginx-proxy. It allow the creation/renewal of Let's Encrypt certificates automatically. 
+[letsencrypt-nginx-proxy-companion](https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion) is a lightweight companion container for the nginx-proxy. It allow the creation/renewal of Let's Encrypt certificates automatically.
 
 ### SSL Support
 
@@ -214,7 +214,7 @@ at startup.  Since it can take minutes to generate a new `dhparam.pem`, it is do
 background.  Once generation is complete, the `dhparam.pem` is saved on a persistent volume and nginx
 is reloaded.  This generation process only occurs the first time you start `nginx-proxy`.
 
-> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 2048 bits for A+ security.  Some 
+> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 2048 bits for A+ security.  Some
 > older clients (like Java 6 and 7) do not support DH keys with over 1024 bits.  In order to support these
 > clients, you must either provide your own `dhparam.pem`, or tell `nginx-proxy` to generate a 1024-bit
 > key on startup by passing `-e DHPARAM_BITS=1024`.
@@ -282,19 +282,19 @@ a 500.
 
 To serve traffic in both SSL and non-SSL modes without redirecting to SSL, you can include the
 environment variable `HTTPS_METHOD=noredirect` (the default is `HTTPS_METHOD=redirect`).  You can also
-disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`, or disable the HTTPS site with 
-`HTTPS_METHOD=nohttps`. `HTTPS_METHOD` must be specified on each container for which you want to 
-override the default behavior.  If `HTTPS_METHOD=noredirect` is used, Strict Transport Security (HSTS) 
-is disabled to prevent HTTPS users from being redirected by the client.  If you cannot get to the HTTP 
-site after changing this setting, your browser has probably cached the HSTS policy and is automatically 
-redirecting you back to HTTPS.  You will need to clear your browser's HSTS cache or use an incognito 
+disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`, or disable the HTTPS site with
+`HTTPS_METHOD=nohttps`. `HTTPS_METHOD` must be specified on each container for which you want to
+override the default behavior.  If `HTTPS_METHOD=noredirect` is used, Strict Transport Security (HSTS)
+is disabled to prevent HTTPS users from being redirected by the client.  If you cannot get to the HTTP
+site after changing this setting, your browser has probably cached the HSTS policy and is automatically
+redirecting you back to HTTPS.  You will need to clear your browser's HSTS cache or use an incognito
 window / different browser.
 
-By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security) 
-is enabled with `max-age=31536000` for HTTPS sites.  You can disable HSTS with the environment variable 
-`HSTS=off` or use a custom HSTS configuration like `HSTS=max-age=31536000; includeSubDomains; preload`.  
-*WARNING*: HSTS will force your users to visit the HTTPS version of your site for the `max-age` time - 
-even if they type in `http://` manually.  The only way to get to an HTTP site after receiving an HSTS 
+By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security)
+is enabled with `max-age=31536000` for HTTPS sites.  You can disable HSTS with the environment variable
+`HSTS=off` or use a custom HSTS configuration like `HSTS=max-age=31536000; includeSubDomains; preload`.
+*WARNING*: HSTS will force your users to visit the HTTPS version of your site for the `max-age` time -
+even if they type in `http://` manually.  The only way to get to an HTTP site after receiving an HSTS
 response is to clear your browser's HSTS cache.
 
 ### Basic Authentication Support
@@ -311,6 +311,22 @@ $ docker run -d -p 80:80 -p 443:443 \
 ```
 
 You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
+
+### Client-Side Certificate Authentication
+#### Certificate Authority (CA)
+In order to secure your virtual host, you have to copy your CA certificate file (ca.crt) named as its equivalent VIRTUAL_HOST variable on directory
+/etc/nginx/ca/$VIRTUAL_HOST.crt
+
+#### Certificate Revocation List (CLR)
+In oder to use a certificate revocation list, you have to copy your .clr file named as its equivalent VIRTUAL_HOST variable on the same directory /etc/nginx/ca/$VIRTUAL_HOST.clr
+
+```
+$ docker run -d -p 80:80 -p 443:443 \
+    -v /path/to/ca:/etc/nginx/ca \
+    -v /path/to/certs:/etc/nginx/certs \
+    -v /var/run/docker.sock:/tmp/docker.sock:ro \
+    jwilder/nginx-proxy
+```
 
 ### Custom Nginx Configuration
 
@@ -410,7 +426,7 @@ Before submitting pull requests or issues, please check github to make sure an e
 To run tests, you need to prepare the docker image to test which must be tagged `jwilder/nginx-proxy:test`:
 
     docker build -t jwilder/nginx-proxy:test .  # build the Debian variant image
-    
+
 and call the [test/pytest.sh](test/pytest.sh) script.
 
 Then build the Alpine variant of the image:
@@ -423,7 +439,7 @@ and call the [test/pytest.sh](test/pytest.sh) script again.
 If your system has the `make` command, you can automate those tasks by calling:
 
     make test
-    
+
 
 You can learn more about how the test suite works and how to write new tests in the [test/README.md](test/README.md) file.
 
