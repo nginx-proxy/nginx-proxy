@@ -36,6 +36,24 @@ This image is based on the nginx:alpine image. Use this image to fully support H
 
     $ docker pull jwilder/nginx-proxy:alpine
 
+### Custom base image
+
+nginx-proxy runs with the latest stable nginx. You can build your own image and choose a different base image tag (e.g `1.15.7` or `1.15.7-alpine`).
+
+```
+# debian
+$ docker build --build-arg BASE_IMAGE_TAG=1.15 -t nginx-proxy-test-1.15 .
+$ docker run --rm nginx-proxy-test-1.15 nginx -v
+nginx version: nginx/1.15.7
+
+# alpine
+$ docker build --build-arg BASE_IMAGE_TAG=1.15-alpine -t nginx-proxy-test-1.15 -f Dockerfile.alpine .
+$ docker run --rm nginx-proxy-test-1.15 nginx -v
+nginx version: nginx/1.15.7
+```
+
+For docker-compose see [docs.docker.com/compose/compose-file](https://docs.docker.com/compose/compose-file/#args).
+
 ### Docker Compose
 
 ```yaml
