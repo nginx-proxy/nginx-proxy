@@ -1,4 +1,5 @@
-![nginx 1.11.10](https://img.shields.io/badge/nginx-1.11.10-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build Status](https://travis-ci.org/jwilder/nginx-proxy.svg?branch=master)](https://travis-ci.org/jwilder/nginx-proxy) [![](https://img.shields.io/docker/stars/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub') [![](https://img.shields.io/docker/pulls/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub')
+![latest 0.7.0](https://img.shields.io/badge/latest-0.7.0-green.svg?style=flat)
+![nginx 1.14.1](https://img.shields.io/badge/nginx-1.14-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build Status](https://travis-ci.org/jwilder/nginx-proxy.svg?branch=master)](https://travis-ci.org/jwilder/nginx-proxy) [![](https://img.shields.io/docker/stars/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub') [![](https://img.shields.io/docker/pulls/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub')
 
 
 nginx-proxy sets up a container running nginx and [docker-gen][1].  docker-gen generates reverse proxy configs for nginx and reloads nginx when containers are started and stopped.
@@ -17,7 +18,7 @@ Then start any containers you want proxied with an env var `VIRTUAL_HOST=subdoma
 
 The containers being proxied must [expose](https://docs.docker.com/engine/reference/run/#expose-incoming-ports) the port to be proxied, either by using the `EXPOSE` directive in their `Dockerfile` or by using the `--expose` flag to `docker run` or `docker create`.
 
-Provided your DNS is setup to forward foo.bar.com to the a host running nginx-proxy, the request will be routed to a container with the VIRTUAL_HOST env var set.
+Provided your DNS is setup to forward foo.bar.com to the host running nginx-proxy, the request will be routed to a container with the VIRTUAL_HOST env var set.
 
 ### Image variants
 
@@ -39,10 +40,10 @@ This image is based on the nginx:alpine image. Use this image to fully support H
 
 ```yaml
 version: '2'
+
 services:
   nginx-proxy:
     image: jwilder/nginx-proxy
-    container_name: nginx-proxy
     ports:
       - "80:80"
     volumes:
@@ -50,7 +51,6 @@ services:
 
   whoami:
     image: jwilder/whoami
-    container_name: whoami
     environment:
       - VIRTUAL_HOST=whoami.local
 ```
@@ -96,15 +96,47 @@ $ docker network connect my-other-network my-nginx-proxy
 
 In this example, the `my-nginx-proxy` container will be connected to `my-network` and `my-other-network` and will be able to proxy to other containers attached to those networks.
 
+### Internet vs. Local Network Access
+
+If you allow traffic from the public internet to access your `nginx-proxy` container, you may want to restrict some containers to the internal network only, so they cannot be accessed from the public internet.  On containers that should be restricted to the internal network, you should set the environment variable `NETWORK_ACCESS=internal`.  By default, the *internal* network is defined as `127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16`.  To change the list of networks considered internal, mount a file on the `nginx-proxy` at `/etc/nginx/network_internal.conf` with these contents, edited to suit your needs:
+
+```
+# These networks are considered "internal"
+allow 127.0.0.0/8;
+allow 10.0.0.0/8;
+allow 192.168.0.0/16;
+allow 172.16.0.0/12;
+
+# Traffic from all other networks will be rejected
+deny all;
+```
+
+When internal-only access is enabled, external clients with be denied with an `HTTP 403 Forbidden`
+
+> If there is a load-balancer / reverse proxy in front of `nginx-proxy` that hides the client IP (example: AWS Application/Elastic Load Balancer), you will need to use the nginx `realip` module (already installed) to extract the client's IP from the HTTP request headers.  Please see the [nginx realip module configuration](http://nginx.org/en/docs/http/ngx_http_realip_module.html) for more details.  This configuration can be added to a new config file and mounted in `/etc/nginx/conf.d/`.
+
 ### SSL Backends
 
 If you would like the reverse proxy to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_PROTO=https` on the backend container.
 
+> Note: If you use `VIRTUAL_PROTO=https` and your backend container exposes port 80 and 443, `nginx-proxy` will use HTTPS on port 80.  This is almost certainly not what you want, so you should also include `VIRTUAL_PORT=443`.
+
 ### uWSGI Backends
 
 If you would like to connect to uWSGI backend, set `VIRTUAL_PROTO=uwsgi` on the
-backend container. Your backend container should than listen on a port rather
+backend container. Your backend container should then listen on a port rather
 than a socket and expose that port.
+
+### FastCGI Backends
+ 
+If you would like to connect to FastCGI backend, set `VIRTUAL_PROTO=fastcgi` on the
+backend container. Your backend container should then listen on a port rather
+than a socket and expose that port.
+ 
+### FastCGI Filr Root Directory
+
+If you use fastcgi,you can set `VIRTUAL_ROOT=xxx`  for your root directory
+
 
 ### Default Host
 
@@ -171,9 +203,27 @@ By default, Docker is not able to mount directories on the host machine to conta
 
 #### Diffie-Hellman Groups
 
-If you have Diffie-Hellman groups enabled, the files should be named after the virtual host with a
+Diffie-Hellman groups are enabled by default, with a pregenerated key in `/etc/nginx/dhparam/dhparam.pem`.
+You can mount a different `dhparam.pem` file at that location to override the default cert.
+To use custom `dhparam.pem` files per-virtual-host, the files should be named after the virtual host with a
 `dhparam` suffix and `.pem` extension. For example, a container with `VIRTUAL_HOST=foo.bar.com`
-should have a `foo.bar.com.dhparam.pem` file in the certs directory.
+should have a `foo.bar.com.dhparam.pem` file in the `/etc/nginx/certs` directory.
+
+> NOTE: If you don't mount a `dhparam.pem` file at `/etc/nginx/dhparam/dhparam.pem`, one will be generated
+at startup.  Since it can take minutes to generate a new `dhparam.pem`, it is done at low priority in the
+background.  Once generation is complete, the `dhparam.pem` is saved on a persistent volume and nginx
+is reloaded.  This generation process only occurs the first time you start `nginx-proxy`.
+
+> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 2048 bits for A+ security.  Some 
+> older clients (like Java 6 and 7) do not support DH keys with over 1024 bits.  In order to support these
+> clients, you must either provide your own `dhparam.pem`, or tell `nginx-proxy` to generate a 1024-bit
+> key on startup by passing `-e DHPARAM_BITS=1024`.
+
+In the separate container setup, no pregenerated key will be available and neither the
+[jwilder/docker-gen](https://index.docker.io/u/jwilder/docker-gen/) image nor the offical
+[nginx](https://registry.hub.docker.com/_/nginx/) image will generate one. If you still want A+ security
+in a separate container setup, you'll have to generate a 2048 bits DH key file manually and mount it on the
+nginx container, at `/etc/nginx/dhparam/dhparam.pem`.
 
 #### Wildcard Certificates
 
@@ -187,12 +237,37 @@ to identify the certificate to be used.  For example, a certificate for `*.foo.c
 could be named `shared.crt` and `shared.key`.  A container running with `VIRTUAL_HOST=foo.bar.com`
 and `CERT_NAME=shared` will then use this shared cert.
 
+#### OCSP Stapling
+To enable OCSP Stapling for a domain, `nginx-proxy` looks for a PEM certificate containing the trusted
+CA certificate chain at `/etc/nginx/certs/<domain>.chain.pem`, where `<domain>` is the domain name in
+the `VIRTUAL_HOST` directive.  The format of this file is a concatenation of the public PEM CA
+certificates starting with the intermediate CA most near the SSL certificate, down to the root CA.  This is
+often referred to as the "SSL Certificate Chain".  If found, this filename is passed to the NGINX
+[`ssl_trusted_certificate` directive](http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_trusted_certificate)
+and OCSP Stapling is enabled.
+
 #### How SSL Support Works
 
-The SSL cipher configuration is based on [mozilla nginx intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Nginx) which
+The default SSL cipher configuration is based on the [Mozilla intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28default.29) which
 should provide compatibility with clients back to Firefox 1, Chrome 1, IE 7, Opera 5, Safari 1,
-Windows XP IE8, Android 2.3, Java 7.  The configuration also enables HSTS, and SSL
-session caches.
+Windows XP IE8, Android 2.3, Java 7.  Note that the DES-based TLS ciphers were removed for security.
+The configuration also enables HSTS, PFS, OCSP stapling and SSL session caches.  Currently TLS 1.0, 1.1 and 1.2
+are supported.  TLS 1.0 is deprecated but its end of life is not until June 30, 2018.  It is being
+included because the following browsers will stop working when it is removed: Chrome < 22, Firefox < 27,
+IE < 11, Safari < 7, iOS < 5, Android Browser < 5.
+
+If you don't require backward compatibility, you can use the [Mozilla modern profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility)
+profile instead by including the environment variable `SSL_POLICY=Mozilla-Modern` to your container.
+This profile is compatible with clients back to Firefox 27, Chrome 30, IE 11 on Windows 7,
+Edge, Opera 17, Safari 9, Android 5.0, and Java 8.
+
+Other policies available through the `SSL_POLICY` environment variable are [`Mozilla-Old`](https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility)
+and the [AWS ELB Security Policies](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html)
+`AWS-TLS-1-2-2017-01`, `AWS-TLS-1-1-2017-01`, `AWS-2016-08`, `AWS-2015-05`, `AWS-2015-03` and `AWS-2015-02`.
+
+Note that the `Mozilla-Old` policy should use a 1024 bits DH key for compatibility but this container generates
+a 2048 bits key. The [Diffie-Hellman Groups](#diffie-hellman-groups) section details different methods of bypassing
+this, either globally or per virtual-host.
 
 The default behavior for the proxy when port 80 and 443 are exposed is as follows:
 
@@ -214,6 +289,13 @@ is disabled to prevent HTTPS users from being redirected by the client.  If you 
 site after changing this setting, your browser has probably cached the HSTS policy and is automatically 
 redirecting you back to HTTPS.  You will need to clear your browser's HSTS cache or use an incognito 
 window / different browser.
+
+By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security) 
+is enabled with `max-age=31536000` for HTTPS sites.  You can disable HSTS with the environment variable 
+`HSTS=off` or use a custom HSTS configuration like `HSTS=max-age=31536000; includeSubDomains; preload`.  
+*WARNING*: HSTS will force your users to visit the HTTPS version of your site for the `max-age` time - 
+even if they type in `http://` manually.  The only way to get to an HTTP site after receiving an HSTS 
+response is to clear your browser's HSTS cache.
 
 ### Basic Authentication Support
 
@@ -344,3 +426,7 @@ If your system has the `make` command, you can automate those tasks by calling:
     
 
 You can learn more about how the test suite works and how to write new tests in the [test/README.md](test/README.md) file.
+
+### Need help?
+
+If you have questions on how to use the image, please ask them on the [Q&A Group](https://groups.google.com/forum/#!forum/nginx-proxy)

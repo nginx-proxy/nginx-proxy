@@ -1,0 +1,17 @@
+web:
+  image: web
+  expose:
+  - "81"
+  environment:
+    WEB_PORTS: 81
+    VIRTUAL_HOST: web.nginx-proxy
+
+
+reverseproxy:
+  image: jwilder/nginx-proxy:test
+  container_name: reverseproxy
+  environment:
+    DEBUG: "true"
+  volumes:
+  - /var/run/docker.sock:/tmp/docker.sock:ro
+  - ./tmp_certs:/etc/nginx/certs:ro
