@@ -24,11 +24,11 @@ Provided your DNS is setup to forward foo.bar.com to the host running nginx-prox
 
 The nginx-proxy images are available in two flavors.
 
-#### jwilder/nginx-proxy:latest
+#### senzacionale/nginx-proxy:latest
 
 This image uses the debian:jessie based nginx image.
 
-    $ docker pull jwilder/nginx-proxy:latest
+    $ docker pull senzacionale/nginx-proxy:latest
 
 #### jwilder/nginx-proxy:alpine
 
