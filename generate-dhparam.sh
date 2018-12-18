@@ -37,7 +37,8 @@ touch $GEN_LOCKFILE
 # Generate a new dhparam in the background in a low priority and reload nginx when finished (grep removes the progress indicator).
 (
     (
-        nice -n +5 openssl dhparam -out $DHPARAM_FILE $DHPARAM_BITS 2>&1 \
+        nice -n +5 openssl dhparam -out $DHPARAM_FILE.tmp $DHPARAM_BITS 2>&1 \
+        && mv $DHPARAM_FILE.tmp $DHPARAM_FILE \
         && echo "dhparam generation complete, reloading nginx" \
         && nginx -s reload
     ) | grep -vE '^[\.+]+'
