@@ -18,11 +18,16 @@ fi
 # Note: if $DHPARAM_BITS is not defined, generate-dhparam.sh will use 2048 as a default
 /app/generate-dhparam.sh $DHPARAM_BITS
 
-# Compute the DNS resolvers for use in the templates - if the IP contains ":", it's IPv6 and must be enclosed in []
-export RESOLVERS=$(awk '$1 == "nameserver" {print ($2 ~ ":")? "["$2"]": $2}' ORS=' ' /etc/resolv.conf | sed 's/ *$//g')
-if [ "x$RESOLVERS" = "x" ]; then
-    echo "Warning: unable to determine DNS resolvers for nginx" >&2
-    unset RESOLVERS
+# Check if the RESOLVERS environment variable has been set
+if [ "x$RESOLVERS" != "x" ]; then
+    echo "RESOLVERS environment variable set to '$RESOLVERS', skipping dns compute from resolv.conf" >&2
+else
+    # Compute the DNS resolvers for use in the templates - if the IP contains ":", it's IPv6 and must be enclosed in []
+    export RESOLVERS=$(awk '$1 == "nameserver" {print ($2 ~ ":")? "["$2"]": $2}' ORS=' ' /etc/resolv.conf | sed 's/ *$//g')
+    if [ "x$RESOLVERS" = "x" ]; then
+        echo "Warning: unable to determine DNS resolvers for nginx" >&2
+        unset RESOLVERS
+    fi
 fi
 
 # If the user has run the default command and the socket doesn't exist, fail
