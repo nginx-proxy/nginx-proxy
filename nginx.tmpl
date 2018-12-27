@@ -19,7 +19,7 @@
 			server 127.0.0.1 down;
 		{{ end }}
 	{{ end }}
-	
+
 {{ end }}
 
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
@@ -114,6 +114,18 @@ server {
 	ssl_certificate_key /etc/nginx/certs/default.key;
 }
 {{ end }}
+
+server {
+    listen      80 default_server;
+    listen [::]:80 default_server;
+    server_name  _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+            try_files $uri $uri/ =404;
+    }
+}
 
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
 
