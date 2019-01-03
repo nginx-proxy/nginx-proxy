@@ -1,0 +1,71 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 4096 (0x1000)
+    Signature Algorithm: sha256WithRSAEncryption
+        Issuer: O=nginx-proxy test suite, CN=www.nginx-proxy.tld
+        Validity
+            Not Before: Mar 14 23:19:36 2017 GMT
+            Not After : Jul 30 23:19:36 2044 GMT
+        Subject: CN=*.web.nginx-proxy.tld
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:ce:2b:74:13:b2:1a:d5:72:5c:3e:10:f7:63:01:
+                    22:df:e8:d9:cf:0b:8a:3f:40:75:62:58:78:27:9e:
+                    af:33:d2:a1:19:6a:e1:b7:57:db:d9:8f:05:70:c2:
+                    35:5d:f1:44:0d:51:62:74:73:e5:77:d9:bb:c6:d0:
+                    33:7a:43:88:e9:e6:3c:2d:d4:39:9d:61:34:5a:19:
+                    f3:c1:96:e0:bd:26:5b:69:18:a6:4c:8c:21:04:d8:
+                    fa:56:22:ec:55:0d:ba:49:4d:8e:27:69:7f:82:e9:
+                    e7:e9:c4:b7:87:70:d7:d7:4b:49:d1:c1:8c:b0:5a:
+                    13:62:db:de:c1:94:31:d1:c9:74:c4:63:01:50:10:
+                    70:42:73:67:c4:76:32:fb:d2:b7:91:2f:e8:cf:3a:
+                    96:4a:ee:8e:0d:13:74:73:1b:e4:74:83:e7:66:d6:
+                    8d:81:19:54:5b:d8:47:3e:3b:b5:fd:35:a2:df:f3:
+                    7d:1c:9e:67:ee:50:da:28:9c:02:0a:ad:75:8d:04:
+                    f7:28:1f:04:89:13:ac:ed:a9:34:26:dc:f7:f9:1f:
+                    72:21:d5:72:fb:09:d9:cb:40:c0:0d:36:3c:c0:77:
+                    0e:9a:f7:41:f1:3b:dd:b6:05:ab:13:60:c5:fd:c6:
+                    5f:f5:05:c4:42:00:ba:b5:ef:fb:dc:64:98:d9:4d:
+                    2b:07
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Subject Alternative Name: 
+                DNS:*.web.nginx-proxy.tld
+    Signature Algorithm: sha256WithRSAEncryption
+         9b:78:39:b3:90:8f:31:8c:7d:02:aa:6f:46:3d:8c:f5:93:86:
+         03:e2:d8:9b:73:d1:e7:70:f1:d6:e6:3c:41:41:8c:76:c9:29:
+         a4:83:47:c7:10:fd:d0:8b:fa:60:26:a8:36:41:a4:69:89:81:
+         ec:bf:fd:33:72:bb:83:ea:42:e4:59:3f:10:df:d1:de:e2:bb:
+         eb:fa:97:44:fe:f4:55:29:69:ca:a5:88:b2:94:60:58:5a:1a:
+         19:16:fb:9f:42:4c:7c:d3:6b:21:45:22:56:5c:76:07:97:35:
+         27:8f:46:d2:77:5b:65:1b:94:99:cb:73:37:ae:cf:61:6c:7a:
+         5c:b3:3b:19:f2:9f:99:8f:89:eb:98:0b:74:0d:30:f5:49:19:
+         d6:41:32:4e:c9:fc:59:2a:4a:53:2c:83:89:3d:e8:89:ed:37:
+         d0:b4:f1:09:49:b5:0b:76:fd:a5:75:23:fb:01:c8:bb:59:02:
+         5c:e4:8e:9c:f9:5b:85:5f:67:fb:04:40:de:bc:e8:c3:15:2f:
+         ba:00:5c:36:57:47:e3:1a:95:44:5f:f4:10:55:b0:c4:af:12:
+         dc:0e:6c:18:4a:70:9e:73:90:8d:55:37:73:a5:1a:41:7f:00:
+         79:96:34:01:6b:10:2d:e9:61:3d:8f:8a:9a:c8:b6:bc:0f:57:
+         91:84:7c:26
+-----BEGIN CERTIFICATE-----
+MIIC/zCCAeegAwIBAgICEAAwDQYJKoZIhvcNAQELBQAwPzEfMB0GA1UECgwWbmdp
+bngtcHJveHkgdGVzdCBzdWl0ZTEcMBoGA1UEAwwTd3d3Lm5naW54LXByb3h5LnRs
+ZDAeFw0xNzAzMTQyMzE5MzZaFw00NDA3MzAyMzE5MzZaMCAxHjAcBgNVBAMMFSou
+d2ViLm5naW54LXByb3h5LnRsZDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
+ggEBAM4rdBOyGtVyXD4Q92MBIt/o2c8Lij9AdWJYeCeerzPSoRlq4bdX29mPBXDC
+NV3xRA1RYnRz5XfZu8bQM3pDiOnmPC3UOZ1hNFoZ88GW4L0mW2kYpkyMIQTY+lYi
+7FUNuklNjidpf4Lp5+nEt4dw19dLSdHBjLBaE2Lb3sGUMdHJdMRjAVAQcEJzZ8R2
+MvvSt5Ev6M86lkrujg0TdHMb5HSD52bWjYEZVFvYRz47tf01ot/zfRyeZ+5Q2iic
+AgqtdY0E9ygfBIkTrO2pNCbc9/kfciHVcvsJ2ctAwA02PMB3Dpr3QfE73bYFqxNg
+xf3GX/UFxEIAurXv+9xkmNlNKwcCAwEAAaMkMCIwIAYDVR0RBBkwF4IVKi53ZWIu
+bmdpbngtcHJveHkudGxkMA0GCSqGSIb3DQEBCwUAA4IBAQCbeDmzkI8xjH0Cqm9G
+PYz1k4YD4tibc9HncPHW5jxBQYx2ySmkg0fHEP3Qi/pgJqg2QaRpiYHsv/0zcruD
+6kLkWT8Q39He4rvr+pdE/vRVKWnKpYiylGBYWhoZFvufQkx802shRSJWXHYHlzUn
+j0bSd1tlG5SZy3M3rs9hbHpcszsZ8p+Zj4nrmAt0DTD1SRnWQTJOyfxZKkpTLIOJ
+PeiJ7TfQtPEJSbULdv2ldSP7Aci7WQJc5I6c+VuFX2f7BEDevOjDFS+6AFw2V0fj
+GpVEX/QQVbDErxLcDmwYSnCec5CNVTdzpRpBfwB5ljQBaxAt6WE9j4qayLa8D1eR
+hHwm
+-----END CERTIFICATE-----

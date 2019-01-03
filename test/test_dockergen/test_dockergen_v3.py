@@ -2,7 +2,7 @@ import os
 import docker
 import logging
 import pytest
-
+import re
 
 def versiontuple(v):
     """

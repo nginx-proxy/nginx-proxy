@@ -2,3 +2,4 @@ nginxproxy:
   image: jwilder/nginx-proxy:test
   volumes:
     - /var/run/docker.sock:/tmp/docker.sock:ro
+    - ./lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro

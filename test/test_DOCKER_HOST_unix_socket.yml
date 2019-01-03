@@ -1,5 +1,5 @@
 web1:
-  image: web 
+  image: web
   expose:
     - "81"
   environment:
@@ -8,7 +8,7 @@ web1:
 
 web2:
   image: web
-  expose: 
+  expose:
     - "82"
   environment:
     WEB_PORTS: 82
@@ -19,6 +19,6 @@ sut:
   image: jwilder/nginx-proxy:test
   volumes:
     - /var/run/docker.sock:/f00.sock:ro
+    - ./lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
   environment:
     DOCKER_HOST: unix:///f00.sock
-

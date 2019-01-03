@@ -1,0 +1,35 @@
+version: "2"
+
+networks:
+  netA:
+  netB:
+
+services:
+  reverseproxy:
+    container_name: reverseproxy
+    networks:
+      - netA
+    image: jwilder/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+
+  webA:
+    networks:
+      - netA
+    image: web
+    expose:
+      - 81
+    environment:
+      WEB_PORTS: 81
+      VIRTUAL_HOST: webA.nginx-proxy
+
+  webB:
+    networks:
+      - netB
+    image: web
+    expose:
+      - 82
+    environment:
+      WEB_PORTS: 82
+      VIRTUAL_HOST: webB.nginx-proxy
+
