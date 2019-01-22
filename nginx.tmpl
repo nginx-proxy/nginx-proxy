@@ -99,11 +99,18 @@ server {
 	return 503;
 }
 
+{{ $no_http2 := eq (or ($.Env.NO_HTTP2) "" ) "true" }}
 {{ if (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
+	{{ if $no_http2 }}
+	listen 443 ssl;
+	{{ else }}
 	listen 443 ssl http2;
-	{{ if $enable_ipv6 }}
+	{{ end }}
+	{{ if (and $enable_ipv6 $no_http2) }}
+	listen [::]:443 ssl;
+	{{ else if $enable_ipv6 }}
 	listen [::]:443 ssl http2;
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
@@ -204,10 +211,17 @@ server {
 
 server {
 	server_name {{ $host }};
+	{{ if $no_http2 }}
+	listen 443 ssl {{ $default_server }};
+	{{ else }}
 	listen 443 ssl http2 {{ $default_server }};
-	{{ if $enable_ipv6 }}
+	{{ end }}
+	{{ if (and $enable_ipv6 $no_http2) }}
+	listen [::]:443 ssl {{ $default_server }};
+	{{ else if $enable_ipv6 }}
 	listen [::]:443 ssl http2 {{ $default_server }};
 	{{ end }}
+
 	access_log /var/log/nginx/access.log vhost;
 
 	{{ if eq $network_tag "internal" }}
@@ -345,10 +359,17 @@ server {
 {{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name {{ $host }};
+	{{ if $no_http2 }}
+	listen 443 ssl {{ $default_server }};
+	{{ else }}
 	listen 443 ssl http2 {{ $default_server }};
-	{{ if $enable_ipv6 }}
+	{{ end }}
+	{{ if (and $enable_ipv6 $no_http2) }}
+	listen [::]:443 ssl {{ $default_server }};
+	{{ else if $enable_ipv6 }}
 	listen [::]:443 ssl http2 {{ $default_server }};
 	{{ end }}
+
 	access_log /var/log/nginx/access.log vhost;
 	return 500;
 
