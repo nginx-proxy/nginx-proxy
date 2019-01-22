@@ -67,6 +67,11 @@ You can activate the IPv6 support for the nginx-proxy container by passing the v
 
     $ docker run -d -p 80:80 -e ENABLE_IPV6=true -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
+### Disable HTTP/2
+
+You can disable support for HTTP/2 for the nginx-proxy container by passing the value `true` to the `NO_HTTP2` environment variable:
+    $ docker run -d -p 80:80 -e NO_HTTP2=true -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+
 ### Multiple Ports
 
 If your container exposes multiple ports, nginx-proxy will default to the service running on port 80.  If you need to specify a different port, you can set a VIRTUAL_PORT env var to select a different one.  If your container only exposes one port and it has a VIRTUAL_HOST env var set, that port will be selected.
