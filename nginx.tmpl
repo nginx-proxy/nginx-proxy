@@ -200,7 +200,7 @@ server {
 	listen [::]:{{ $listen_port }} {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
-	return 301 https://$host:{{ $listen_port_ssl -}}$request_uri;
+	return 301 https://$host{{ if not (eq $listen_port_ssl "443") }}:{{ $listen_port_ssl }}{{ end }}$request_uri;
 }
 {{ end }}
 
