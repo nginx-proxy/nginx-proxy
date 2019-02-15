@@ -19,7 +19,7 @@
 			server 127.0.0.1 down;
 		{{ end }}
 	{{ end }}
-
+	
 {{ end }}
 
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
@@ -89,11 +89,13 @@ proxy_set_header Proxy "";
 {{ end }}
 
 {{ $enable_ipv6 := eq (or ($.Env.ENABLE_IPV6) "") "true" }}
+{{ $listen_port := coalesce $.Env.LISTEN_PORT "80" }}
+{{ $listen_port_ssl := coalesce $.Env.LISTEN_PORT_SSL "443" }}
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
-	listen 80;
+	listen {{ $listen_port }};
 	{{ if $enable_ipv6 }}
-	listen [::]:80;
+	listen [::]:{{ $listen_port }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
@@ -102,9 +104,9 @@ server {
 {{ if (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
-	listen 443 ssl http2;
+	listen {{ $listen_port_ssl }} ssl http2;
 	{{ if $enable_ipv6 }}
-	listen [::]:443 ssl http2;
+	listen [::]:{{ $listen_port_ssl }} ssl http2;
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
@@ -193,20 +195,20 @@ upstream {{ $upstream_name }} {
 {{ if eq $https_method "redirect" }}
 server {
 	server_name {{ $host }};
-	listen 80 {{ $default_server }};
+	listen {{ $listen_port }} {{ $default_server }};
 	{{ if $enable_ipv6 }}
-	listen [::]:80 {{ $default_server }};
+	listen [::]:{{ $listen_port }} {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
-	return 301 https://$host$request_uri;
+	return 301 https://$host:{{ $listen_port_ssl -}}$request_uri;
 }
 {{ end }}
 
 server {
 	server_name {{ $host }};
-	listen 443 ssl http2 {{ $default_server }};
+	listen {{ $listen_port_ssl }} ssl http2 {{ $default_server }};
 	{{ if $enable_ipv6 }}
-	listen [::]:443 ssl http2 {{ $default_server }};
+	listen [::]:{{ $listen_port_ssl }} ssl http2 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 
@@ -262,7 +264,7 @@ server {
 	ssl_trusted_certificate {{ printf "/etc/nginx/certs/%s.chain.pem" $cert }};
 	{{ end }}
 
-	{{ if (not (or (eq $https_method "noredirect") (eq $hsts "off"))) }}
+	{{ if (and (ne $https_method "noredirect") (ne $hsts "off")) }}
 	add_header Strict-Transport-Security "{{ trim $hsts }}" always;
 	{{ end }}
 
@@ -302,9 +304,9 @@ server {
 
 server {
 	server_name {{ $host }};
-	listen 80 {{ $default_server }};
+	listen {{ $listen_port }} {{ $default_server }};
 	{{ if $enable_ipv6 }}
-	listen [::]:80 {{ $default_server }};
+	listen [::]:{{ $listen_port }} {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 
@@ -345,9 +347,9 @@ server {
 {{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name {{ $host }};
-	listen 443 ssl http2 {{ $default_server }};
+	listen {{ $listen_port_ssl }} ssl http2 {{ $default_server }};
 	{{ if $enable_ipv6 }}
-	listen [::]:443 ssl http2 {{ $default_server }};
+	listen [::]:{{ $listen_port_ssl }} ssl http2 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 500;

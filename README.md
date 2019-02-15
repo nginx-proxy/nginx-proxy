@@ -96,6 +96,12 @@ $ docker network connect my-other-network my-nginx-proxy
 
 In this example, the `my-nginx-proxy` container will be connected to `my-network` and `my-other-network` and will be able to proxy to other containers attached to those networks.
 
+### Listening Port
+
+If you want `nginx-proxy` to listen on a port different from the default port, use the environment variable `LISTEN_PORT`. E.g., to listen on port 8080, use `LISTEN_PORT=8080`. The default port is 80 for `HTTP` traffic.
+
+Likewise, you can set the default listen port for `HTTPS` traffic by setting `LISTEN_PORT_SSL`. E.g., `LISTEN_PORT_SSL=8443` would configure `nginx-proxy` to listen on port 8443 for `HTTPS` traffic. If you change the `HTTPS` port, the redirect for `HTTPS` traffic will also be configured to redirect to the custom port. The default port is 443 for `HTTPS` traffic.
+
 ### Internet vs. Local Network Access
 
 If you allow traffic from the public internet to access your `nginx-proxy` container, you may want to restrict some containers to the internal network only, so they cannot be accessed from the public internet.  On containers that should be restricted to the internal network, you should set the environment variable `NETWORK_ACCESS=internal`.  By default, the *internal* network is defined as `127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16`.  To change the list of networks considered internal, mount a file on the `nginx-proxy` at `/etc/nginx/network_internal.conf` with these contents, edited to suit your needs:
