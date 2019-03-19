@@ -2,6 +2,7 @@
 
 # The first argument is the bit depth of the dhparam, or 2048 if unspecified
 DHPARAM_BITS=${1:-2048}
+GENERATE_DHPARAM=${2:-true}
 
 # If a dhparam file is not available, use the pre-generated one and generate a new one in the background.
 # Note that /etc/nginx/dhparam is a volume, so this dhparam will persist restarts.
@@ -23,6 +24,11 @@ if [[ -f $DHPARAM_FILE ]]; then
         # Generation is already in progress
         exit 0
     fi
+fi
+
+if [[ $GENERATE_DHPARAM =~ ^[Ff][Aa][Ll][Ss][Ee]$ ]]; then
+    echo "Skipping Diffie-Hellman parameters generation and Ignoring pre-generated dhparam.pem"
+    exit 0
 fi
 
 cat >&2 <<-EOT
