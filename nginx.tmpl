@@ -294,7 +294,10 @@ server {
 	{{ range $container := $containers }}
 	{{/* Determine whether this container has specified a virtual path, or default to the / pattern */}}
 	{{ $location := coalesce $container.Env.VIRTUAL_PATH "/" }}
-	location {{ $location }} {
+	{{ $is_regexp := hasPrefix "^" $location }}
+	{{ $modifier := when $is_regexp "~" "" }}
+
+	location {{ $modifier }} '{{ $location }}' {
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
 		uwsgi_pass {{ trim $proto }}://{{ trim $container.Name }};
@@ -346,7 +349,10 @@ server {
 	{{/* Determine whether this container has specified a virtual path, or default to the / pattern */}}
 	{{ $location := coalesce $container.Env.VIRTUAL_PATH "/" }}
 
-	location {{ $location }} {
+	{{ $is_regexp := hasPrefix "^" $location }}
+	{{ $modifier := when $is_regexp "~" "" }}
+
+	location {{ $modifier }} '{{ $location }}' {
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
 		uwsgi_pass {{ trim $proto }}://{{ trim $container.Name }};
