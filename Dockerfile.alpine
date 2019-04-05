@@ -4,6 +4,7 @@ LABEL maintainer="Jason Wilder mail@jasonwilder.com"
 # Install wget and install/updates certificates
 RUN apk add --no-cache --virtual .run-deps \
     ca-certificates bash wget openssl \
+    iproute2 bind-tools \
     && update-ca-certificates
 
 
