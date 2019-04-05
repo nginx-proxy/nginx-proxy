@@ -31,4 +31,17 @@ if [ "$socketMissing" = 1 -a "$1" = forego -a "$2" = start -a "$3" = '-r' ]; the
 	exit 1
 fi
 
+# alias host machine IP if not already present
+DOCKER_HOST_IP=$(dig +short -4 host.docker.internal)
+if [[ -z $DOCKER_HOST_IP ]]; then
+  echo "host.docker.internal not resolved, attempting to identify docker host ip..."
+  DOCKER_HOST_IP=`/sbin/ip route|awk '/default/ { print $3 }'`
+  echo "found host.docker.internal at $DOCKER_HOST_IP, adding to /etc/hosts..."
+  echo "$DOCKER_HOST_IP	host.docker.internal" >> /etc/hosts
+  echo "$DOCKER_HOST_IP	docker.for.mac.localhost" >> /etc/hosts
+  echo "$DOCKER_HOST_IP	docker.for.win.localhost" >> /etc/hosts
+else
+  echo "host.docker.internal resolved to $DOCKER_HOST_IP, not modifying /etc/hosts"
+fi
+
 exec "$@"
