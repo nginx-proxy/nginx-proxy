@@ -4,8 +4,9 @@ web2:
     - "82"
   environment:
     WEB_PORTS: "82"
-    VIRTUAL_HOST: "web2.nginx-proxy.tld"
-    HTTPS_METHOD: nohttp
+  labels:
+    '@proxy/virtualHost': "web2.nginx-proxy.tld"
+    '@proxy/httpsMethod': nohttp
 
 
 sut:

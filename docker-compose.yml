@@ -1,8 +1,8 @@
 version: '2'
+
 services:
   nginx-proxy:
     image: jwilder/nginx-proxy
-    container_name: nginx-proxy
     ports:
       - "80:80"
     volumes:
@@ -10,5 +10,5 @@ services:
 
   whoami:
     image: jwilder/whoami
-    environment:
-      - VIRTUAL_HOST=whoami.local
+    labels:
+      '@proxy/virtualHost': whoami.local

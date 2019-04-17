@@ -4,7 +4,8 @@ web5:
     - "85"
   environment:
     WEB_PORTS: "85"
-    VIRTUAL_HOST: "web5.nginx-proxy.tld"
+  labels:
+    '@proxy/virtualHost': "web5.nginx-proxy.tld"
 
 
 sut:

@@ -13,7 +13,8 @@ services:
       - "81"
     environment:
       WEB_PORTS: 81
-      VIRTUAL_HOST: web1.nginx-proxy.local
+    labels:
+      '@proxy/virtualHost': web1.nginx-proxy.local
 
   web2:
     image: web
@@ -21,4 +22,5 @@ services:
       - "82"
     environment:
       WEB_PORTS: 82
-      VIRTUAL_HOST: web2.nginx-proxy.local
+    labels:
+      '@proxy/virtualHost': web2.nginx-proxy.local

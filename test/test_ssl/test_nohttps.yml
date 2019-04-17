@@ -4,8 +4,9 @@ web:
     - "83"
   environment:
     WEB_PORTS: "83"
-    VIRTUAL_HOST: "web.nginx-proxy.tld"
-    HTTPS_METHOD: nohttps
+  labels:
+    '@proxy/virtualHost': "web.nginx-proxy.tld"
+    '@proxy/httpsMethod': nohttps
 
 
 sut:

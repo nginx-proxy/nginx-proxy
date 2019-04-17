@@ -1,6 +1,6 @@
 # nginx-proxy template is not considered when a container is not reachable
 
-Having a container with the `VIRTUAL_HOST` environment variable set but on a network not reachable from the nginx-proxy container will result in nginx-proxy serving the default nginx welcome page for all requests.
+Having a container with the `@proxy/virtualHost` label set but on a network not reachable from the nginx-proxy container will result in nginx-proxy serving the default nginx welcome page for all requests.
 
 Furthermore, if the nginx-proxy in such state is restarted, the nginx process will crash and the container stops.
 

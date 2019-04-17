@@ -21,7 +21,8 @@ services:
       - 81
     environment:
       WEB_PORTS: 81
-      VIRTUAL_HOST: webA.nginx-proxy
+    labels:
+      '@proxy/virtualHost': webA.nginx-proxy
 
   webB:
     networks:
@@ -31,5 +32,6 @@ services:
       - 82
     environment:
       WEB_PORTS: 82
-      VIRTUAL_HOST: webB.nginx-proxy
+    labels:
+      '@proxy/virtualHost': webB.nginx-proxy
 

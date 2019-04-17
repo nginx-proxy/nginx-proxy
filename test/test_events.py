@@ -10,7 +10,7 @@ from docker.errors import NotFound
 @pytest.yield_fixture()
 def web1(docker_compose):
     """
-    pytest fixture creating a web container with `VIRTUAL_HOST=web1.nginx-proxy` listening on port 81.
+    pytest fixture creating a web container with `@proxy/virtualHost=web1.nginx-proxy` listening on port 81.
     """
     container = docker_compose.containers.run(
         name="web1",
@@ -18,7 +18,9 @@ def web1(docker_compose):
         detach=True,
         environment={
             "WEB_PORTS": "81",
-            "VIRTUAL_HOST": "web1.nginx-proxy"
+        },
+        labels={
+            "@proxy/virtualHost": "web1.nginx-proxy"
         },
         ports={"81/tcp": None}
     )

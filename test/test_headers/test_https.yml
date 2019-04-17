@@ -4,7 +4,8 @@ web:
     - "80"
   environment:
     WEB_PORTS: 80
-    VIRTUAL_HOST: web.nginx-proxy.tld
+  labels:
+    '@proxy/virtualHost': web.nginx-proxy.tld
 
 
 sut:

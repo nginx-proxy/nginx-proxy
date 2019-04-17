@@ -24,4 +24,5 @@ services:
       - "80"
     environment:
       WEB_PORTS: 80
-      VIRTUAL_HOST: whoami.nginx.container.docker
+    labels:
+      '@proxy/virtualHost': whoami.nginx.container.docker

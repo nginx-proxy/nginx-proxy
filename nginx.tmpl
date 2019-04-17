@@ -115,7 +115,7 @@ server {
 }
 {{ end }}
 
-{{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
+{{ range $host, $containers := groupByMulti $ "Labels.@proxy/virtualHost" "," }}
 
 {{ $host := trim $host }}
 {{ $is_regexp := hasPrefix "~" $host }}
@@ -136,9 +136,9 @@ upstream {{ $upstream_name }} {
 				{{ if eq $addrLen 1 }}
 					{{ $address := index $container.Addresses 0 }}
 					{{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork) }}
-				{{/* If more than one port exposed, use the one matching VIRTUAL_PORT env var, falling back to standard web port 80 */}}
+				{{/* If more than one port exposed, use the one matching @proxy/virtualPort label, falling back to standard web port 80 */}}
 				{{ else }}
-					{{ $port := coalesce $container.Env.VIRTUAL_PORT "80" }}
+					{{ $port := coalesce $container.Labels "@proxy/virtualPort" "80" }}
 					{{ $address := where $container.Addresses "Port" $port | first }}
 					{{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork) }}
 				{{ end }}
@@ -154,27 +154,27 @@ upstream {{ $upstream_name }} {
 {{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
 {{ $default_server := index (dict $host "" $default_host "default_server") $host }}
 
-{{/* Get the VIRTUAL_PROTO defined by containers w/ the same vhost, falling back to "http" */}}
-{{ $proto := trim (or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http") }}
+{{/* Get the @proxy/virtualProtocol defined by containers w/ the same vhost, falling back to "http" */}}
+{{ $proto := trim (or (first (groupByKeys $containers "Labels.@proxy/virtualProtocol")) "http") }}
 
 {{/* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external" */}}
-{{ $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
+{{ $network_tag := or (first (groupByKeys $containers "Labels.@proxy/networkAccess")) "external" }}
 
-{{/* Get the HTTPS_METHOD defined by containers w/ the same vhost, falling back to "redirect" */}}
-{{ $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) "redirect" }}
+{{/* Get the @proxy/httpsMethod defined by containers w/ the same vhost, falling back to "redirect" */}}
+{{ $https_method := or (first (groupByKeys $containers "Labels.@proxy/httpsMethod")) "redirect" }}
 
 {{/* Get the SSL_POLICY defined by containers w/ the same vhost, falling back to "Mozilla-Intermediate" */}}
-{{ $ssl_policy := or (first (groupByKeys $containers "Env.SSL_POLICY")) "Mozilla-Intermediate" }}
+{{ $ssl_policy := or (first (groupByKeys $containers "Labels.@proxy/sslPolicy")) "Mozilla-Intermediate" }}
 
 {{/* Get the HSTS defined by containers w/ the same vhost, falling back to "max-age=31536000" */}}
-{{ $hsts := or (first (groupByKeys $containers "Env.HSTS")) "max-age=31536000" }}
+{{ $hsts := or (first (groupByKeys $containers "Labels.@proxy/HSTS")) "max-age=31536000" }}
 
-{{/* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
-{{ $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
+{{/* Get the @proxy/virtualRoot By containers w/ use fastcgi root */}}
+{{ $vhost_root := or (first (groupByKeys $containers "Labels.@proxy/virtualRoot")) "/var/www/public" }}
 
 
 {{/* Get the first cert name defined by containers w/ the same vhost */}}
-{{ $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
+{{ $certName := (first (groupByKeys $containers "Labels.@proxy/certificateName")) }}
 
 {{/* Get the best matching cert  by name for the vhost. */}}
 {{ $vhostCert := (closest (dir "/etc/nginx/certs") (printf "%s.crt" $host))}}

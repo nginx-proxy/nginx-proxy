@@ -4,7 +4,8 @@ web1:
     - "81"
   environment:
     WEB_PORTS: "81"
-    VIRTUAL_HOST: "web1.nginx-proxy.tld"
+  labels:
+    '@proxy/virtualHost': "web1.nginx-proxy.tld"
 
 web2:
   image: web
@@ -12,8 +13,9 @@ web2:
     - "81"
   environment:
     WEB_PORTS: "81"
-    VIRTUAL_HOST: "web2.nginx-proxy.tld"
-    HSTS: "off"
+  labels:
+    '@proxy/virtualHost': "web2.nginx-proxy.tld"
+    '@proxy/HSTS': "off"
 
 web3:
   image: web
@@ -21,8 +23,9 @@ web3:
     - "81"
   environment:
     WEB_PORTS: "81"
-    VIRTUAL_HOST: "web3.nginx-proxy.tld"
-    HSTS: "max-age=86400; includeSubDomains; preload"
+  labels:
+    '@proxy/virtualHost': "web3.nginx-proxy.tld"
+    '@proxy/HSTS': "max-age=86400; includeSubDomains; preload"
 
 web4:
   image: web
@@ -30,9 +33,10 @@ web4:
     - "81"
   environment:
     WEB_PORTS: "81"
-    VIRTUAL_HOST: "web4.nginx-proxy.tld"
-    HSTS: "off"
-    HTTPS_METHOD: "noredirect"
+  labels:
+    '@proxy/virtualHost': "web4.nginx-proxy.tld"
+    '@proxy/HSTS': "off"
+    '@proxy/httpsMethod': "noredirect"
 
 sut:
   image: jwilder/nginx-proxy:test

@@ -4,7 +4,8 @@ web1:
     - "81"
   environment:
     WEB_PORTS: 81
-    VIRTUAL_HOST: web1.nginx-proxy.tld
+  labels:
+    '@proxy/virtualHost': web1.nginx-proxy.tld
 
 web2:
   image: web
@@ -12,7 +13,8 @@ web2:
     - "82"
   environment:
     WEB_PORTS: 82
-    VIRTUAL_HOST: web2.nginx-proxy.tld
+  labels:
+    '@proxy/virtualHost': web2.nginx-proxy.tld
 
 
 sut:
