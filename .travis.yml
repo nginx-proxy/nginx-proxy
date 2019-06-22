@@ -1,5 +1,4 @@
 dist: trusty
-sudo: required
 
 env:
   matrix:
@@ -17,6 +16,10 @@ before_install:
   - docker info
   # prepare docker test requirements
   - make update-dependencies
+
+before_script:
+  - pip install flake8
+  - flake8 . --count --select=E9,F63,F72,F82 --show-source --statistics
 
 script:
   - make $TEST_TARGET
