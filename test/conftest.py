@@ -264,7 +264,7 @@ def docker_compose_up(compose_file='docker-compose.yml'):
     logging.info('docker-compose -f %s up -d' % compose_file)
     try:
         subprocess.check_output(shlex.split('docker-compose -f %s up -d' % compose_file), stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError, e:
+    except subprocess.CalledProcessError as e:
         pytest.fail("Error while runninng 'docker-compose -f %s up -d':\n%s" % (compose_file, e.output), pytrace=False)
 
 
@@ -272,7 +272,7 @@ def docker_compose_down(compose_file='docker-compose.yml'):
     logging.info('docker-compose -f %s down' % compose_file)
     try:
         subprocess.check_output(shlex.split('docker-compose -f %s down' % compose_file), stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError, e:
+    except subprocess.CalledProcessError as e:
         pytest.fail("Error while runninng 'docker-compose -f %s down':\n%s" % (compose_file, e.output), pytrace=False)
 
 
