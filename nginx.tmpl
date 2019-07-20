@@ -102,9 +102,9 @@ server {
 {{ if (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
-	listen 443 ssl http2;
+	listen {{or ($.Env.HTTPS_PORT) "443" }}} ssl http2;
 	{{ if $enable_ipv6 }}
-	listen [::]:443 ssl http2;
+	listen [::]:{{or ($.Env.HTTPS_PORT) "443" }}} ssl http2;
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
@@ -198,15 +198,19 @@ server {
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
+	{{ if $.Env.HTTPS_PORT }}
+	return 301 https://$host:{{$.Env.HTTPS_PORT}}$request_uri;
+	{{ else }}
 	return 301 https://$host$request_uri;
+	{{ end }}
 }
 {{ end }}
 
 server {
 	server_name {{ $host }};
-	listen 443 ssl http2 {{ $default_server }};
+	listen {{or ($.Env.HTTPS_PORT) "443"}} ssl http2 {{ $default_server }};
 	{{ if $enable_ipv6 }}
-	listen [::]:443 ssl http2 {{ $default_server }};
+	listen [::]:{{or ($.Env.HTTPS_PORT) "443"}} ssl http2 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 
@@ -345,9 +349,9 @@ server {
 {{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name {{ $host }};
-	listen 443 ssl http2 {{ $default_server }};
+	listen {{or ($.Env.HTTPS_PORT) "443"}} ssl http2 {{ $default_server }};
 	{{ if $enable_ipv6 }}
-	listen [::]:443 ssl http2 {{ $default_server }};
+	listen [::]:{{or ($.Env.HTTPS_PORT) "443"}} ssl http2 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 500;
