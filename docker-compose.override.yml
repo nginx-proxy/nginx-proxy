@@ -1,0 +1,6 @@
+version: '2'
+services:
+  nginx:
+    build: .
+    volumes:
+      - ./conf.d:/etc/nginx/conf.d
