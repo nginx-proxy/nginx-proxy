@@ -122,6 +122,9 @@ server {
 {{/* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
 {{ $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
 
+{{/* Get the SERVER_PASS By containers e.g. proxy_pass..., grpc_pass..., fastcgi_pass... */}}
+{{ $server_pass := or ($container.Env.SERVER_PASS) "" }}
+
 
 {{/* Get the first cert name defined by containers w/ the same vhost */}}
 {{ $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
@@ -224,7 +227,9 @@ server {
 
 	location / {
 		set $target {{ trim $container_pass }};
-		{{ if eq $proto "uwsgi" }}
+		{{ if ne $server_pass "" }}
+		{{ $server_pass }};
+		{{ else if eq $proto "uwsgi" }}
 		include uwsgi_params;
 		uwsgi_pass {{ trim $proto }}://$target;
 		{{ else if eq $proto "fastcgi" }}
@@ -273,6 +278,9 @@ server {
 	location / {
 		set $target {{ trim $container_pass }};
 		{{ if eq $proto "uwsgi" }}
+		{{ if ne $server_pass "" }}
+		{{ $server_pass }};
+		{{ else if eq $proto "uwsgi" }}
 		include uwsgi_params;
 		uwsgi_pass {{ trim $proto }}://$target;
 		{{ else if eq $proto "fastcgi" }}
@@ -311,3 +319,4 @@ server {
 
 {{ end }}
 {{ end }}
+
