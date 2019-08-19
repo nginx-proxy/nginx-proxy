@@ -2,13 +2,16 @@ version: '2'
 services:
   nginx-proxy:
     image: jwilder/nginx-proxy
+    build: .
     container_name: nginx-proxy
     ports:
       - "80:80"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./conf.d:/etc/nginx/conf.d
 
   whoami:
     image: jwilder/whoami
     environment:
       - VIRTUAL_HOST=whoami.local
+      - VIRTUAL_PORT=8000

@@ -1,27 +1,5 @@
 {{ $CurrentContainer := where $ "ID" .Docker.CurrentContainerID | first }}
 
-{{ define "upstream" }}
-	{{ if .Address }}
-		{{/* If we got the containers from swarm and this container's port is published to host, use host IP:PORT */}}
-		{{ if and .Container.Node.ID .Address.HostPort }}
-			# {{ .Container.Node.Name }}/{{ .Container.Name }}
-			server {{ .Container.Node.Address.IP }}:{{ .Address.HostPort }};
-		{{/* If there is no swarm node or the port is not published on host, use container's IP:PORT */}}
-		{{ else if .Network }}
-			# {{ .Container.Name }}
-			server {{ .Network.IP }}:{{ .Address.Port }};
-		{{ end }}
-	{{ else if .Network }}
-		# {{ .Container.Name }}
-		{{ if .Network.IP }}
-			server {{ .Network.IP }} down;
-		{{ else }}
-			server 127.0.0.1 down;
-		{{ end }}
-	{{ end }}
-
-{{ end }}
-
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
 map $http_x_forwarded_proto $proxy_x_forwarded_proto {
@@ -119,43 +97,19 @@ server {
 
 {{ $host := trim $host }}
 {{ $is_regexp := hasPrefix "~" $host }}
-{{ $upstream_name := when $is_regexp (sha1 $host) $host }}
 
-# {{ $host }}
-upstream {{ $upstream_name }} {
-
-{{ range $container := $containers }}
-	{{ $addrLen := len $container.Addresses }}
-
-	{{ range $knownNetwork := $CurrentContainer.Networks }}
-		{{ range $containerNetwork := $container.Networks }}
-			{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
-				## Can be connected with "{{ $containerNetwork.Name }}" network
-
-				{{/* If only 1 port exposed, use that */}}
-				{{ if eq $addrLen 1 }}
-					{{ $address := index $container.Addresses 0 }}
-					{{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork) }}
-				{{/* If more than one port exposed, use the one matching VIRTUAL_PORT env var, falling back to standard web port 80 */}}
-				{{ else }}
-					{{ $port := coalesce $container.Env.VIRTUAL_PORT "80" }}
-					{{ $address := where $container.Addresses "Port" $port | first }}
-					{{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork) }}
-				{{ end }}
-			{{ else }}
-				# Cannot connect to network of this container
-				server 127.0.0.1 down;
-			{{ end }}
-		{{ end }}
-	{{ end }}
-{{ end }}
-}
 
 {{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
 {{ $default_server := index (dict $host "" $default_host "default_server") $host }}
 
 {{/* Get the VIRTUAL_PROTO defined by containers w/ the same vhost, falling back to "http" */}}
 {{ $proto := trim (or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http") }}
+
+{{ $vhost_conf := trim (or (first (groupByKeys $containers "Env.VHOST_CONF")) "") }}
+
+{{ $vhost_location_conf := trim (or (first (groupByKeys $containers "Env.VHOST_LOCATION_CONF")) "") }}
+
+{{ $container_pass := (printf "%v:%v" (first (groupByKeys $containers "Name"))  (trim (or (first (groupByKeys $containers "Env.VIRTUAL_PORT")) "80"))) }}
 
 {{/* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external" */}}
 {{ $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
@@ -171,6 +125,9 @@ upstream {{ $upstream_name }} {
 
 {{/* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
 {{ $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
+
+{{/* Get the SERVER_PASS By containers e.g. proxy_pass..., grpc_pass..., fastcgi_pass... */}}
+{{ $server_pass := or ($container.Env.SERVER_PASS) "" }}
 
 
 {{/* Get the first cert name defined by containers w/ the same vhost */}}
@@ -272,16 +229,23 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
+	{{ if not (eq $vhost_conf "") }}
+	{{ $vhost_conf }}
+	{{ end }}
+
 	location / {
-		{{ if eq $proto "uwsgi" }}
+		set $target {{ trim $container_pass }};
+		{{ if ne $server_pass "" }}
+		{{ $server_pass }};
+		{{ else if eq $proto "uwsgi" }}
 		include uwsgi_params;
-		uwsgi_pass {{ trim $proto }}://{{ trim $upstream_name }};
+		uwsgi_pass {{ trim $proto }}://$target;
 		{{ else if eq $proto "fastcgi" }}
 		root   {{ trim $vhost_root }};
 		include fastcgi.conf;
-		fastcgi_pass {{ trim $upstream_name }};
+		fastcgi_pass $target;
 		{{ else }}
-		proxy_pass {{ trim $proto }}://{{ trim $upstream_name }};
+		proxy_pass {{ trim $proto }}://$target;
 		{{ end }}
 
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
@@ -292,6 +256,9 @@ server {
 		include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
 		{{ else if (exists "/etc/nginx/vhost.d/default_location") }}
 		include /etc/nginx/vhost.d/default_location;
+		{{ end }}
+		{{ if not (eq $vhost_location_conf "") }}
+		{{ $vhost_location_conf }}
 		{{ end }}
 	}
 }
@@ -319,16 +286,24 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
+	{{ if not (eq $vhost_conf "") }}
+	{{ $vhost_conf }}
+	{{ end }}
+
 	location / {
+		set $target {{ trim $container_pass }};
 		{{ if eq $proto "uwsgi" }}
+		{{ if ne $server_pass "" }}
+		{{ $server_pass }};
+		{{ else if eq $proto "uwsgi" }}
 		include uwsgi_params;
-		uwsgi_pass {{ trim $proto }}://{{ trim $upstream_name }};
+		uwsgi_pass {{ trim $proto }}://$target;
 		{{ else if eq $proto "fastcgi" }}
 		root   {{ trim $vhost_root }};
 		include fastcgi.conf;
-		fastcgi_pass {{ trim $upstream_name }};
+		fastcgi_pass $target;
 		{{ else }}
-		proxy_pass {{ trim $proto }}://{{ trim $upstream_name }};
+		proxy_pass {{ trim $proto }}://$target;
 		{{ end }}
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
@@ -338,6 +313,9 @@ server {
 		include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
 		{{ else if (exists "/etc/nginx/vhost.d/default_location") }}
 		include /etc/nginx/vhost.d/default_location;
+		{{ end }}
+		{{ if not (eq $vhost_location_conf "") }}
+		{{ $vhost_location_conf }}
 		{{ end }}
 	}
 }
@@ -359,3 +337,4 @@ server {
 
 {{ end }}
 {{ end }}
+

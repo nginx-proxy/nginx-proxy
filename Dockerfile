@@ -28,8 +28,10 @@ COPY network_internal.conf /etc/nginx/
 
 COPY . /app/
 WORKDIR /app/
+RUN touch /app/htpasswd_generator.sh && chmod +x /app/htpasswd_generator.sh
 
 ENV DOCKER_HOST unix:///tmp/docker.sock
+ENV RESOLVERS="127.0.0.11 valid=5s"
 
 VOLUME ["/etc/nginx/certs", "/etc/nginx/dhparam"]
 
