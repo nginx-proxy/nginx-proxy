@@ -252,18 +252,16 @@ and OCSP Stapling is enabled.
 
 #### How SSL Support Works
 
-The default SSL cipher configuration is based on the [Mozilla intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28default.29) which
-should provide compatibility with clients back to Firefox 1, Chrome 1, IE 7, Opera 5, Safari 1,
-Windows XP IE8, Android 2.3, Java 7.  Note that the DES-based TLS ciphers were removed for security.
-The configuration also enables HSTS, PFS, OCSP stapling and SSL session caches.  Currently TLS 1.0, 1.1 and 1.2
-are supported.  TLS 1.0 is deprecated but its end of life is not until June 30, 2018.  It is being
-included because the following browsers will stop working when it is removed: Chrome < 22, Firefox < 27,
-IE < 11, Safari < 7, iOS < 5, Android Browser < 5.
+The default SSL cipher configuration is based on the [Mozilla intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29) version 5.0 which
+should provide compatibility with clients back to Firefox 27, Android 4.4.2, Chrome 31, Edge, IE 11 on Windows 7,
+Java 8u31, OpenSSL 1.0.1, Opera 20, and Safari 9.  Note that the DES-based TLS ciphers were removed for security.
+The configuration also enables HSTS, PFS, OCSP stapling and SSL session caches.  Currently TLS 1.2 and 1.3
+are supported.
 
 If you don't require backward compatibility, you can use the [Mozilla modern profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility)
-profile instead by including the environment variable `SSL_POLICY=Mozilla-Modern` to your container.
-This profile is compatible with clients back to Firefox 27, Chrome 30, IE 11 on Windows 7,
-Edge, Opera 17, Safari 9, Android 5.0, and Java 8.
+profile instead by including the environment variable `SSL_POLICY=Mozilla-Modern` to the nginx-proxy container or to your container.
+This profile is compatible with clients back to Firefox 63, Android 10.0, Chrome 70, Edge 75, Java 11,
+OpenSSL 1.1.1, Opera 57, and Safari 12.1.  Note that this profile is **not** compatible with any version of Internet Explorer.
 
 Other policies available through the `SSL_POLICY` environment variable are [`Mozilla-Old`](https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility)
 and the [AWS ELB Security Policies](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html)
