@@ -25,7 +25,8 @@
 {{ define "ssl_policy" }}
 	{{ if eq .ssl_policy "Mozilla-Modern" }}
 		ssl_protocols TLSv1.3;
-		{{/* ssl_ciphers is undefined in the Mozilla-Modern policy /*}}
+		{{/* nginx currently lacks ability to choose ciphers in TLS 1.3 in configuration, see https://trac.nginx.org/nginx/ticket/1529 /*}}
+		{{/* a possible workaround can be modify /etc/ssl/openssl.cnf to change it globally (see https://trac.nginx.org/nginx/ticket/1529#comment:12 ) /*}}
 		{{/* explicitly set ngnix default value in order to allow single servers to override the global http value */}}
 		ssl_ciphers HIGH:!aNULL:!MD5;
 		ssl_prefer_server_ciphers off;
