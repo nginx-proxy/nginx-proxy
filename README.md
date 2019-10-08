@@ -133,10 +133,25 @@ If you would like to connect to FastCGI backend, set `VIRTUAL_PROTO=fastcgi` on 
 backend container. Your backend container should then listen on a port rather
 than a socket and expose that port.
  
-### FastCGI Filr Root Directory
+### FastCGI File Root Directory
 
-If you use fastcgi,you can set `VIRTUAL_ROOT=xxx`  for your root directory
+If you use fastcgi, you can set `VIRTUAL_ROOT=xxx` for your root directory
 
+### Sending only certain file extensions upstream
+
+You can set `UPSTREAM_EXTENSIONS=xxx` to only send certain extensions upstream.
+The rest of the files will be served locally. If you want to send multiple
+extensions upstream, separate them like this: `UPSTREAM_EXTENSIONS=php|php5`
+
+When doing this, make sure the VIRTUAL_ROOT is also available to this container.
+The easiest way to do this is defining the VOLUME in your upstream container and
+using
+[volumes_from](https://docs.docker.com/compose/compose-file/compose-file-v2/#volumes_from)
+or equivalent.
+
+You likely also want to set `INDEX=xxx` to send non-matching URLs upstream. For
+example, think of an url like /user/login, which won't resolve to a local file,
+but which the upstream fastcgi will understand: `INDEX=index.php`.
 
 ### Default Host
 
