@@ -11,6 +11,7 @@ from requests.exceptions import SSLError
 def test_http_redirects_to_https(docker_compose, nginxproxy, subdomain, should_redirect_to_https):
     r = nginxproxy.get("http://%s.web.nginx-proxy.tld/port" % subdomain)
     if should_redirect_to_https:
+        assert len(r.history) > 0
         assert r.history[0].is_redirect
         assert r.history[0].headers.get("Location") == "https://%s.web.nginx-proxy.tld/port" % subdomain
     assert "answer from port 8%s\n" % subdomain == r.text
