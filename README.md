@@ -82,6 +82,31 @@ If you need to support multiple virtual hosts for a container, you can separate 
 
 You can also use wildcards at the beginning and the end of host name, like `*.bar.com` or `foo.bar.*`. Or even a regular expression, which can be very useful in conjunction with a wildcard DNS service like [xip.io](http://xip.io), using `~^foo\.bar\..*\.xip\.io` will match `foo.bar.127.0.0.1.xip.io`, `foo.bar.10.0.2.2.xip.io` and all other given IPs. More information about this topic can be found in the nginx documentation about [`server_names`](http://nginx.org/en/docs/http/server_names.html).
 
+### Virtual Host Aliases
+
+You can add aliases that will redirect (301) to the first entry in `VIRTUAL_HOST` by adding the `VIRTUAL_HOST_ALIAS` env var:
+
+    $ docker run -e VIRTUAL_HOST=example.com -e VIRTUAL_HOST_ALIAS=www.example.com,old.example.com ...
+
+This will setup the following redirects:
+- `http://www.example.com` &#8594; `http://example.com`
+- `http://old.example.com` &#8594; `http://example.com`
+
+If you are using [letsencrypt-nginx-proxy-companion](https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion) for SSL support, then you would run:
+
+    $ docker run    -e VIRTUAL_HOST=example.com \
+                    -e VIRTUAL_HOST_ALIAS=www.example.com,old.example.com
+                    -e LETSENCRYPT_HOST=example.com,www.example.com,old.example.com
+                    ...
+
+This will setup the following redirects:
+ - `http://example.com` &#8594; `https://example.com`
+ - `http://www.example.com` &#8594; `https://www.example.com` &#8594; `https://example.com`
+ - `http://old.example.com` &#8594; `http://example.com` &#8594; `https://example.com`
+ - `https://www.example.com` &#8594; `https://example.com`
+ - `https://old.example.com` &#8594; `https://example.com`
+
+
 ### Multiple Networks
 
 With the addition of [overlay networking](https://docs.docker.com/engine/userguide/networking/get-started-overlay/) in Docker 1.9, your `nginx-proxy` container may need to connect to backend containers on multiple networks. By default, if you don't pass the `--net` flag when your `nginx-proxy` container is created, it will only be attached to the default `bridge` network. This means that it will not be able to connect to containers on networks other than `bridge`.
