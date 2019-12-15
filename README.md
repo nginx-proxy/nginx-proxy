@@ -101,8 +101,8 @@ If you are using [letsencrypt-nginx-proxy-companion](https://github.com/JrCs/doc
 
 This will setup the following redirects:
  - `http://example.com` &#8594; `https://example.com`
- - `http://www.example.com` &#8594; `https://www.example.com` &#8594; `https://example.com`
- - `http://old.example.com` &#8594; `http://example.com` &#8594; `https://example.com`
+ - `http://www.example.com` &#8594; `https://example.com`
+ - `http://old.example.com` &#8594; `https://example.com`
  - `https://www.example.com` &#8594; `https://example.com`
  - `https://old.example.com` &#8594; `https://example.com`
 
