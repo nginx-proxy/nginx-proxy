@@ -137,11 +137,13 @@ than a socket and expose that port.
 
 If you use fastcgi, you can set `VIRTUAL_ROOT=xxx` for your root directory
 
-### Sending only certain file extensions upstream
+### Sending only certain files upstream
 
-You can set `UPSTREAM_EXTENSIONS=xxx` to only send certain extensions upstream.
+You can set `UPSTREAM_REGEXES=xxx` to only send certain requests upstream.
 The rest of the files will be served locally. If you want to send multiple
-extensions upstream, separate them like this: `UPSTREAM_EXTENSIONS=php|php5`
+regexes upstream, separate them like this: `UPSTREAM_REGEXES=/en|.*\.php|.*\.php5`
+
+Above example will send example.com/en and all .php and .php5 files upstream.
 
 When doing this, make sure the VIRTUAL_ROOT is also available to this container.
 The easiest way to do this is defining the VOLUME in your upstream container and

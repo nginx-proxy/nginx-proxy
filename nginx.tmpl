@@ -220,8 +220,8 @@ upstream {{ $upstream_name }} {
 {{/* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
 {{ $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
 
-{{/* Which extensions to send upstream when using fastcgi, if not default, send everything upstream. Make sure the VIRTUAL_ROOT is available to this container when using this */}}
-{{ $vhost_upstream_extensions := trim (or (first (groupByKeys $containers "Env.UPSTREAM_EXTENSIONS")) "") }}
+{{/* Which regexes when matching to send upstream when using fastcgi. If not defined, send everything upstream. Make sure the VIRTUAL_ROOT is available to this container when using this */}}
+{{ $vhost_upstream_regexes := trim (or (first (groupByKeys $containers "Env.UPSTREAM_REGEXES")) "") }}
 
 {{/* Which filename to use as index file */}}
 {{ $vhost_index := or (first (groupByKeys $containers "Env.INDEX")) "" }}
@@ -297,9 +297,9 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
-	{{ if $vhost_upstream_extensions }}
+	{{ if $vhost_upstream_regexes }}
 	root {{ trim $vhost_root }};
-	location ~* \.({{ $vhost_upstream_extensions }})$ {
+	location ~* "^({{ $vhost_upstream_regexes }})$" {
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
 		uwsgi_pass {{ trim $proto }}://{{ trim $upstream_name }};
@@ -325,7 +325,7 @@ server {
 	}
 	{{ end }}
 	location / {
-		{{ if not $vhost_upstream_extensions }}
+		{{ if not $vhost_upstream_regexes }}
 			{{ if eq $proto "uwsgi" }}
 			include uwsgi_params;
 			uwsgi_pass {{ trim $proto }}://{{ trim $upstream_name }};
@@ -378,9 +378,9 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
-	{{ if $vhost_upstream_extensions }}
+	{{ if $vhost_upstream_regexes }}
 	root {{ trim $vhost_root }};
-	location ~* \.({{ $vhost_upstream_extensions }})$ {
+	location ~* "^({{ $vhost_upstream_regexes }})$" {
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
 		uwsgi_pass {{ trim $proto }}://{{ trim $upstream_name }};
@@ -406,7 +406,7 @@ server {
 	}
 	{{ end }}
 	location / {
-		{{ if not $vhost_upstream_extensions }}
+		{{ if not $vhost_upstream_regexes }}
 			{{ if eq $proto "uwsgi" }}
 			include uwsgi_params;
 			uwsgi_pass {{ trim $proto }}://{{ trim $upstream_name }};
