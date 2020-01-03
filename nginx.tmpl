@@ -340,7 +340,7 @@ server {
 			{{ end }}
 		{{ else if $vhost_index }}
 			index {{ $vhost_index }};
-			try_files $uri $uri/ /{{ $vhost_index }};
+			try_files $uri $uri/ /{{ $vhost_index }}?$query_string;
 		{{ end }}
 
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
@@ -421,7 +421,7 @@ server {
 			{{ end }}
 		{{ else if $vhost_index }}
 			index {{ $vhost_index }};
-			try_files $uri $uri/ /{{ $vhost_index }};
+			try_files $uri $uri/ /{{ $vhost_index }}?$query_string;
 		{{ end }}
 
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
