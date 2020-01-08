@@ -297,16 +297,34 @@ server {
 	{{ $is_regexp := hasPrefix "^" $location }}
 	{{ $modifier := when $is_regexp "~" "" }}
 
+	{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
 	location {{ $modifier }} '{{ $location }}' {
+		return 302 '{{ $location }}/';
+	}
+	{{ end }}
+
+	{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
+	location {{ $modifier }} '{{ $location }}/' {
+	{{ else }}
+	location {{ $modifier }} '{{ $location }}' {
+	{{ end }}
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
+		{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
+		uwsgi_pass {{ trim $proto }}://{{ trim $container.Name }}/;
+		{{ else }}
 		uwsgi_pass {{ trim $proto }}://{{ trim $container.Name }};
+		{{ end }}
 		{{ else if eq $proto "fastcgi" }}
 		root   {{ trim $vhost_root }};
 		include fastcgi_params;
 		fastcgi_pass {{ trim $container.Name }};
 		{{ else }}
+		{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
+		proxy_pass {{ trim $proto }}://{{ trim $container.Name }}/;
+		{{ else }}
 		proxy_pass {{ trim $proto }}://{{ trim $container.Name }};
+		{{ end }}
 		{{ end }}
 
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
@@ -352,16 +370,34 @@ server {
 	{{ $is_regexp := hasPrefix "^" $location }}
 	{{ $modifier := when $is_regexp "~" "" }}
 
+	{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
 	location {{ $modifier }} '{{ $location }}' {
+		return 302 '{{ $location }}/';
+	}
+	{{ end }}
+
+	{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
+	location {{ $modifier }} '{{ $location }}/' {
+	{{ else }}
+	location {{ $modifier }} '{{ $location }}' {
+	{{ end }}
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
+		{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
+		uwsgi_pass {{ trim $proto }}://{{ trim $container.Name }}/;
+		{{ else }}
 		uwsgi_pass {{ trim $proto }}://{{ trim $container.Name }};
+		{{ end }}
 		{{ else if eq $proto "fastcgi" }}
 		root   {{ trim $vhost_root }};
 		include fastcgi_params;
 		fastcgi_pass {{ trim $container.Name }};
 		{{ else }}
+		{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
+		proxy_pass {{ trim $proto }}://{{ trim $container.Name }}/;
+		{{ else }}
 		proxy_pass {{ trim $proto }}://{{ trim $container.Name }};
+		{{ end }}
 		{{ end }}
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
