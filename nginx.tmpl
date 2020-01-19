@@ -297,20 +297,20 @@ server {
 	{{ $is_regexp := hasPrefix "^" $location }}
 	{{ $modifier := when $is_regexp "~" "" }}
 
-	{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
+	{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "true") }}
 	location {{ $modifier }} '{{ $location }}' {
 		return 302 '{{ $location }}/';
 	}
 	{{ end }}
 
-	{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
+	{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "true") }}
 	location {{ $modifier }} '{{ $location }}/' {
 	{{ else }}
 	location {{ $modifier }} '{{ $location }}' {
 	{{ end }}
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
-		{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
+		{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "true") }}
 		uwsgi_pass {{ trim $proto }}://{{ trim $container.Name }}/;
 		{{ else }}
 		uwsgi_pass {{ trim $proto }}://{{ trim $container.Name }};
@@ -320,7 +320,7 @@ server {
 		include fastcgi_params;
 		fastcgi_pass {{ trim $container.Name }};
 		{{ else }}
-		{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
+		{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "true") }}
 		proxy_pass {{ trim $proto }}://{{ trim $container.Name }}/;
 		{{ else }}
 		proxy_pass {{ trim $proto }}://{{ trim $container.Name }};
@@ -370,20 +370,20 @@ server {
 	{{ $is_regexp := hasPrefix "^" $location }}
 	{{ $modifier := when $is_regexp "~" "" }}
 
-	{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
+	{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "true") }}
 	location {{ $modifier }} '{{ $location }}' {
 		return 302 '{{ $location }}/';
 	}
 	{{ end }}
 
-	{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
+	{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "true") }}
 	location {{ $modifier }} '{{ $location }}/' {
 	{{ else }}
 	location {{ $modifier }} '{{ $location }}' {
 	{{ end }}
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
-		{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
+		{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "true") }}
 		uwsgi_pass {{ trim $proto }}://{{ trim $container.Name }}/;
 		{{ else }}
 		uwsgi_pass {{ trim $proto }}://{{ trim $container.Name }};
@@ -393,7 +393,7 @@ server {
 		include fastcgi_params;
 		fastcgi_pass {{ trim $container.Name }};
 		{{ else }}
-		{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "TRUE") }}
+		{{ if (eq $container.Env.VIRTUAL_PATH_STRIP "true") }}
 		proxy_pass {{ trim $proto }}://{{ trim $container.Name }}/;
 		{{ else }}
 		proxy_pass {{ trim $proto }}://{{ trim $container.Name }};
