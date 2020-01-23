@@ -24,3 +24,10 @@ def test_web3_HSTS_custom(docker_compose, nginxproxy):
     assert "answer from port 81\n" in r.text
     assert "Strict-Transport-Security" in r.headers
     assert "max-age=86400; includeSubDomains; preload" == r.headers["Strict-Transport-Security"]
+
+# Regression test for issue 1080
+# https://github.com/jwilder/nginx-proxy/issues/1080
+def test_web4_HSTS_off_noredirect(docker_compose, nginxproxy):
+    r = nginxproxy.get("https://web4.nginx-proxy.tld/port", allow_redirects=False)
+    assert "answer from port 81\n" in r.text
+    assert "Strict-Transport-Security" not in r.headers

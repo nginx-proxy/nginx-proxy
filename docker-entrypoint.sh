@@ -16,7 +16,8 @@ fi
 
 # Generate dhparam file if required
 # Note: if $DHPARAM_BITS is not defined, generate-dhparam.sh will use 2048 as a default
-/app/generate-dhparam.sh $DHPARAM_BITS
+# Note2: if $DHPARAM_GENERATION is set to false in environment variable, dh param generator will skip completely
+/app/generate-dhparam.sh $DHPARAM_BITS $DHPARAM_GENERATION
 
 # Check if the RESOLVERS environment variable has been set
 if [ "x$RESOLVERS" != "x" ]; then
