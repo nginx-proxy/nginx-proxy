@@ -1,4 +1,5 @@
-![nginx 1.13](https://img.shields.io/badge/nginx-1.13-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build Status](https://travis-ci.org/jwilder/nginx-proxy.svg?branch=master)](https://travis-ci.org/jwilder/nginx-proxy) [![](https://img.shields.io/docker/stars/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub') [![](https://img.shields.io/docker/pulls/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub')
+![latest 0.7.0](https://img.shields.io/badge/latest-0.7.0-green.svg?style=flat)
+![nginx 1.17.5](https://img.shields.io/badge/nginx-1.17.5-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build Status](https://travis-ci.org/jwilder/nginx-proxy.svg?branch=master)](https://travis-ci.org/jwilder/nginx-proxy) [![](https://img.shields.io/docker/stars/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub') [![](https://img.shields.io/docker/pulls/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub')
 
 
 nginx-proxy sets up a container running nginx and [docker-gen][1].  docker-gen generates reverse proxy configs for nginx and reloads nginx when containers are started and stopped.
@@ -15,7 +16,7 @@ Then start any containers you want proxied with an env var `VIRTUAL_HOST=subdoma
 
     $ docker run -e VIRTUAL_HOST=foo.bar.com  ...
 
-The containers being proxied must [expose](https://docs.docker.com/engine/reference/run/#expose-incoming-ports) the port to be proxied, either by using the `EXPOSE` directive in their `Dockerfile` or by using the `--expose` flag to `docker run` or `docker create`.
+The containers being proxied must [expose](https://docs.docker.com/engine/reference/run/#expose-incoming-ports) the port to be proxied, either by using the `EXPOSE` directive in their `Dockerfile` or by using the `--expose` flag to `docker run` or `docker create` and be in the same network. By default, if you don't pass the --net flag when your nginx-proxy container is created, it will only be attached to the default bridge network. This means that it will not be able to connect to containers on networks other than bridge.
 
 Provided your DNS is setup to forward foo.bar.com to the host running nginx-proxy, the request will be routed to a container with the VIRTUAL_HOST env var set.
 
@@ -180,8 +181,12 @@ Finally, start your containers with `VIRTUAL_HOST` environment variables.
     $ docker run -e VIRTUAL_HOST=foo.bar.com  ...
 ### SSL Support using letsencrypt
 
-[letsencrypt-nginx-proxy-companion](https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion) is a lightweight companion container for the nginx-proxy. It allow the creation/renewal of Let's Encrypt certificates automatically. 
+[letsencrypt-nginx-proxy-companion](https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion) is a lightweight companion container for the nginx-proxy. It allows the creation/renewal of Let's Encrypt certificates automatically.
 
+Set `DHPARAM_GENERATION` environment variable to `false` to disabled Diffie-Hellman parameters completely. This will also ignore auto-generation made by `nginx-proxy`.
+The default value is `true`
+
+     $ docker run -e DHPARAM_GENERATION=false ....
 ### SSL Support
 
 SSL is supported using single host, wildcard and SNI certificates using naming conventions for
@@ -213,7 +218,7 @@ at startup.  Since it can take minutes to generate a new `dhparam.pem`, it is do
 background.  Once generation is complete, the `dhparam.pem` is saved on a persistent volume and nginx
 is reloaded.  This generation process only occurs the first time you start `nginx-proxy`.
 
-> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 2048 bits for A+ security.  Some 
+> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 2048 bits for A+ security.  Some
 > older clients (like Java 6 and 7) do not support DH keys with over 1024 bits.  In order to support these
 > clients, you must either provide your own `dhparam.pem`, or tell `nginx-proxy` to generate a 1024-bit
 > key on startup by passing `-e DHPARAM_BITS=1024`.
@@ -236,15 +241,35 @@ to identify the certificate to be used.  For example, a certificate for `*.foo.c
 could be named `shared.crt` and `shared.key`.  A container running with `VIRTUAL_HOST=foo.bar.com`
 and `CERT_NAME=shared` will then use this shared cert.
 
+#### OCSP Stapling
+To enable OCSP Stapling for a domain, `nginx-proxy` looks for a PEM certificate containing the trusted
+CA certificate chain at `/etc/nginx/certs/<domain>.chain.pem`, where `<domain>` is the domain name in
+the `VIRTUAL_HOST` directive.  The format of this file is a concatenation of the public PEM CA
+certificates starting with the intermediate CA most near the SSL certificate, down to the root CA.  This is
+often referred to as the "SSL Certificate Chain".  If found, this filename is passed to the NGINX
+[`ssl_trusted_certificate` directive](http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_trusted_certificate)
+and OCSP Stapling is enabled.
+
 #### How SSL Support Works
 
-The SSL cipher configuration is based on the [Mozilla nginx intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Nginx) which
-should provide compatibility with clients back to Firefox 1, Chrome 1, IE 7, Opera 5, Safari 1,
-Windows XP IE8, Android 2.3, Java 7.  Note that the DES-based TLS ciphers were removed for security.
-The configuration also enables HSTS, PFS, OCSP stapling and SSL session caches.  Currently TLS 1.0, 1.1 and 1.2
-are supported.  TLS 1.0 is deprecated but its end of life is not until June 30, 2018.  It is being 
-included because the following browsers will stop working when it is removed: Chrome < 22, Firefox < 27,
-IE < 11, Safari < 7, iOS < 5, Android Browser < 5.
+The default SSL cipher configuration is based on the [Mozilla intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29) version 5.0 which
+should provide compatibility with clients back to Firefox 27, Android 4.4.2, Chrome 31, Edge, IE 11 on Windows 7,
+Java 8u31, OpenSSL 1.0.1, Opera 20, and Safari 9.  Note that the DES-based TLS ciphers were removed for security.
+The configuration also enables HSTS, PFS, OCSP stapling and SSL session caches.  Currently TLS 1.2 and 1.3
+are supported.
+
+If you don't require backward compatibility, you can use the [Mozilla modern profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility)
+profile instead by including the environment variable `SSL_POLICY=Mozilla-Modern` to the nginx-proxy container or to your container.
+This profile is compatible with clients back to Firefox 63, Android 10.0, Chrome 70, Edge 75, Java 11,
+OpenSSL 1.1.1, Opera 57, and Safari 12.1.  Note that this profile is **not** compatible with any version of Internet Explorer.
+
+Other policies available through the `SSL_POLICY` environment variable are [`Mozilla-Old`](https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility)
+and the [AWS ELB Security Policies](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html)
+`AWS-TLS-1-2-2017-01`, `AWS-TLS-1-1-2017-01`, `AWS-2016-08`, `AWS-2015-05`, `AWS-2015-03` and `AWS-2015-02`.
+
+Note that the `Mozilla-Old` policy should use a 1024 bits DH key for compatibility but this container generates
+a 2048 bits key. The [Diffie-Hellman Groups](#diffie-hellman-groups) section details different methods of bypassing
+this, either globally or per virtual-host.
 
 The default behavior for the proxy when port 80 and 443 are exposed is as follows:
 
@@ -259,12 +284,12 @@ a 500.
 
 To serve traffic in both SSL and non-SSL modes without redirecting to SSL, you can include the
 environment variable `HTTPS_METHOD=noredirect` (the default is `HTTPS_METHOD=redirect`).  You can also
-disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`, or disable the HTTPS site with 
-`HTTPS_METHOD=nohttps`. `HTTPS_METHOD` must be specified on each container for which you want to 
-override the default behavior.  If `HTTPS_METHOD=noredirect` is used, Strict Transport Security (HSTS) 
-is disabled to prevent HTTPS users from being redirected by the client.  If you cannot get to the HTTP 
-site after changing this setting, your browser has probably cached the HSTS policy and is automatically 
-redirecting you back to HTTPS.  You will need to clear your browser's HSTS cache or use an incognito 
+disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`, or disable the HTTPS site with
+`HTTPS_METHOD=nohttps`. `HTTPS_METHOD` must be specified on each container for which you want to
+override the default behavior.  If `HTTPS_METHOD=noredirect` is used, Strict Transport Security (HSTS)
+is disabled to prevent HTTPS users from being redirected by the client.  If you cannot get to the HTTP
+site after changing this setting, your browser has probably cached the HSTS policy and is automatically
+redirecting you back to HTTPS.  You will need to clear your browser's HSTS cache or use an incognito
 window / different browser.
 
 By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security) 
@@ -387,7 +412,7 @@ Before submitting pull requests or issues, please check github to make sure an e
 To run tests, you need to prepare the docker image to test which must be tagged `jwilder/nginx-proxy:test`:
 
     docker build -t jwilder/nginx-proxy:test .  # build the Debian variant image
-    
+
 and call the [test/pytest.sh](test/pytest.sh) script.
 
 Then build the Alpine variant of the image:
@@ -400,6 +425,10 @@ and call the [test/pytest.sh](test/pytest.sh) script again.
 If your system has the `make` command, you can automate those tasks by calling:
 
     make test
-    
+
 
 You can learn more about how the test suite works and how to write new tests in the [test/README.md](test/README.md) file.
+
+### Need help?
+
+If you have questions on how to use the image, please ask them on the [Q&A Group](https://groups.google.com/forum/#!forum/nginx-proxy)

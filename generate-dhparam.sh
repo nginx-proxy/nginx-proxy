@@ -2,6 +2,7 @@
 
 # The first argument is the bit depth of the dhparam, or 2048 if unspecified
 DHPARAM_BITS=${1:-2048}
+GENERATE_DHPARAM=${2:-true}
 
 # If a dhparam file is not available, use the pre-generated one and generate a new one in the background.
 # Note that /etc/nginx/dhparam is a volume, so this dhparam will persist restarts.
@@ -25,6 +26,11 @@ if [[ -f $DHPARAM_FILE ]]; then
     fi
 fi
 
+if [[ $GENERATE_DHPARAM =~ ^[Ff][Aa][Ll][Ss][Ee]$ ]]; then
+    echo "Skipping Diffie-Hellman parameters generation and Ignoring pre-generated dhparam.pem"
+    exit 0
+fi
+
 cat >&2 <<-EOT
 WARNING: $DHPARAM_FILE was not found. A pre-generated dhparam.pem will be used for now while a new one
 is being generated in the background.  Once the new dhparam.pem is in place, nginx will be reloaded.
@@ -37,7 +43,8 @@ touch $GEN_LOCKFILE
 # Generate a new dhparam in the background in a low priority and reload nginx when finished (grep removes the progress indicator).
 (
     (
-        nice -n +5 openssl dhparam -out $DHPARAM_FILE $DHPARAM_BITS 2>&1 \
+        nice -n +5 openssl dhparam -out $DHPARAM_FILE.tmp $DHPARAM_BITS 2>&1 \
+        && mv $DHPARAM_FILE.tmp $DHPARAM_FILE \
         && echo "dhparam generation complete, reloading nginx" \
         && nginx -s reload
     ) | grep -vE '^[\.+]+'

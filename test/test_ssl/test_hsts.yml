@@ -24,6 +24,16 @@ web3:
     VIRTUAL_HOST: "web3.nginx-proxy.tld"
     HSTS: "max-age=86400; includeSubDomains; preload"
 
+web4:
+  image: web
+  expose:
+    - "81"
+  environment:
+    WEB_PORTS: "81"
+    VIRTUAL_HOST: "web4.nginx-proxy.tld"
+    HSTS: "off"
+    HTTPS_METHOD: "noredirect"
+
 sut:
   image: jwilder/nginx-proxy:test
   volumes:
