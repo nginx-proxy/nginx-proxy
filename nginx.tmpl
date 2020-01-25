@@ -248,7 +248,7 @@ server {
 	listen [::]:{{ $external_http_port }} {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.VHOST_NAMED_LOGS }}
+	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
 		access_log /var/log/nginx/{{ $host }}.access.log;
 		error_log /var/log/nginx/{{ $host }}.error.log warn;
 	{{ else }}
@@ -277,7 +277,7 @@ server {
 	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.VHOST_NAMED_LOGS }}
+	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
 		access_log /var/log/nginx/{{ $host }}.access.log;
 		error_log /var/log/nginx/{{ $host }}.error.log warn;
 	{{ else }}
@@ -378,7 +378,7 @@ server {
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.VHOST_NAMED_LOGS }}
+	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
 		access_log /var/log/nginx/{{ $host }}.access.log;
 		error_log /var/log/nginx/{{ $host }}.error.log warn;
 	{{ else }}
@@ -454,7 +454,7 @@ server {
 	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.VHOST_NAMED_LOGS }}
+	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
 		access_log /var/log/nginx/{{ $host }}.access.log;
 		error_log /var/log/nginx/{{ $host }}.error.log warn;
 	{{ else }}
@@ -523,7 +523,7 @@ server {
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.VHOST_NAMED_LOGS }}
+	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
 		access_log /var/log/nginx/{{ $host_alias }}.access.log;
 		error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
 	{{ else }}
@@ -540,7 +540,7 @@ server {
 	listen [::]:443 ssl http2 {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.VHOST_NAMED_LOGS }}
+	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
 		access_log /var/log/nginx/{{ $host_alias }}.access.log;
 		error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
 	{{ else }}
@@ -590,7 +590,7 @@ server {
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.VHOST_NAMED_LOGS }}
+	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
 		access_log /var/log/nginx/{{ $host_alias }}.access.log;
 		error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
 	{{ else }}
@@ -619,7 +619,7 @@ server {
 	listen [::]:443 ssl http2 {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.VHOST_NAMED_LOGS }}
+	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
 		access_log /var/log/nginx/{{ $host_alias }}.access.log;
 		error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
 	{{ else }}
