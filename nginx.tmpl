@@ -247,7 +247,13 @@ server {
 	{{ if $enable_ipv6 }}
 	listen [::]:{{ $external_http_port }} {{ $default_server }};
 	{{ end }}
-	access_log /var/log/nginx/access.log vhost;
+
+	{{ if $.Env.VHOST_NAMED_LOGS }}
+		access_log /var/log/nginx/{{ $host }}.access.log;
+		error_log /var/log/nginx/{{ $host }}.error.log warn;
+	{{ else }}
+		access_log /var/log/nginx/access.log vhost;
+	{{ end }}
 	
 	# Do not HTTPS redirect Let'sEncrypt ACME challenge
 	location /.well-known/acme-challenge/ {
@@ -270,7 +276,13 @@ server {
 	{{ if $enable_ipv6 }}
 	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};
 	{{ end }}
-	access_log /var/log/nginx/access.log vhost;
+
+	{{ if $.Env.VHOST_NAMED_LOGS }}
+		access_log /var/log/nginx/{{ $host }}.access.log;
+		error_log /var/log/nginx/{{ $host }}.error.log warn;
+	{{ else }}
+		access_log /var/log/nginx/access.log vhost;
+	{{ end }}
 
 	{{ if eq $network_tag "internal" }}
 	# Only allow traffic from internal clients
@@ -365,7 +377,13 @@ server {
 	{{ if $enable_ipv6 }}
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
-	access_log /var/log/nginx/access.log vhost;
+
+	{{ if $.Env.VHOST_NAMED_LOGS }}
+		access_log /var/log/nginx/{{ $host }}.access.log;
+		error_log /var/log/nginx/{{ $host }}.error.log warn;
+	{{ else }}
+		access_log /var/log/nginx/access.log vhost;
+	{{ end }}
 
 	{{ if eq $network_tag "internal" }}
 	# Only allow traffic from internal clients
@@ -435,7 +453,14 @@ server {
 	{{ if $enable_ipv6 }}
 	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};
 	{{ end }}
-	access_log /var/log/nginx/access.log vhost;
+
+	{{ if $.Env.VHOST_NAMED_LOGS }}
+		access_log /var/log/nginx/{{ $host }}.access.log;
+		error_log /var/log/nginx/{{ $host }}.error.log warn;
+	{{ else }}
+		access_log /var/log/nginx/access.log vhost;
+	{{ end }}
+
 	return 500;
 
 	ssl_certificate /etc/nginx/certs/default.crt;
@@ -497,7 +522,14 @@ server {
 	{{ if $enable_ipv6 }}
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
-	access_log /var/log/nginx/access.log vhost;
+
+	{{ if $.Env.VHOST_NAMED_LOGS }}
+		access_log /var/log/nginx/{{ $host_alias }}.access.log;
+		error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
+	{{ else }}
+		access_log /var/log/nginx/access.log vhost;
+	{{ end }}
+
 	return 301 https://{{ $first_host }}$request_uri;
 }
 {{ end }}
@@ -507,7 +539,13 @@ server {
 	{{ if $enable_ipv6 }}
 	listen [::]:443 ssl http2 {{ $default_server }};
 	{{ end }}
-	access_log /var/log/nginx/access.log vhost;
+
+	{{ if $.Env.VHOST_NAMED_LOGS }}
+		access_log /var/log/nginx/{{ $host_alias }}.access.log;
+		error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
+	{{ else }}
+		access_log /var/log/nginx/access.log vhost;
+	{{ end }}
 
 	{{ template "ssl_policy" (dict "ssl_policy" $ssl_policy) }}
 
@@ -551,7 +589,13 @@ server {
 	{{ if $enable_ipv6 }}
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
-	access_log /var/log/nginx/access.log vhost;
+
+	{{ if $.Env.VHOST_NAMED_LOGS }}
+		access_log /var/log/nginx/{{ $host_alias }}.access.log;
+		error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
+	{{ else }}
+		access_log /var/log/nginx/access.log vhost;
+	{{ end }}
 
 	{{ if eq $network_tag "internal" }}
 	# Only allow traffic from internal clients
@@ -574,7 +618,14 @@ server {
 	{{ if $enable_ipv6 }}
 	listen [::]:443 ssl http2 {{ $default_server }};
 	{{ end }}
-	access_log /var/log/nginx/access.log vhost;
+
+	{{ if $.Env.VHOST_NAMED_LOGS }}
+		access_log /var/log/nginx/{{ $host_alias }}.access.log;
+		error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
+	{{ else }}
+		access_log /var/log/nginx/access.log vhost;
+	{{ end }}
+
 	return 500;
 
 	ssl_certificate /etc/nginx/certs/default.crt;
