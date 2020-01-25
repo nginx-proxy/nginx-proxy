@@ -3,7 +3,7 @@ LABEL maintainer="Jason Wilder mail@jasonwilder.com"
 
 # Install wget and install/updates certificates
 RUN apk add --no-cache --virtual .run-deps \
-    ca-certificates bash wget openssl \
+    ca-certificates bash wget openssl curl \
     && update-ca-certificates
 
 
@@ -30,7 +30,7 @@ ENV DOCKER_HOST unix:///tmp/docker.sock
 
 VOLUME ["/etc/nginx/certs", "/etc/nginx/dhparam"]
 
-HEALTHCHECK --start-period=1m CMD /app/docker-healthcheck.sh || exit 1
+HEALTHCHECK --start-period=10s CMD /app/docker-healthcheck.sh || exit 1
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]

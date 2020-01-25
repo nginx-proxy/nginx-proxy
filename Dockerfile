@@ -5,7 +5,7 @@ LABEL maintainer="Jason Wilder mail@jasonwilder.com"
 RUN apt-get update \
  && apt-get install -y -q --no-install-recommends \
     ca-certificates \
-    wget \
+    wget curl \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/*
 
@@ -33,7 +33,7 @@ ENV DOCKER_HOST unix:///tmp/docker.sock
 
 VOLUME ["/etc/nginx/certs", "/etc/nginx/dhparam"]
 
-HEALTHCHECK --start-period=1m CMD /app/docker-healthcheck.sh || exit 1
+HEALTHCHECK --start-period=10s CMD /app/docker-healthcheck.sh || exit 1
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]
