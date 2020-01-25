@@ -33,5 +33,7 @@ ENV DOCKER_HOST unix:///tmp/docker.sock
 
 VOLUME ["/etc/nginx/certs", "/etc/nginx/dhparam"]
 
+HEALTHCHECK --start-period=1m CMD /app/docker-healthcheck.sh || exit 1
+
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]
