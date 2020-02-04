@@ -1,5 +1,5 @@
-FROM nginx:1.17.6
-LABEL maintainer="Jason Wilder mail@jasonwilder.com"
+FROM nginx:1.17.8
+LABEL maintainer="Jason Wilder mail@jasonwilder.com,Constantin Wildförster constantin@wildfoerster.org"
 
 # Install wget and install/updates certificates
 RUN apt-get update \
