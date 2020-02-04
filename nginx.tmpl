@@ -249,10 +249,10 @@ server {
 	{{ end }}
 
 	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
-		access_log /var/log/nginx/{{ $host }}.access.log;
-		error_log /var/log/nginx/{{ $host }}.error.log warn;
+	access_log /var/log/nginx/{{ $host }}.access.log;
+	error_log /var/log/nginx/{{ $host }}.error.log warn;
 	{{ else }}
-		access_log /var/log/nginx/access.log vhost;
+	access_log /var/log/nginx/access.log vhost;
 	{{ end }}
 	
 	# Do not HTTPS redirect Let'sEncrypt ACME challenge
@@ -278,10 +278,10 @@ server {
 	{{ end }}
 
 	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
-		access_log /var/log/nginx/{{ $host }}.access.log;
-		error_log /var/log/nginx/{{ $host }}.error.log warn;
+	access_log /var/log/nginx/{{ $host }}.access.log;
+	error_log /var/log/nginx/{{ $host }}.error.log warn;
 	{{ else }}
-		access_log /var/log/nginx/access.log vhost;
+	access_log /var/log/nginx/access.log vhost;
 	{{ end }}
 
 	{{ if eq $network_tag "internal" }}
@@ -379,10 +379,10 @@ server {
 	{{ end }}
 
 	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
-		access_log /var/log/nginx/{{ $host }}.access.log;
-		error_log /var/log/nginx/{{ $host }}.error.log warn;
+	access_log /var/log/nginx/{{ $host }}.access.log;
+	error_log /var/log/nginx/{{ $host }}.error.log warn;
 	{{ else }}
-		access_log /var/log/nginx/access.log vhost;
+	access_log /var/log/nginx/access.log vhost;
 	{{ end }}
 
 	{{ if eq $network_tag "internal" }}
@@ -524,10 +524,10 @@ server {
 	{{ end }}
 
 	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
-		access_log /var/log/nginx/{{ $host_alias }}.access.log;
-		error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
+	access_log /var/log/nginx/{{ $host_alias }}.access.log;
+	error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
 	{{ else }}
-		access_log /var/log/nginx/access.log vhost;
+	access_log /var/log/nginx/access.log vhost;
 	{{ end }}
 
 	return 301 https://{{ $first_host }}$request_uri;
@@ -541,10 +541,10 @@ server {
 	{{ end }}
 
 	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
-		access_log /var/log/nginx/{{ $host_alias }}.access.log;
-		error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
+	access_log /var/log/nginx/{{ $host_alias }}.access.log;
+	error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
 	{{ else }}
-		access_log /var/log/nginx/access.log vhost;
+	access_log /var/log/nginx/access.log vhost;
 	{{ end }}
 
 	{{ template "ssl_policy" (dict "ssl_policy" $ssl_policy) }}
@@ -591,10 +591,10 @@ server {
 	{{ end }}
 
 	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
-		access_log /var/log/nginx/{{ $host_alias }}.access.log;
-		error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
+	access_log /var/log/nginx/{{ $host_alias }}.access.log;
+	error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
 	{{ else }}
-		access_log /var/log/nginx/access.log vhost;
+	access_log /var/log/nginx/access.log vhost;
 	{{ end }}
 
 	{{ if eq $network_tag "internal" }}
@@ -620,10 +620,10 @@ server {
 	{{ end }}
 
 	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
-		access_log /var/log/nginx/{{ $host_alias }}.access.log;
-		error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
+	access_log /var/log/nginx/{{ $host_alias }}.access.log;
+	error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
 	{{ else }}
-		access_log /var/log/nginx/access.log vhost;
+	access_log /var/log/nginx/access.log vhost;
 	{{ end }}
 
 	return 500;
