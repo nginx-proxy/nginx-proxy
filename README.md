@@ -1,6 +1,6 @@
 Forked from jwilder due to slow development and a lot of awesome pull requests from many users, which to date were still not merged.
 
-** currently broken for some setups, mainly those with multiple VIRTUAL_HOST **
+**currently broken for some setups, mainly those with multiple VIRTUAL_HOST**
 
 ### Merged upstream PRs:
 - https://github.com/jwilder/nginx-proxy/pull/1386
