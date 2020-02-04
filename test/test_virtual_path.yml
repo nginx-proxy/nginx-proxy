@@ -22,7 +22,8 @@ web3:
   environment:
     WEB_PORTS: "83"
     VIRTUAL_HOST: "nginx-proxy.test"
-    VIRTUAL_PATH: "/bar/even/deeper"
+    VIRTUAL_PATH: "/bar"
+    VIRTUAL_PATH_STRIP: "true"
 
 web4:
   image: web
@@ -31,8 +32,8 @@ web4:
   environment:
     WEB_PORTS: "84"
     VIRTUAL_HOST: "nginx-proxy.test"
-    VIRTUAL_PATH: "/bar/even/deeper/with/end/"
-
+    VIRTUAL_PATH: "/deep/path"
+    VIRTUAL_PATH_STRIP: "true"
 
 sut:
   image: jwilder/nginx-proxy:test
