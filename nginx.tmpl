@@ -107,6 +107,8 @@ map $scheme $proxy_x_forwarded_ssl {
 
 gzip_types text/plain text/css application/javascript application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 
+{{ $seperate_logFiles := eq (or ($.Env.SEPERATE_LOGS_PER_VHOST) "") "true" }}
+
 log_format vhost '$host $remote_addr - $remote_user [$time_local] '
                  '"$request" $status $body_bytes_sent '
                  '"$http_referer" "$http_user_agent"';
@@ -257,7 +259,7 @@ server {
 	listen [::]:{{ $external_http_port }} {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
+	{{ if $seperate_logFiles }}
 	access_log /var/log/nginx/{{ $host }}.access.log;
 	error_log /var/log/nginx/{{ $host }}.error.log warn;
 	{{ else }}
@@ -286,7 +288,7 @@ server {
 	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
+	{{ if $seperate_logFiles }}
 	access_log /var/log/nginx/{{ $host }}.access.log;
 	error_log /var/log/nginx/{{ $host }}.error.log warn;
 	{{ else }}
@@ -389,7 +391,7 @@ server {
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
+	{{ if $seperate_logFiles }}
 	access_log /var/log/nginx/{{ $host }}.access.log;
 	error_log /var/log/nginx/{{ $host }}.error.log warn;
 	{{ else }}
@@ -468,11 +470,11 @@ server {
 	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
-		access_log /var/log/nginx/{{ $host }}.access.log;
-		error_log /var/log/nginx/{{ $host }}.error.log warn;
+	{{ if $seperate_logFiles }}
+	access_log /var/log/nginx/{{ $host }}.access.log;
+	error_log /var/log/nginx/{{ $host }}.error.log warn;
 	{{ else }}
-		access_log /var/log/nginx/access.log vhost;
+	access_log /var/log/nginx/access.log vhost;
 	{{ end }}
 
 	return 500;
@@ -537,7 +539,7 @@ server {
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
+	{{ if $seperate_logFiles }}
 	access_log /var/log/nginx/{{ $host_alias }}.access.log;
 	error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
 	{{ else }}
@@ -554,7 +556,7 @@ server {
 	listen [::]:443 ssl http2 {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
+	{{ if $seperate_logFiles }}
 	access_log /var/log/nginx/{{ $host_alias }}.access.log;
 	error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
 	{{ else }}
@@ -604,7 +606,7 @@ server {
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
+	{{ if $seperate_logFiles }}
 	access_log /var/log/nginx/{{ $host_alias }}.access.log;
 	error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
 	{{ else }}
@@ -633,7 +635,7 @@ server {
 	listen [::]:443 ssl http2 {{ $default_server }};
 	{{ end }}
 
-	{{ if $.Env.SEPERATE_LOGS_PER_VHOST }}
+	{{ if $seperate_logFiles }}
 	access_log /var/log/nginx/{{ $host_alias }}.access.log;
 	error_log /var/log/nginx/{{ $host_alias }}.error.log warn;
 	{{ else }}
