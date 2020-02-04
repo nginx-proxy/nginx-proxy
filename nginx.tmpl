@@ -4,7 +4,10 @@
 {{ $external_https_port := coalesce $.Env.HTTPS_PORT "443" }}
 
 {{ define "upstream" }}
-	{{ if .Address }}
+  {{ if and .IP .Port }}
+    # {{ .Container.Name }} with manually set IP
+    server {{ .IP }}:{{ .Port }};
+	{{ else if .Address }}
 		{{/* If we got the containers from swarm and this container's port is published to host, use host IP:PORT */}}
 		{{ if and .Container.Node.ID .Address.HostPort }}
 			# {{ .Container.Node.Name }}/{{ .Container.Name }}
@@ -22,7 +25,6 @@
 			server 127.0.0.1 down;
 		{{ end }}
 	{{ end }}
-
 {{ end }}
 
 {{ define "ssl_policy" }}
@@ -177,24 +179,31 @@ server {
 upstream {{ $container.Name }} {
 	{{ $addrLen := len $container.Addresses }}
 
-	{{ range $knownNetwork := $CurrentContainer.Networks }}
-		{{ range $containerNetwork := $container.Networks }}
-			{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
-				## Can be connected with "{{ $containerNetwork.Name }}" network
+	{{ if and $container.Env.VIRTUAL_IP $container.Env.VIRTUAL_HOST }}
+		# Manually defined upstream host and port
+		{{ $IP := coalesce $container.Env.VIRTUAL_IP "127.0.0.1" }}
+		{{ $Port := coalesce $container.Env.VIRTUAL_PORT "80" }}
+		{{ template "upstream" (dict "Container" $container "Port" $Port "IP" $IP) }}
+	{{ else }}
+		{{ range $knownNetwork := $CurrentContainer.Networks }}
+			{{ range $containerNetwork := $container.Networks }}
+				{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
+					## Can be connected with "{{ $containerNetwork.Name }}" network
 
-				{{/* If only 1 port exposed, use that */}}
-				{{ if eq $addrLen 1 }}
-					{{ $address := index $container.Addresses 0 }}
-					{{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork) }}
-				{{/* If more than one port exposed, use the one matching VIRTUAL_PORT env var, falling back to standard web port 80 */}}
+					{{/* If only 1 port exposed, use that */}}
+					{{ if eq $addrLen 1 }}
+						{{ $address := index $container.Addresses 0 }}
+						{{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork) }}
+					{{/* If more than one port exposed, use the one matching VIRTUAL_PORT env var, falling back to standard web port 80 */}}
+					{{ else }}
+						{{ $port := coalesce $container.Env.VIRTUAL_PORT "80" }}
+						{{ $address := where $container.Addresses "Port" $port | first }}
+						{{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork) }}
+					{{ end }}
 				{{ else }}
-					{{ $port := coalesce $container.Env.VIRTUAL_PORT "80" }}
-					{{ $address := where $container.Addresses "Port" $port | first }}
-					{{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork) }}
+					# Cannot connect to network of this container
+					server 127.0.0.1 down;
 				{{ end }}
-			{{ else }}
-				# Cannot connect to network of this container
-				server 127.0.0.1 down;
 			{{ end }}
 		{{ end }}
 	{{ end }}
