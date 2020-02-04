@@ -4,7 +4,8 @@ web:
     - "81"
   environment:
     WEB_PORTS: 81
-    VIRTUAL_HOST: webA.nginx-proxy.tld,webB.nginx-proxy.tld
+    VIRTUAL_HOST: webA.nginx-proxy.tld
+    VIRTUAL_HOST_ALIAS: webB.nginx-proxy.tld
 
 
 sut:
