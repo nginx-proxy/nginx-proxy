@@ -7,6 +7,7 @@ Forked from jwilder due to slow development and a lot of awesome pull requests f
 - https://github.com/jwilder/nginx-proxy/pull/1366
 - https://github.com/jwilder/nginx-proxy/pull/1353
 - https://github.com/jwilder/nginx-proxy/pull/1338
+- https://github.com/jwilder/nginx-proxy/pull/1219
 - https://github.com/jwilder/nginx-proxy/pull/1170
 
 ### Added:
