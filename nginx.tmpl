@@ -246,7 +246,18 @@ server {
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
-	return 301 https://$host$request_uri;
+	
+	{{/* Add in includes to allow vhost includes*/}}
+	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
+	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
+	{{ else if (exists "/etc/nginx/vhost.d/default") }}
+	include /etc/nginx/vhost.d/default;
+	{{ end }}
+	
+	{{/* If none of the locations match in the vhosts then redirect to the https page */}}
+	location {
+		return 301 https://$host$request_uri;
+	}
 }
 {{ end }}
 
