@@ -246,7 +246,19 @@ server {
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
-	return 301 https://$host$request_uri;
+	
+	# Do not HTTPS redirect Let'sEncrypt ACME challenge
+	location /.well-known/acme-challenge/ {
+		auth_basic off;
+		allow all;
+		root /usr/share/nginx/html;
+		try_files $uri =404;
+		break;
+	}
+	
+	location / {
+		return 301 https://$host$request_uri;
+	}
 }
 {{ end }}
 
