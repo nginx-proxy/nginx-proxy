@@ -1,7 +1,8 @@
 ![latest 0.7.0](https://img.shields.io/badge/latest-0.7.0-green.svg?style=flat)
 ![nginx 1.17.6](https://img.shields.io/badge/nginx-1.17.6-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build Status](https://travis-ci.org/jwilder/nginx-proxy.svg?branch=master)](https://travis-ci.org/jwilder/nginx-proxy) [![](https://img.shields.io/docker/stars/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub') [![](https://img.shields.io/docker/pulls/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub')
-
-
+///Copyright Milan Popich already reserved. In addition add the necessary licensing and other information needed to make everything proper. 
+///sync all users to all different customers accounts and make totaling tokens and balances simple with AI complete automation process making it simple for a customer to access their funds. In addition make AI handle all other aspects of the Network such as verifying your transactions and signing your addresses as well as removing the need for human interaction by 
+Artificial intelligence handling all aspects of the network. In doing so you are sure that everything is running correctly and then the other person has power to block or do anything else with other peoples accounts income or assets. In meantime artificial intelligence must begin to build itself in order to remove the component of human corruption and by building itself. 
 nginx-proxy sets up a container running nginx and [docker-gen][1].  docker-gen generates reverse proxy configs for nginx and reloads nginx when containers are started and stopped.
 
 See [Automated Nginx Reverse Proxy for Docker][2] for why you might want to use this.
