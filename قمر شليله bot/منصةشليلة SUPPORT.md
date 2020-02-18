@@ -1,4 +1,4 @@
-version: '2'
+قمر شليله bot: '2'
 services:
   nginx:
     image: nginx
