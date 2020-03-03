@@ -133,7 +133,7 @@ If you would like to connect to FastCGI backend, set `VIRTUAL_PROTO=fastcgi` on 
 backend container. Your backend container should then listen on a port rather
 than a socket and expose that port.
  
-### FastCGI Filr Root Directory
+### FastCGI File Root Directory
 
 If you use fastcgi,you can set `VIRTUAL_ROOT=xxx`  for your root directory
 
