@@ -74,6 +74,8 @@ If your container exposes multiple ports, nginx-proxy will default to the servic
   [1]: https://github.com/jwilder/docker-gen
   [2]: http://jasonwilder.com/blog/2014/03/25/automated-nginx-reverse-proxy-for-docker/
 
+`VIRTUAL_PORT` supports a comma seperated list of key value pair syntax `hostPort:containerPort` or `containerPort` only. E.g. `VIRTUAL_PORT=443:80,3000,4000:8086`, this will expose containter port 80 to host port 443, 3000 to 3000 and container port 8086 to host port 4000.
+
 ### Multiple Hosts
 
 If you need to support multiple virtual hosts for a container, you can separate each entry with commas.  For example, `foo.bar.com,baz.bar.com,bar.com` and each host will be setup the same.
