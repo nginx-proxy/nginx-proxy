@@ -27,6 +27,10 @@ RUN tar -C /usr/local/bin -xvzf docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.g
 
 COPY network_internal.conf /etc/nginx/
 
+RUN { \
+      echo 'client_max_body_size 1024m;'; \
+    } > /etc/nginx/conf.d/catalyst.conf
+
 COPY . /app/
 WORKDIR /app/
 
