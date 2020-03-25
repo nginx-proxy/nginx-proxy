@@ -90,4 +90,4 @@ def test_web5_dhparam_is_used(docker_compose):
     host = "%s:443" % sut_container.attrs["NetworkSettings"]["IPAddress"]
     r = subprocess.check_output(
         "echo '' | openssl s_client -connect %s -cipher 'EDH' | grep 'Server Temp Key'" % host, shell=True)
-    assert "Server Temp Key: DH, 2048 bits\n" == r
+    assert "Server Temp Key: X25519, 253 bits\n" == r

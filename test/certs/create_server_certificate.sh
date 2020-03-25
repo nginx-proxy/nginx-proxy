@@ -24,7 +24,7 @@ fi
 # Create a nginx container (which conveniently provides the `openssl` command)
 ###############################################################################
 
-CONTAINER=$(docker run -d -v $DIR:/work -w /work -e SAN="$ALTERNATE_DOMAINS" nginx:1.13)
+CONTAINER=$(docker run -d -v $DIR:/work -w /work -e SAN="$ALTERNATE_DOMAINS" nginx:1.14.1)
 # Configure openssl
 docker exec $CONTAINER bash -c '
 	mkdir -p /ca/{certs,crl,private,newcerts} 2>/dev/null
