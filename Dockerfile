@@ -29,6 +29,8 @@ COPY network_internal.conf /etc/nginx/
 
 RUN { \
       echo 'client_max_body_size 1024m;'; \
+      echo 'proxy_connect_timeout 10m;'; \
+      echo 'proxy_read_timeout 10m;'; \
     } > /etc/nginx/conf.d/catalyst.conf
 
 COPY . /app/
