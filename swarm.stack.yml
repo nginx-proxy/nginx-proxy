@@ -12,6 +12,8 @@ services:
             - proxy
         ports:
             - "80:80"
+        environment:
+            - NODE_HOSTNAME={{.Node.Hostname}}
         volumes:
             - /var/run/docker.sock:/tmp/docker.sock:ro
             - /tmp/proxyconf/:/etc/nginx/node.conf.d/
