@@ -5,7 +5,7 @@ import sys
 from crossplane import parse, build
 
 SWARM_CONFIG_FILE = '/etc/nginx/node.conf.d/swarm.conf'
-NGINX_OUTPUT = '/etc/nginx/conf.d/default'
+NGINX_OUTPUT = '/etc/nginx/conf.d/default.conf'
 NGINX_RELOAD = 'nginx -s reload'
 
 nginx_config = []
