@@ -137,23 +137,39 @@ than a socket and expose that port.
 
 If you use fastcgi, you can set `VIRTUAL_ROOT=xxx`  for your root directory
 
-### FastCGI Serving static files
+### Override root location
 
-If you use fastcgi, you can set `LOCATION_PATH=xxx` (eg: "~ \.php$") and use the vhost.d/default or vhost.d/{VIRTUAL_HOST}
-to add:
+You can set `LOCATION_PATH=xxx` (eg: "~ \.php$") and use the vhost.d/default or vhost.d/{VIRTUAL_HOST} to add:
 ```
 location / {
     try_files $uri /index.php?$query_string;
     limit_rate_after 1000k;
     limit_rate 50k;
 }
+
+location {LOCATION_PATH} {
+  ...
+}
 ```
 
-You can then bind your files in "/etc/nginx/static_files/{VIRTUAL_HOST}" and they'll be served by nginx instead of passing them
-to your fastcgi.
+### Bind static files
 
-**You should also set the VIRTUAL_ROOT if using static_files binding.**
+You can bind your files in "/etc/nginx/static_files/{VIRTUAL_HOST}" and nginx will set the root of the server block to
+that folder as follows:
 
+```
+server {
+  ...
+
+  root /etc/nginx/static_files/my.domain.com;
+
+  '''
+}
+```
+
+In combination with LOCATION_PATH override you can skip sending queries to the container and serve files directly.
+
+Be aware that if using FASTCGI you will also have to explicitly set your VIRTUAL_ROOT.
 
 ### Default Host
 
