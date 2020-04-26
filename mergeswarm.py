@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import subprocess
 import sys
 from crossplane import parse, build
@@ -7,6 +8,10 @@ from crossplane import parse, build
 SWARM_CONFIG_FILE = '/etc/nginx/node.conf.d/swarm.conf'
 NGINX_OUTPUT = '/etc/nginx/conf.d/default.conf'
 NGINX_RELOAD = 'nginx -s reload'
+
+if not os.path.isfile(SWARM_CONFIG_FILE):
+    with open(SWARM_CONFIG_FILE, 'w') as f:
+        f.write("http { include ./*.conf; }")
 
 nginx_config = []
 swarm_config = parse(SWARM_CONFIG_FILE)['config']

@@ -14,7 +14,7 @@ services:
             - "80:80"
         volumes:
             - /var/run/docker.sock:/tmp/docker.sock:ro
-            - /tmp/proxyconf:/var/nginx/node.conf.d/
+            - /tmp/proxyconf/:/etc/nginx/node.conf.d/
 
     whoami1:
         deploy:
