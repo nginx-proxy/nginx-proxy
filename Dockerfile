@@ -1,4 +1,4 @@
-FROM nginx:1.17.8
+FROM nginx:1.18.0
 MAINTAINER Jonathan Adami <contact@jadami.com>
 LABEL creator="Jason Wilder mail@jasonwilder.com"
 
@@ -11,7 +11,7 @@ RUN apt-get update \
     python3 python3-pip \
  && pip3 install crossplane \
  && apt-get purge -y python3-pip \
- && apt autoremove -y \
+ && apt-get autoremove -y \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/*
 
