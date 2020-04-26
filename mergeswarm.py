@@ -19,8 +19,28 @@ nodes = [f['parsed'] for f in swarm_config[1:-1]]
 
 for node in nodes:
     for statement in node:
-        if statement not in nginx_config:
-            nginx_config.append(statement)
+        if statement in nginx_config:
+            continue
+        if statement['directive'] == 'upstream':
+            all_upstream = [
+                s['args'][0]
+                for s in nginx_config if s['directive'] == 'upstream'
+            ]
+            if statement['args'][0] in all_upstream:
+                continue
+        if statement['directive'] == 'server':
+            server_name = [
+                s['args'][0]
+                for s in statement['block'] if s['directive'] == 'server_name'
+            ][0]
+            all_server_names = [
+                sl['args'][0]
+                for s in nginx_config if s['directive'] == 'server'
+                for sl in s['block'] if sl['directive'] == 'server_name'
+            ]
+            if server_name in all_server_names:
+                continue
+        nginx_config.append(statement)
 
 with open(NGINX_OUTPUT, 'w') as f:
     f.write(build(nginx_config))
