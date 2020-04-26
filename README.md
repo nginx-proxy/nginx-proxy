@@ -128,14 +128,31 @@ backend container. Your backend container should then listen on a port rather
 than a socket and expose that port.
 
 ### FastCGI Backends
- 
+
 If you would like to connect to FastCGI backend, set `VIRTUAL_PROTO=fastcgi` on the
 backend container. Your backend container should then listen on a port rather
 than a socket and expose that port.
- 
+
 ### FastCGI File Root Directory
 
-If you use fastcgi,you can set `VIRTUAL_ROOT=xxx`  for your root directory
+If you use fastcgi, you can set `VIRTUAL_ROOT=xxx`  for your root directory
+
+### FastCGI Serving static files
+
+If you use fastcgi, you can set `LOCATION_PATH=xxx` (eg: "~ \.php$") and use the vhost.d/default or vhost.d/{VIRTUAL_HOST}
+to add:
+```
+location / {
+    try_files $uri /index.php?$query_string;
+    limit_rate_after 1000k;
+    limit_rate 50k;
+}
+```
+
+You can then bind your files in "/etc/nginx/static_files/{VIRTUAL_HOST}" and they'll be served by nginx instead of passing them
+to your fastcgi.
+
+**You should also set the VIRTUAL_ROOT if using static_files binding.**
 
 
 ### Default Host
@@ -179,6 +196,7 @@ $ docker run --volumes-from nginx \
 Finally, start your containers with `VIRTUAL_HOST` environment variables.
 
     $ docker run -e VIRTUAL_HOST=foo.bar.com  ...
+
 ### SSL Support using letsencrypt
 
 [letsencrypt-nginx-proxy-companion](https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion) is a lightweight companion container for the nginx-proxy. It allows the creation/renewal of Let's Encrypt certificates automatically.
@@ -187,6 +205,7 @@ Set `DHPARAM_GENERATION` environment variable to `false` to disabled Diffie-Hell
 The default value is `true`
 
      $ docker run -e DHPARAM_GENERATION=false ....
+
 ### SSL Support
 
 SSL is supported using single host, wildcard and SNI certificates using naming conventions for
@@ -292,11 +311,11 @@ site after changing this setting, your browser has probably cached the HSTS poli
 redirecting you back to HTTPS.  You will need to clear your browser's HSTS cache or use an incognito
 window / different browser.
 
-By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security) 
-is enabled with `max-age=31536000` for HTTPS sites.  You can disable HSTS with the environment variable 
-`HSTS=off` or use a custom HSTS configuration like `HSTS=max-age=31536000; includeSubDomains; preload`.  
-*WARNING*: HSTS will force your users to visit the HTTPS version of your site for the `max-age` time - 
-even if they type in `http://` manually.  The only way to get to an HTTP site after receiving an HSTS 
+By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security)
+is enabled with `max-age=31536000` for HTTPS sites.  You can disable HSTS with the environment variable
+`HSTS=off` or use a custom HSTS configuration like `HSTS=max-age=31536000; includeSubDomains; preload`.
+*WARNING*: HSTS will force your users to visit the HTTPS version of your site for the `max-age` time -
+even if they type in `http://` manually.  The only way to get to an HTTP site after receiving an HSTS
 response is to clear your browser's HSTS cache.
 
 ### Basic Authentication Support
