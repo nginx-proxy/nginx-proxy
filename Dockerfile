@@ -18,7 +18,6 @@ RUN apt-get update \
 # Configure Nginx and apply fix for very long server names
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
  && sed -i 's/worker_processes  1/worker_processes  auto/' /etc/nginx/nginx.conf \
- && rm /etc/nginx/conf.d/default.conf \
  && mkdir /etc/nginx/node.conf.d \
  && echo "http { include ./*.conf; }" > /etc/nginx/node.conf.d/swarm.conf
 
