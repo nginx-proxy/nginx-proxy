@@ -169,7 +169,7 @@ server {
 
 In combination with LOCATION_PATH override you can skip sending queries to the container and serve files directly.
 
-Be aware that if using FASTCGI you will also have to explicitly set your VIRTUAL_ROOT.
+Be aware that if using FastCGI you will also have to explicitly set your VIRTUAL_ROOT.
 
 ### Default Host
 
