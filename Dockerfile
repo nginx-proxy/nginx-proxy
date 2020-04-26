@@ -9,7 +9,7 @@ RUN apt-get update \
     wget \
     entr \
     python3 python3-pip \
- && pip3 crossplane \
+ && pip3 install crossplane \
  && apt-get purge -y python3-pip \
  && apt autoremove -y \
  && apt-get clean \
