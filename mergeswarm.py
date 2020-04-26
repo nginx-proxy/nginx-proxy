@@ -1,0 +1,28 @@
+# -*- coding: utf-8 -*-
+
+import subprocess
+import sys
+from crossplane import parse, build
+
+SWARM_CONFIG_FILE = '/etc/nginx/node.conf.d/swarm.conf'
+NGINX_OUTPUT = '/etc/nginx/conf.d/default'
+NGINX_RELOAD = 'nginx -s reload'
+
+nginx_config = []
+swarm_config = parse(SWARM_CONFIG_FILE)['config']
+nodes = [f['parsed'] for f in swarm_config[1:-1]]
+
+for node in nodes:
+    for statement in node:
+        if statement not in nginx_config:
+            nginx_config.append(statement)
+
+with open(NGINX_OUTPUT, 'w') as f:
+    f.write(build(nginx_config))
+
+process = subprocess.Popen(NGINX_RELOAD.split(), stdout=subprocess.PIPE)
+output, error = process.communicate()
+if output:
+    sys.stdout.write(output)
+if error:
+    sys.stderr.write(error)

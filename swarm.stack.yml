@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+
+    proxy:
+        deploy:
+            mode: global
+        build:
+            context: .
+        image: test-proxy:1.0
+        networks:
+            - proxy
+        ports:
+            - "80:80"
+        volumes:
+            - /var/run/docker.sock:/tmp/docker.sock:ro
+            - /tmp/proxyconf:/var/nginx/node.conf.d/
+
+    whoami1:
+        deploy:
+            replicas: 1
+        image: jwilder/whoami
+        networks:
+            - proxy
+        environment:
+            - VIRTUAL_HOST=1.whoami.local
+
+
+    whoami2:
+        deploy:
+            replicas: 2
+        image: jwilder/whoami
+        networks:
+            - proxy
+        environment:
+            - VIRTUAL_HOST=2.whoami.local
+
+
+    whoami3:
+        deploy:
+            replicas: 3
+        image: jwilder/whoami
+        networks:
+            - proxy
+        environment:
+            - VIRTUAL_HOST=3.whoami.local
+
+networks:
+    proxy:
+        name: proxy
