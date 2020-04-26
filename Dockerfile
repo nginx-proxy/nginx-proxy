@@ -11,7 +11,7 @@ RUN apt-get update \
     python3 python3-pip \
  && pip3 crossplane \
  && apt-get purge -y python3-pip \
- && apt autoremove -y
+ && apt autoremove -y \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/*
 
