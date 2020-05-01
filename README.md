@@ -67,25 +67,28 @@ You can activate the IPv6 support for the nginx-proxy container by passing the v
 
     $ docker run -d -p 80:80 -e ENABLE_IPV6=true -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
-##### IPv6 Support w/ actual client ip addresses
+#### IPv6 Support w/ actual client ip addresses
 If you just bind the nginx HTTP(S) port to an IPv6 address on your Docker host you won't see the actual requesting IPv6 address of the client but the IPv4 address of Docker host (e.g. 172.17.0.1):
+
 `nginx.1    | [2001:0db8::1] 172.17.0.1 - - [05/Apr/2020:14:46:56 +0000] "GET / HTTP/1.1" 200 197 "-" "Wget/1.20.3 (linux-gnu)"`
 
 Following guide provides a way to see the actual requesting IPv6 client address by using a container which adds IPv6 NAT rules (e.g. 2001:0db8::abc):
+
 `nginx.1    | [2001:0db8::1] 2001:0db8::abc - - [05/Apr/2020:16:19:20 +0000] "GET / HTTP/1.1" 200 197 "-" "Wget/1.20.3 (linux-gnu)"`
 
 Thus, nginx-proxy will be able to set the actual client ip address in the HTTP_X_FORWARDED_FOR header which could be used by your web application.
 
-##### Docker configuration
+#### Docker configuration
 Disable Docker userland-proxy and enable IPv6 support by using [ULA](https://en.wikipedia.org/wiki/Unique_local_address) adresses to provide container isolation
 
 **/etc/docker/daemon.json**
+
 `
 "userland-proxy": false,
 "ipv6": true,
 "fixed-cidr-v6": "fd00:c0fe:babe::/48"
 `
-##### IPv6 NAT
+#### IPv6 NAT
 This will add IPv6 NAT support (like the one of IPv4 which is directly implemented by Docker). If you want to have a discussion about IPv6 NAT have a look at the [project repository](https://github.com/robbertkl/docker-ipv6nat/blob/master/README.md#nat-on-ipv6-are-you-insane).
 
 `docker run -d --restart=always -v /var/run/docker.sock:/var/run/docker.sock:ro --cap-add=NET_ADMIN --cap-add=SYS_MODULE --net=host robbertkl/ipv6nat`
