@@ -5,6 +5,8 @@ env:
   matrix:
   - TEST_TARGET: test-debian
   - TEST_TARGET: test-alpine
+  - TEST_TARGET: test-mainline
+  - TEST_TARGET: test-mainline-alpine
 
 before_install:
   - sudo apt-get -y remove docker docker-engine docker-ce
