@@ -67,7 +67,7 @@ COPY --from=dockergen /usr/local/bin/docker-gen /usr/local/bin/docker-gen
 
 COPY network_internal.conf /etc/nginx/
 
-COPY . /app/
+COPY app nginx.tmpl /app/
 WORKDIR /app/
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
