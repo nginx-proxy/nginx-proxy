@@ -244,8 +244,14 @@ upstream {{ $upstream_name }} {
 {{ if $is_https }}
 {{/* No cert? But we do want HTTPS! Let's fallback on the nginx default one.
      And set up acme-challenge so that Let's Encrpyt can do its job */}}
+{{ if (eq $cert "") }}
+# WARNING: No certificate found - Using 'default' as fallback
+{{ else }}
+    {{ if (not (and (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)))) }}
+# WARNING: Certificate '{{ $cert }}' doesn't exist yet - Falling back on 'default'
+    {{ end }}
+{{ end }}
 {{ $cert := coalesce $cert "default" }}
-{{/* Very same reasoning as above */}}
 {{ $cert := when (and (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) $cert "default" }}
 
 {{ if eq $https_method "redirect" }}
