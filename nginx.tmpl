@@ -355,6 +355,16 @@ server {
 	{{ if eq $network_tag "internal" }}
 	# Only allow traffic from internal clients
 	include /etc/nginx/network_internal.conf;
+	{{ else }}
+		{{ if (eq $https_method "noredirect") }}
+	location /.well-known/acme-challenge/ {
+		auth_basic off;
+		allow all;
+		root /usr/share/nginx/html;
+		try_files $uri =404;
+		break;
+	}
+		{{ end }}
 	{{ end }}
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
