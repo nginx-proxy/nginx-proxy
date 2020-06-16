@@ -2,7 +2,7 @@ dist: trusty
 sudo: required
 
 env:
-  matrix:
+  jobs:
   - TEST_TARGET: test-debian
   - TEST_TARGET: test-alpine
   - TEST_TARGET: test-mainline
@@ -22,3 +22,10 @@ before_install:
 
 script:
   - make $TEST_TARGET
+
+jobs:
+  include:
+    - stage: deploy
+      if: branch = master
+      script:
+        - curl -X 'POST' ${DOCKER_CALLBACK_TRIGGER} > /dev/null 2>&1
