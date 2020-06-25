@@ -445,22 +445,17 @@ server {
 
 {{ if $is_https }}
 
-{{ if eq $https_method "redirect" }}
 server {
 	server_name {{ $host_alias }};
-	listen 80 {{ $default_server }};
-	{{ if $enable_ipv6 }}
-	listen [::]:80 {{ $default_server }};
+	{{ if eq $https_method "redirect" }}
+	listen {{ $external_http_port }} {{ $default_server }};
 	{{ end }}
-	access_log /var/log/nginx/access.log vhost;
-	return 301 https://{{ $first_host }}$request_uri;
-}
-{{ end }}
-server {
-	server_name {{ $host_alias }};
-	listen 443 ssl http2 {{ $default_server }};
+	listen {{ $external_https_port }} ssl http2 {{ $default_server }};
 	{{ if $enable_ipv6 }}
-	listen [::]:443 ssl http2 {{ $default_server }};
+	{{ if eq $https_method "redirect" }}
+	listen [::]:{{ $external_http_port }} {{ $default_server }};
+	{{ end }}
+	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};
 	{{ end }}
 	access_log /var/log/nginx/access.log vhost;
 
