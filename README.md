@@ -147,7 +147,7 @@ To set the default host for nginx use the env var `DEFAULT_HOST=foo.bar.com` for
 
 ### Separate Containers
 
-nginx-proxy can also be run as two separate containers using the [jwilder/docker-gen](https://index.docker.io/u/jwilder/docker-gen/)
+nginx-proxy can also be run as two separate containers using the [jwilder/docker-gen](https://hub.docker.com/r/jwilder/docker-gen)
 image and the official [nginx](https://registry.hub.docker.com/_/nginx/) image.
 
 You may want to do this to prevent having the docker socket bound to a publicly exposed container service.
@@ -224,7 +224,7 @@ is reloaded.  This generation process only occurs the first time you start `ngin
 > key on startup by passing `-e DHPARAM_BITS=1024`.
 
 In the separate container setup, no pregenerated key will be available and neither the
-[jwilder/docker-gen](https://index.docker.io/u/jwilder/docker-gen/) image nor the offical
+[jwilder/docker-gen](https://hub.docker.com/r/jwilder/docker-gen) image nor the offical
 [nginx](https://registry.hub.docker.com/_/nginx/) image will generate one. If you still want A+ security
 in a separate container setup, you'll have to generate a 2048 bits DH key file manually and mount it on the
 nginx container, at `/etc/nginx/dhparam/dhparam.pem`.
