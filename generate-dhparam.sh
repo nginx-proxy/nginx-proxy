@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
-# The first argument is the bit depth of the dhparam, or 2048 if unspecified
-DHPARAM_BITS=${1:-2048}
+# The first argument is the bit depth of the dhparam, or 4096 if unspecified
+DHPARAM_BITS=${1:-4096}
 GENERATE_DHPARAM=${2:-true}
 
 # If a dhparam file is not available, use the pre-generated one and generate a new one in the background.
@@ -43,7 +43,7 @@ touch $GEN_LOCKFILE
 # Generate a new dhparam in the background in a low priority and reload nginx when finished (grep removes the progress indicator).
 (
     (
-        nice -n +5 openssl dhparam -out $DHPARAM_FILE.tmp $DHPARAM_BITS 2>&1 \
+        nice -n +5 openssl dhparam -dsaparam -out $DHPARAM_FILE.tmp $DHPARAM_BITS 2>&1 \
         && mv $DHPARAM_FILE.tmp $DHPARAM_FILE \
         && echo "dhparam generation complete, reloading nginx" \
         && nginx -s reload
