@@ -1,0 +1,17 @@
+{
+  "extends": [
+    "config:base",
+    "docker:enableMajor"
+  ],
+  "packageRules": [
+    {
+      "updateTypes": ["minor","patch","pin","digest"],
+      "automerge": true
+    },
+    {
+      "datasources": ["docker"],
+      "packageNames": ["nginx"],
+      "versioning": "semver"
+    }
+  ]
+}
