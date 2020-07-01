@@ -1,4 +1,4 @@
-FROM nginx:1.18.0
+FROM nginx:1.19.0
 LABEL maintainer="Jason Wilder mail@jasonwilder.com"
 
 # Install wget and install/updates certificates
