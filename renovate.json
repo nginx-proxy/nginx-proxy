@@ -13,5 +13,6 @@
       "packageNames": ["nginx"],
       "versioning": "semver"
     }
-  ]
+  ],
+  "includeForks": true
 }
