@@ -178,6 +178,13 @@ server {
 upstream {{ $upstream_name }} {
 
 {{ range $container := $containers }}
+{{ $upstreams := or ($container.Env.VIRTUAL_UPSTREAM) "" }}
+{{ if ne $upstreams "" }}
+	# connect to extern VIRTUAL_UPSTREAM
+	{{ range $upstream := split $upstreams "," }}
+	server {{ $upstream }};
+	{{ end }}
+{{ else }}
 	{{ $addrLen := len $container.Addresses }}
 
 	{{ range $knownNetwork := $CurrentContainer.Networks }}
@@ -201,6 +208,7 @@ upstream {{ $upstream_name }} {
 			{{ end }}
 		{{ end }}
 	{{ end }}
+{{ end }}
 {{ end }}
 }
 
