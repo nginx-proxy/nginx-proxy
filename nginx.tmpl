@@ -487,7 +487,9 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
-	return 301 https://{{ $first_host }}$request_uri;
+	location / {
+		return 301 https://{{ $first_host }}$request_uri;
+	}
 }
 
 {{ end }}
