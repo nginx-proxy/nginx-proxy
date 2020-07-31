@@ -402,9 +402,8 @@ server {
 {{ end }}
 
 # VIRTUAL_HOST_ALIAS
-{{ range $host_alias, $containers := groupByMulti $ "Env.VIRTUAL_HOST_ALIAS" "," }}
-
-{{ $host_alias := trim $host_alias }}
+{{ range $host_alias, $containers := groupBy $ "Env.VIRTUAL_HOST_ALIAS" }}
+{{ $host_alias := replace $host_alias "," " " 99 }}
 
 {{ $first_host := (first (groupByKeys $containers "Env.VIRTUAL_HOST")) }}
 {{ $first_host := trim $first_host }}
