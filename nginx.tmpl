@@ -513,6 +513,7 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
+	{{ if not (exists "/etc/nginx/vhost.d/default") }}
 	# Do not HTTPS redirect Let'sEncrypt ACME challenge
 	location /.well-known/acme-challenge/ {
 		auth_basic off;
@@ -521,6 +522,7 @@ server {
 		try_files $uri =404;
 		break;
 	}
+	{{ end }}
 
 	location / {
 		return 301 https://{{ $first_host }}$request_uri;
