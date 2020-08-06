@@ -105,6 +105,13 @@ map $scheme $proxy_x_forwarded_ssl {
 
 gzip_types text/plain text/css application/javascript application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 
+{{ if and $.Env.ACCEPT_PROXY_PROTOCOL $.Env.SET_REAL_IP_FROM }}
+{{ range split $.Env.SET_REAL_IP_FROM "," }}
+set_real_ip_from {{ . }};
+{{ end }}
+real_ip_header proxy_protocol;
+{{ end }}
+
 log_format vhost '$host $remote_addr - $remote_user [$time_local] '
                  '"$request" $status $body_bytes_sent '
                  '"$http_referer" "$http_user_agent"';
@@ -140,12 +147,14 @@ proxy_set_header Proxy "";
 
 {{ $access_log := (or (and (not $.Env.DISABLE_ACCESS_LOGS) "access_log /var/log/nginx/access.log vhost;") "") }}
 
+{{ $proxy_protocol := (and (or ($.Env.ACCEPT_PROXY_PROTOCOL) "") "proxy_protocol") }}
+
 {{ $enable_ipv6 := eq (or ($.Env.ENABLE_IPV6) "") "true" }}
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
-	listen {{ $external_http_port }};
+	listen {{ $external_http_port }} {{ $proxy_protocol }};
 	{{ if $enable_ipv6 }}
-	listen [::]:{{ $external_http_port }};
+	listen [::]:{{ $external_http_port }} {{ $proxy_protocol }};
 	{{ end }}
 	{{ $access_log }}
 	return 503;
@@ -154,9 +163,9 @@ server {
 {{ if (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
-	listen {{ $external_https_port }} ssl http2;
+	listen {{ $external_https_port }} ssl http2 {{ $proxy_protocol }};
 	{{ if $enable_ipv6 }}
-	listen [::]:{{ $external_https_port }} ssl http2;
+	listen [::]:{{ $external_https_port }} ssl http2 {{ $proxy_protocol }};
 	{{ end }}
 	{{ $access_log }}
 	return 503;
@@ -246,9 +255,9 @@ upstream {{ $upstream_name }} {
 {{ if eq $https_method "redirect" }}
 server {
 	server_name {{ $host }};
-	listen {{ $external_http_port }} {{ $default_server }};
+	listen {{ $external_http_port }} {{ $default_server }} {{ $proxy_protocol }};
 	{{ if $enable_ipv6 }}
-	listen [::]:{{ $external_http_port }} {{ $default_server }};
+	listen [::]:{{ $external_http_port }} {{ $default_server }} {{ $proxy_protocol }};
 	{{ end }}
 	{{ $access_log }}
 	
@@ -269,9 +278,9 @@ server {
 
 server {
 	server_name {{ $host }};
-	listen {{ $external_https_port }} ssl http2 {{ $default_server }};
+	listen {{ $external_https_port }} ssl http2 {{ $default_server }} {{ $proxy_protocol }};
 	{{ if $enable_ipv6 }}
-	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};
+	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }} {{ $proxy_protocol }};
 	{{ end }}
 	{{ $access_log }}
 
@@ -341,9 +350,9 @@ server {
 
 server {
 	server_name {{ $host }};
-	listen {{ $external_http_port }} {{ $default_server }};
+	listen {{ $external_http_port }} {{ $default_server }} {{ $proxy_protocol }};
 	{{ if $enable_ipv6 }}
-	listen [::]:80 {{ $default_server }};
+	listen [::]:80 {{ $default_server }} {{ $proxy_protocol }};
 	{{ end }}
 	{{ $access_log }}
 
@@ -386,9 +395,9 @@ server {
 {{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name {{ $host }};
-	listen {{ $external_https_port }} ssl http2 {{ $default_server }};
+	listen {{ $external_https_port }} ssl http2 {{ $default_server }} {{ $proxy_protocol }};
 	{{ if $enable_ipv6 }}
-	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};
+	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }} {{ $proxy_protocol }};
 	{{ end }}
 	{{ $access_log }}
 	return 500;
