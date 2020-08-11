@@ -1,0 +1,38 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+      - name: install buildx
+        id: buildx
+        uses: crazy-max/ghaction-docker-buildx@v1
+        with:
+          version: latest
+      - name: login to docker hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin  
+      - name: build the image
+        run: |
+          docker buildx build \
+          --push -f Dockerfile \
+          --tag adamus1red/nginx-proxy:latest \
+          --platform linux/amd64,linux/arm/v7,linux/arm64 . 
+
+      - name: build the alpine stable image
+        run: |
+          docker buildx build \ 
+          --push -f Dockerfile.alpine \
+          --tag adamus1red/nginx-proxy:latest-alpine \
+          --platform linux/amd64,linux/arm/v7,linux/arm64 . 
