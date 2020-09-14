@@ -168,7 +168,10 @@ server {
 }
 {{ end }}
 
-{{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
+{{/* Get the VIRTUAL_HOST_VARNAME for filtering */}}
+{{ $virtual_host_varname := (or ($.Env.VIRTUAL_HOST_VARNAME) "VIRTUAL_HOST") }}
+
+{{ range $host, $containers := groupByMulti $ (print "Env." $virtual_host_varname) "," }}
 
 {{ $host := trim $host }}
 {{ $is_regexp := hasPrefix "~" $host }}
