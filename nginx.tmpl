@@ -1,4 +1,4 @@
-{{ $CurrentContainer := where $ "ID" .Docker.CurrentContainerID | first }}
+{{ $CurrentContainer := or (where $ "ID" .Docker.CurrentContainerID | first) (where $ "Env.NGINX_PROXY_CONTAINER" "true" | first) }}
 
 {{ $external_http_port := coalesce $.Env.HTTP_PORT "80" }}
 {{ $external_https_port := coalesce $.Env.HTTPS_PORT "443" }}

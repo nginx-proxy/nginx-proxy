@@ -10,7 +10,7 @@ See [Automated Nginx Reverse Proxy for Docker][2] for why you might want to use 
 
 To run it:
 
-    $ docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+    $ docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro -e NGINX_PROXY_CONTAINER=true jwilder/nginx-proxy
 
 Then start any containers you want proxied with an env var `VIRTUAL_HOST=subdomain.youdomain.com`
 
@@ -48,6 +48,8 @@ services:
       - "80:80"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+    environment:
+      - NGINX_PROXY_CONTAINER=true
 
   whoami:
     image: jwilder/whoami
@@ -128,11 +130,11 @@ backend container. Your backend container should then listen on a port rather
 than a socket and expose that port.
 
 ### FastCGI Backends
- 
+
 If you would like to connect to FastCGI backend, set `VIRTUAL_PROTO=fastcgi` on the
 backend container. Your backend container should then listen on a port rather
 than a socket and expose that port.
- 
+
 ### FastCGI File Root Directory
 
 If you use fastcgi,you can set `VIRTUAL_ROOT=xxx`  for your root directory
@@ -292,11 +294,11 @@ site after changing this setting, your browser has probably cached the HSTS poli
 redirecting you back to HTTPS.  You will need to clear your browser's HSTS cache or use an incognito
 window / different browser.
 
-By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security) 
-is enabled with `max-age=31536000` for HTTPS sites.  You can disable HSTS with the environment variable 
-`HSTS=off` or use a custom HSTS configuration like `HSTS=max-age=31536000; includeSubDomains; preload`.  
-*WARNING*: HSTS will force your users to visit the HTTPS version of your site for the `max-age` time - 
-even if they type in `http://` manually.  The only way to get to an HTTP site after receiving an HSTS 
+By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security)
+is enabled with `max-age=31536000` for HTTPS sites.  You can disable HSTS with the environment variable
+`HSTS=off` or use a custom HSTS configuration like `HSTS=max-age=31536000; includeSubDomains; preload`.
+*WARNING*: HSTS will force your users to visit the HTTPS version of your site for the `max-age` time -
+even if they type in `http://` manually.  The only way to get to an HTTP site after receiving an HSTS
 response is to clear your browser's HSTS cache.
 
 ### Basic Authentication Support
