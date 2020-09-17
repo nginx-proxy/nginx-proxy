@@ -30,7 +30,7 @@ COPY . /app/
 WORKDIR /app/
 
 ENV DOCKER_HOST unix:///tmp/docker.sock
-
+ENV NGINX_PROXY_CONTAINER true
 VOLUME ["/etc/nginx/certs", "/etc/nginx/dhparam"]
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

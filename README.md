@@ -10,7 +10,7 @@ See [Automated Nginx Reverse Proxy for Docker][2] for why you might want to use 
 
 To run it:
 
-    $ docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro -e NGINX_PROXY_CONTAINER=true jwilder/nginx-proxy
+    $ docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
 Then start any containers you want proxied with an env var `VIRTUAL_HOST=subdomain.youdomain.com`
 
@@ -48,8 +48,6 @@ services:
       - "80:80"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-    environment:
-      - NGINX_PROXY_CONTAINER=true
 
   whoami:
     image: jwilder/whoami
