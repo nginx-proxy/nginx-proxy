@@ -53,6 +53,7 @@ services:
     image: jwilder/whoami
     environment:
       - VIRTUAL_HOST=whoami.local
+      - VIRTUAL_PORT=8000
 ```
 
 ```shell
