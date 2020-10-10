@@ -1,6 +1,7 @@
 name: Sync Fork
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '30 20 * * *'
 
