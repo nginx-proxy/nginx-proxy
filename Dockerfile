@@ -30,8 +30,12 @@ COPY . /app/
 WORKDIR /app/
 
 ENV DOCKER_HOST unix:///tmp/docker.sock
+ENV TERM xterm-mono
+ENV force_color_prompt no
 
-VOLUME ["/etc/nginx/certs", "/etc/nginx/dhparam"]
+VOLUME ["/etc/nginx/certs", "/etc/nginx/dhparam", "/var/logs/nginx"]
+RUN ln -sf /dev/stdout /var/log/nginx/access.log \
+	&& ln -sf /dev/stderr /var/log/nginx/error.log
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]
