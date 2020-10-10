@@ -1,0 +1,16 @@
+name: Sync Fork
+
+on:
+  schedule:
+    - cron: '30 20 * * *'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: TG908/fork-sync@v1.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          owner: nginx-proxy
+          base: master
+          head: master
