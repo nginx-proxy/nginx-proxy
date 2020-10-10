@@ -1,0 +1,27 @@
+# Webapp without https redirect (just serving http)
+http:
+  image: web
+  expose:
+    - "81"
+  environment:
+    WEB_PORTS: 81
+    VIRTUAL_HOST: web.nginx-proxy.tld,www.web.nginx-proxy.tld
+    HTTPS_METHOD: nohttps
+
+# Webapp with https redirect
+https:
+  image: web
+  expose:
+    - "82"
+  environment:
+    WEB_PORTS: 82
+    VIRTUAL_HOST: web2.nginx-proxy.tld,www.web2.nginx-proxy.tld
+
+# Proxy
+sut:
+  image: jwilder/nginx-proxy:test
+  volumes:
+    - /var/run/docker.sock:/tmp/docker.sock:ro
+    - ./lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
+    - ./test_ssl/certs:/etc/nginx/certs:ro
+  

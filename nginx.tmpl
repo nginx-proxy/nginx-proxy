@@ -262,7 +262,11 @@ server {
 	}
 	
 	location / {
+	{{ if (hasPrefix "www." $host) }}
+		return 301 https://{{ trimPrefix "www." $host }}$request_uri;
+	{{ else }}
 		return 301 https://$host$request_uri;
+	{{ end }}
 	}
 }
 {{ end }}
@@ -309,6 +313,9 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
+	{{ if (hasPrefix "www." $host) }}
+	return 301 https://{{ trimPrefix "www." $host }}$request_uri;
+	{{ else }}
 	location / {
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
@@ -333,6 +340,7 @@ server {
 		include /etc/nginx/vhost.d/default_location;
 		{{ end }}
 	}
+	{{ end }}
 }
 
 {{ end }}
@@ -358,6 +366,9 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
+	{{ if (hasPrefix "www." $host) }}
+	return 301 http://{{ trimPrefix "www." $host }}$request_uri;
+	{{ else }}
 	location / {
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
@@ -381,6 +392,7 @@ server {
 		include /etc/nginx/vhost.d/default_location;
 		{{ end }}
 	}
+	{{ end }}
 }
 
 {{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}

@@ -27,6 +27,7 @@ fi
 CONTAINER=$(docker run -d -v $DIR:/work -w /work -e SAN="$ALTERNATE_DOMAINS" nginx:1.14.1)
 # Configure openssl
 docker exec $CONTAINER bash -c '
+    apt-get update && apt-get install openssl
 	mkdir -p /ca/{certs,crl,private,newcerts} 2>/dev/null
 	echo 1000 > /ca/serial
 	touch /ca/index.txt

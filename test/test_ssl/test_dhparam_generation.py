@@ -35,7 +35,7 @@ def test_dhparam_is_generated_if_missing(docker_compose):
     sut_container = docker_client.containers.get("nginxproxy")
     assert sut_container.status == "running"
 
-    assert_log_contains("Generating DH parameters")
+    assert_log_contains("A pre-generated dhparam.pem will be used for now")
     assert_log_contains("dhparam generation complete, reloading nginx")
 
     # Make sure the dhparam in use is not the default, pre-generated one
