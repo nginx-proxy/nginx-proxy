@@ -1,5 +1,5 @@
 # Seitenwerke nginx-proxy fork
-![Docker Image Version (latest semver)](https://img.shields.io/docker/v/seitenwerke/nginx-proxy?label=docker%20version&sort=semver) ![Publish Docker image](https://github.com/seitenwerke/seitenwerke-nginx-proxy/workflows/Publish%20Docker%20image/badge.svg?branch=master) ![Test](https://github.com/seitenwerke/seitenwerke-nginx-proxy/workflows/Test/badge.svg)
+[![Docker Image Version (latest semver)](https://img.shields.io/docker/v/seitenwerke/nginx-proxy?label=docker%20version&sort=semver)](https://hub.docker.com/repository/docker/seitenwerke/nginx-proxy) ![Publish Docker image](https://github.com/seitenwerke/seitenwerke-nginx-proxy/workflows/Publish%20Docker%20image/badge.svg?branch=master) ![Test](https://github.com/seitenwerke/seitenwerke-nginx-proxy/workflows/Test/badge.svg)
 
 # Original Readme
 ![latest 0.7.0](https://img.shields.io/badge/latest-0.7.0-green.svg?style=flat)
