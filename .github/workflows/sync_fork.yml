@@ -15,5 +15,4 @@ jobs:
           owner: nginx-proxy
           base: master
           head: master
-          ignore_fail: true 
-          merge_method: squash
+          ignore_fail: true
