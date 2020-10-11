@@ -170,14 +170,28 @@ jobs:
     if: github.event_name == 'push'
     
     steps:
-      - name: Checkout master
-        uses: actions/checkout@master
-      - name: Build and publish image
-        uses: ilteoood/docker_buildx@master
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: crazy-max/ghaction-docker-buildx@v3
         with:
-          publish: true
-          imageName: adamus1red/nginx-proxy
-          platform: linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/arm/v7,linux/arm/v6
-          dockerHubUser: ${{ secrets.DOCKER_USERNAME }} 
-          dockerHubPassword: ${{ secrets.DOCKER_PASSWORD }}
+          buildx-version: latest
+          qemu-version: latest
+      - name: Available platforms
+        run: echo ${{ steps.buildx.outputs.platforms }}
+      - name: login to docker hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin  
+      - name: build the image
+        run: |
+          docker buildx build \
+          --push -f Dockerfile \
+          --tag adamus1red/nginx-proxy:latest \
+          --platform linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/arm/v7,linux/arm/v6 . 
+      - name: build the alpine stable image
+        run: |
+          docker buildx build \ 
+          --push -f Dockerfile.alpine \
+          --tag adamus1red/nginx-proxy:latest-alpine \
+          --platform linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/arm/v7,linux/arm/v6 . 
     
