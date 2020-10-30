@@ -1,4 +1,4 @@
-![latest 0.7.0](https://img.shields.io/badge/latest-0.7.0-green.svg?style=flat)
+![latest 0.8.0](https://img.shields.io/badge/latest-0.8.0-green.svg?style=flat)
 ![nginx 1.19.3](https://img.shields.io/badge/nginx-1.19.3-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build Status](https://travis-ci.org/jwilder/nginx-proxy.svg?branch=master)](https://travis-ci.org/jwilder/nginx-proxy) [![](https://img.shields.io/docker/stars/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub') [![](https://img.shields.io/docker/pulls/jwilder/nginx-proxy.svg)](https://hub.docker.com/r/jwilder/nginx-proxy 'DockerHub')
 
 
