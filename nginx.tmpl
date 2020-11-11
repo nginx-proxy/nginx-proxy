@@ -210,6 +210,9 @@ upstream {{ $upstream_name }} {
 {{/* Get the VIRTUAL_PROTO defined by containers w/ the same vhost, falling back to "http" */}}
 {{ $proto := trim (or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http") }}
 
+{{/* Get the VIRTUAL_INDEX defined by containers w/ the same vhost, falling back to "" */}}
+{{ $index := trim (or (first (groupByKeys $containers "Env.VIRTUAL_INDEX")) "") }}
+
 {{/* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external" */}}
 {{ $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
 
@@ -310,6 +313,10 @@ server {
 	{{ end }}
 
 	location / {
+		{{ if ne $index "" }}
+		index {{ $index }};
+		{{ end }}
+
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
 		uwsgi_pass {{ trim $proto }}://{{ trim $upstream_name }};
