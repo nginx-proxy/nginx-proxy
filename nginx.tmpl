@@ -148,6 +148,9 @@ server {
 	listen [::]:{{ $external_http_port }};
 	{{ end }}
 	{{ $access_log }}
+	{{ if (exists "/usr/share/nginx/html/maintenance/index.html") }}
+	include /etc/nginx/maintenance_internal.conf;
+	{{ end }}
 	return 503;
 }
 
@@ -159,6 +162,9 @@ server {
 	listen [::]:{{ $external_https_port }} ssl http2;
 	{{ end }}
 	{{ $access_log }}
+	{{ if (exists "/usr/share/nginx/html/maintenance/index.html") }}
+	include /etc/nginx/maintenance_internal.conf;
+	{{ end }}
 	return 503;
 
 	ssl_session_cache shared:SSL:50m;
