@@ -218,7 +218,7 @@ at startup.  Since it can take minutes to generate a new `dhparam.pem`, it is do
 background.  Once generation is complete, the `dhparam.pem` is saved on a persistent volume and nginx
 is reloaded.  This generation process only occurs the first time you start `nginx-proxy`.
 
-> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 2048 bits for A+ security.  Some
+> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 4096 bits for A+ security.  Some
 > older clients (like Java 6 and 7) do not support DH keys with over 1024 bits.  In order to support these
 > clients, you must either provide your own `dhparam.pem`, or tell `nginx-proxy` to generate a 1024-bit
 > key on startup by passing `-e DHPARAM_BITS=1024`.
@@ -226,7 +226,7 @@ is reloaded.  This generation process only occurs the first time you start `ngin
 In the separate container setup, no pregenerated key will be available and neither the
 [jwilder/docker-gen](https://hub.docker.com/r/jwilder/docker-gen) image nor the offical
 [nginx](https://registry.hub.docker.com/_/nginx/) image will generate one. If you still want A+ security
-in a separate container setup, you'll have to generate a 2048 bits DH key file manually and mount it on the
+in a separate container setup, you'll have to generate a 2048 or 4096 bits DH key file manually and mount it on the
 nginx container, at `/etc/nginx/dhparam/dhparam.pem`.
 
 #### Wildcard Certificates
@@ -268,7 +268,7 @@ and the [AWS ELB Security Policies](https://docs.aws.amazon.com/elasticloadbalan
 `AWS-TLS-1-2-2017-01`, `AWS-TLS-1-1-2017-01`, `AWS-2016-08`, `AWS-2015-05`, `AWS-2015-03` and `AWS-2015-02`.
 
 Note that the `Mozilla-Old` policy should use a 1024 bits DH key for compatibility but this container generates
-a 2048 bits key. The [Diffie-Hellman Groups](#diffie-hellman-groups) section details different methods of bypassing
+a 4096 bits key. The [Diffie-Hellman Groups](#diffie-hellman-groups) section details different methods of bypassing
 this, either globally or per virtual-host.
 
 The default behavior for the proxy when port 80 and 443 are exposed is as follows:
