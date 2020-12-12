@@ -292,6 +292,12 @@ site after changing this setting, your browser has probably cached the HSTS poli
 redirecting you back to HTTPS.  You will need to clear your browser's HSTS cache or use an incognito
 window / different browser.
 
+### HTTPS External redirect port
+
+By default when `HTTPS_METHOD=redirect`. nginx will redirect connections on port HTPP 80 to default HTTPS 443 port, with `HTTPS_REDIRECT_PORT=port` you can change this behavior to another port, for example `HTTPS_REDIRECT_PORT=8443`
+
+### HSTS
+
 By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security) 
 is enabled with `max-age=31536000` for HTTPS sites.  You can disable HSTS with the environment variable 
 `HSTS=off` or use a custom HSTS configuration like `HSTS=max-age=31536000; includeSubDomains; preload`.  

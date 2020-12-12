@@ -216,6 +216,9 @@ upstream {{ $upstream_name }} {
 {{/* Get the HTTPS_METHOD defined by containers w/ the same vhost, falling back to "redirect" */}}
 {{ $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) (or $.Env.HTTPS_METHOD "redirect") }}
 
+{{/* Get the HTTPS_REDIRECT_PORT defined by containers w/ the same vhost, falling back to "443" */}}
+{{ $https_redirect_port := or (first (groupByKeys $containers "Env.HTTPS_REDIRECT_PORT")) (or $.Env.HTTPS_REDIRECT_PORT "443") }}
+
 {{/* Get the SSL_POLICY defined by containers w/ the same vhost, falling back to empty string (use default) */}}
 {{ $ssl_policy := or (first (groupByKeys $containers "Env.SSL_POLICY")) "" }}
 
@@ -262,7 +265,7 @@ server {
 	}
 	
 	location / {
-		return 301 https://$host$request_uri;
+		return 301 https://$host:{{ $https_redirect_port }}$request_uri;
 	}
 }
 {{ end }}
