@@ -206,6 +206,7 @@ upstream {{ $upstream_name }} {
 
 {{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
 {{ $default_server := index (dict $host "" $default_host "default_server") $host }}
+{{ $default_https_redirect_port := or ($.Env.DEFAULT_HTTPS_REDIRECT_PORT) "443" }}
 
 {{/* Get the VIRTUAL_PROTO defined by containers w/ the same vhost, falling back to "http" */}}
 {{ $proto := trim (or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http") }}
@@ -217,7 +218,7 @@ upstream {{ $upstream_name }} {
 {{ $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) (or $.Env.HTTPS_METHOD "redirect") }}
 
 {{/* Get the HTTPS_REDIRECT_PORT defined by containers w/ the same vhost, falling back to "443" */}}
-{{ $https_redirect_port := or (first (groupByKeys $containers "Env.HTTPS_REDIRECT_PORT")) (or $.Env.HTTPS_REDIRECT_PORT "443") }}
+{{ $https_redirect_port := or (first (groupByKeys $containers "Env.HTTPS_REDIRECT_PORT")) (or $.Env.HTTPS_REDIRECT_PORT $default_https_redirect_port) }}
 
 {{/* Get the SSL_POLICY defined by containers w/ the same vhost, falling back to empty string (use default) */}}
 {{ $ssl_policy := or (first (groupByKeys $containers "Env.SSL_POLICY")) "" }}
