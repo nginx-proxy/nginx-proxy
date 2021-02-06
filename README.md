@@ -67,6 +67,14 @@ You can activate the IPv6 support for the nginx-proxy container by passing the v
 
     $ docker run -d -p 80:80 -e ENABLE_IPV6=true -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
+#### Scoped IPv6 Resolvers
+
+NginX does not support scoped IPv6 resolvers. In [docker-entrypoint.sh](./docker-entrypoint.sh) the resolvers are parsed from resolv.conf, but any scoped IPv6 addreses will be removed. 
+
+#### IPv6 NAT
+
+By default, docker uses IPv6-to-IPv4 NAT. This means all client connections from IPv6 addresses will show docker's internal IPv4 host address. To see true IPv6 client IP addresses, you must [enable IPv6](https://docs.docker.com/config/daemon/ipv6/) and use [ipv6nat](https://github.com/robbertkl/docker-ipv6nat). You must also disable the userland proxy by adding `"userland-proxy": false` to `/etc/docker/daemon.json` and restarting the daemon.
+
 ### Multiple Ports
 
 If your container exposes multiple ports, nginx-proxy will default to the service running on port 80.  If you need to specify a different port, you can set a VIRTUAL_PORT env var to select a different one.  If your container only exposes one port and it has a VIRTUAL_HOST env var set, that port will be selected.
