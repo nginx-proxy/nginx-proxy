@@ -28,6 +28,8 @@ RUN wget https://github.com/jwilder/docker-gen/releases/download/$DOCKER_GEN_VER
 
 COPY network_internal.conf /etc/nginx/
 
+COPY custom-nginx.conf /etc/nginx/conf.d/custom-nginx.conf
+
 COPY . /app/
 WORKDIR /app/
 
