@@ -1,5 +1,5 @@
 import pytest
-from backports.ssl_match_hostname import CertificateError
+from ssl import CertificateError
 from requests.exceptions import SSLError
 
 

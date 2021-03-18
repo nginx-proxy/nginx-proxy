@@ -22,7 +22,7 @@ def assert_log_contains(expected_log_line):
     """
     sut_container = docker_client.containers.get("nginxproxy")
     docker_logs = sut_container.logs(stdout=True, stderr=True, stream=False, follow=False)
-    assert expected_log_line in docker_logs
+    assert bytes(expected_log_line, encoding="utf8") in docker_logs
 
 
 ###############################################################################
