@@ -1,4 +1,3 @@
-from __future__ import print_function
 import contextlib
 import logging
 import os
@@ -142,7 +141,7 @@ def container_ip(container):
             return net_info["bridge"]["IPAddress"]
 
         # not default bridge network, fallback on first network defined
-        network_name = net_info.keys()[0]
+        network_name = list(net_info.keys())[0]
         return net_info[network_name]["IPAddress"]
 
 
@@ -155,7 +154,7 @@ def container_ipv6(container):
         return net_info["bridge"]["GlobalIPv6Address"]
 
     # not default bridge network, fallback on first network defined
-    network_name = net_info.keys()[0]
+    network_name = list(net_info.keys())[0]
     return net_info[network_name]["GlobalIPv6Address"]
 
 
@@ -188,7 +187,7 @@ def docker_container_dns_resolver(domain_name):
     log = logging.getLogger('DNS')
     log.debug("docker_container_dns_resolver(%r)" % domain_name)
 
-    match = re.search('(^|.+\.)(?P<container>[^.]+)\.container\.docker$', domain_name)
+    match = re.search(r'(^|.+\.)(?P<container>[^.]+)\.container\.docker$', domain_name)
     if not match:
         log.debug("%r does not match" % domain_name)
         return
@@ -253,9 +252,12 @@ def get_nginx_conf_from_container(container):
     return the nginx /etc/nginx/conf.d/default.conf file content from a container
     """
     import tarfile
-    from cStringIO import StringIO
-    strm, stat = container.get_archive('/etc/nginx/conf.d/default.conf')
-    with tarfile.open(fileobj=StringIO(strm.read())) as tf:
+    from io import BytesIO
+
+    strm_generator, stat = container.get_archive('/etc/nginx/conf.d/default.conf')
+    strm_fileobj = BytesIO(b"".join(strm_generator))
+
+    with tarfile.open(fileobj=strm_fileobj) as tf:
         conffile = tf.extractfile('default.conf')
         return conffile.read()
 
@@ -264,7 +266,7 @@ def docker_compose_up(compose_file='docker-compose.yml'):
     logging.info('docker-compose -f %s up -d' % compose_file)
     try:
         subprocess.check_output(shlex.split('docker-compose -f %s up -d' % compose_file), stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError, e:
+    except subprocess.CalledProcessError as e:
         pytest.fail("Error while runninng 'docker-compose -f %s up -d':\n%s" % (compose_file, e.output), pytrace=False)
 
 
@@ -272,7 +274,7 @@ def docker_compose_down(compose_file='docker-compose.yml'):
     logging.info('docker-compose -f %s down' % compose_file)
     try:
         subprocess.check_output(shlex.split('docker-compose -f %s down' % compose_file), stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError, e:
+    except subprocess.CalledProcessError as e:
         pytest.fail("Error while runninng 'docker-compose -f %s down':\n%s" % (compose_file, e.output), pytrace=False)
 
 
@@ -286,7 +288,7 @@ def wait_for_nginxproxy_to_be_ready():
         return
     container = containers[0]
     for line in container.logs(stream=True):
-        if "Watching docker events" in line:
+        if b"Watching docker events" in line:
             logging.debug("nginx-proxy ready")
             break
 
@@ -337,7 +339,7 @@ def connect_to_network(network):
             return
 
         # figure out our container networks
-        my_networks = my_container.attrs["NetworkSettings"]["Networks"].keys()
+        my_networks = list(my_container.attrs["NetworkSettings"]["Networks"].keys())
 
         # make sure our container is connected to the nginx-proxy's network
         if network not in my_networks:
@@ -360,7 +362,7 @@ def disconnect_from_network(network=None):
             return
 
         # figure out our container networks
-        my_networks_names = my_container.attrs["NetworkSettings"]["Networks"].keys()
+        my_networks_names = list(my_container.attrs["NetworkSettings"]["Networks"].keys())
 
         # disconnect our container from the given network
         if network.name in my_networks_names:
@@ -378,7 +380,7 @@ def connect_to_all_networks():
         return []
     else:
         # find the list of docker networks
-        networks = filter(lambda network: len(network.containers) > 0 and network.name != 'bridge', docker_client.networks.list())
+        networks = [network for network in docker_client.networks.list() if len(network.containers) > 0 and network.name != 'bridge']
         return [connect_to_network(network) for network in networks]
 
 
@@ -388,7 +390,7 @@ def connect_to_all_networks():
 # 
 ###############################################################################
 
-@pytest.yield_fixture(scope="module")
+@pytest.fixture(scope="module")
 def docker_compose(request):
     """
     pytest fixture providing containers described in a docker compose file. After the tests, remove the created containers
@@ -412,7 +414,7 @@ def docker_compose(request):
     restore_urllib_dns_resolver(original_dns_resolver)
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def nginxproxy():
     """
     Provides the `nginxproxy` object that can be used in the same way the requests module is:

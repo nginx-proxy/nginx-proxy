@@ -19,4 +19,4 @@ def test_custom_conf_does_not_apply_to_web2(docker_compose, nginxproxy):
     assert "X-test" not in r.headers
 
 def test_custom_block_is_present_in_nginx_generated_conf(docker_compose, nginxproxy):
-    assert "include /etc/nginx/vhost.d/web1.nginx-proxy.local_location;" in nginxproxy.get_conf()
+    assert b"include /etc/nginx/vhost.d/web1.nginx-proxy.local_location;" in nginxproxy.get_conf()
