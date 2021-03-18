@@ -471,5 +471,5 @@ try:
 except docker.errors.ImageNotFound:
     pytest.exit("The docker image 'nginxproxy/nginx-proxy:test' is missing")
 
-if docker.__version__ != "2.1.0":
-    pytest.exit("This test suite is meant to work with the python docker module v2.1.0")
+if docker.__version__ != "4.4.4":
+    pytest.exit("This test suite is meant to work with the python docker module v4.4.4")
