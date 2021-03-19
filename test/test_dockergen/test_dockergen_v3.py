@@ -3,27 +3,12 @@ import docker
 import logging
 import pytest
 import re
-
-def versiontuple(v):
-    """
-    >>> versiontuple("1.12.3")
-    (1, 12, 3)
-
-    >>> versiontuple("1.13.0")
-    (1, 13, 0)
-
-    >>> versiontuple("17.03.0-ce")
-    (17, 3, 0)
-
-    >>> versiontuple("17.03.0-ce") < (1, 13)
-    False
-    """
-    return tuple(map(int, (v.split("-")[0].split("."))))
+from distutils.version import LooseVersion
 
 
 raw_version = docker.from_env().version()["Version"]
 pytestmark = pytest.mark.skipif(
-    versiontuple(raw_version) < (1, 13),
+    LooseVersion(raw_version) < LooseVersion("1.13"),
     reason="Docker compose syntax v3 requires docker engine v1.13 or later (got {raw_version})"
 )
 
