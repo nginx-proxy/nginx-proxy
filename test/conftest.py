@@ -132,7 +132,7 @@ def container_ip(container):
             pytest.skip("This system does not support IPv6")
         ip = container_ipv6(container)
         if ip == '':
-            pytest.skip("Container %s has no IPv6 address" % container.name)
+            pytest.skip(f"Container {container.name} has no IPv6 address")
         else:
             return ip
     else:
@@ -166,15 +166,15 @@ def nginx_proxy_dns_resolver(domain_name):
     :return: IP or None
     """
     log = logging.getLogger('DNS')
-    log.debug("nginx_proxy_dns_resolver(%r)" % domain_name)
+    log.debug(f"nginx_proxy_dns_resolver({domain_name!r})")
     if 'nginx-proxy' in domain_name:
         nginxproxy_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "nginxproxy/nginx-proxy:test"})
         if len(nginxproxy_containers) == 0:
-            log.warn("no container found from image nginxproxy/nginx-proxy:test while resolving %r", domain_name)
+            log.warn(f"no container found from image nginxproxy/nginx-proxy:test while resolving {domain_name!r}")
             return
         nginxproxy_container = nginxproxy_containers[0]
         ip = container_ip(nginxproxy_container)
-        log.info("resolving domain name %r as IP address %s of nginx-proxy container %s" % (domain_name, ip, nginxproxy_container.name))
+        log.info(f"resolving domain name {domain_name!r} as IP address {ip} of nginx-proxy container {nginxproxy_container.name}")
         return ip
 
 def docker_container_dns_resolver(domain_name):
@@ -185,24 +185,24 @@ def docker_container_dns_resolver(domain_name):
     :return: IP or None
     """
     log = logging.getLogger('DNS')
-    log.debug("docker_container_dns_resolver(%r)" % domain_name)
+    log.debug(f"docker_container_dns_resolver({domain_name!r})")
 
     match = re.search(r'(^|.+\.)(?P<container>[^.]+)\.container\.docker$', domain_name)
     if not match:
-        log.debug("%r does not match" % domain_name)
+        log.debug(f"{domain_name!r} does not match")
         return
 
     container_name = match.group('container')
-    log.debug("looking for container %r" % container_name)
+    log.debug(f"looking for container {container_name!r}")
     try:
         container = docker_client.containers.get(container_name)
     except docker.errors.NotFound:
-        log.warn("container named %r not found while resolving %r" % (container_name, domain_name))
+        log.warn(f"container named {container_name!r} not found while resolving {domain_name!r}")
         return
-    log.debug("container %r found (%s)" % (container.name, container.short_id))
+    log.debug(f"container {container.name!r} found ({container.short_id})")
 
     ip = container_ip(container)
-    log.info("resolving domain name %r as IP address %s of container %s" % (domain_name, ip, container.name))
+    log.info(f"resolving domain name {domain_name!r} as IP address {ip} of container {container.name}")
     return ip 
 
 
@@ -215,7 +215,7 @@ def monkey_patch_urllib_dns_resolver():
     prv_getaddrinfo = socket.getaddrinfo
     dns_cache = {}
     def new_getaddrinfo(*args):
-        logging.getLogger('DNS').debug("resolving domain name %s" % repr(args))
+        logging.getLogger('DNS').debug(f"resolving domain name {repr(args)}")
         _args = list(args)
 
         # custom DNS resolvers
@@ -243,7 +243,7 @@ def remove_all_containers():
     for container in docker_client.containers.list(all=True):
         if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER and container.id.startswith(socket.gethostname()):
             continue  # pytest is running within a Docker container, so we do not want to remove that particular container
-        logging.info("removing container %s" % container.name)
+        logging.info(f"removing container {container.name}")
         container.remove(v=True, force=True)
 
 
@@ -263,19 +263,19 @@ def get_nginx_conf_from_container(container):
 
 
 def docker_compose_up(compose_file='docker-compose.yml'):
-    logging.info('docker-compose -f %s up -d' % compose_file)
+    logging.info(f'docker-compose -f {compose_file} up -d')
     try:
-        subprocess.check_output(shlex.split('docker-compose -f %s up -d' % compose_file), stderr=subprocess.STDOUT)
+        subprocess.check_output(shlex.split(f'docker-compose -f {compose_file} up -d'), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        pytest.fail("Error while runninng 'docker-compose -f %s up -d':\n%s" % (compose_file, e.output), pytrace=False)
+        pytest.fail(f"Error while runninng 'docker-compose -f {compose_file} up -d':\n{e.output}", pytrace=False)
 
 
 def docker_compose_down(compose_file='docker-compose.yml'):
-    logging.info('docker-compose -f %s down' % compose_file)
+    logging.info(f'docker-compose -f {compose_file} down')
     try:
-        subprocess.check_output(shlex.split('docker-compose -f %s down' % compose_file), stderr=subprocess.STDOUT)
+        subprocess.check_output(shlex.split(f'docker-compose -f {compose_file} down'), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        pytest.fail("Error while runninng 'docker-compose -f %s down':\n%s" % (compose_file, e.output), pytrace=False)
+        pytest.fail(f"Error while runninng 'docker-compose -f {compose_file} down':\n{e.output}", pytrace=False)
 
 
 def wait_for_nginxproxy_to_be_ready():
@@ -309,7 +309,7 @@ def find_docker_compose_file(request):
     if docker_compose_file_module_variable is not None:
         docker_compose_file = os.path.join( test_module_dir, docker_compose_file_module_variable)
         if not os.path.isfile(docker_compose_file):
-            raise ValueError("docker compose file %r could not be found. Check your test module `docker_compose_file` variable value." % docker_compose_file)
+            raise ValueError(f"docker compose file {docker_compose_file!r} could not be found. Check your test module `docker_compose_file` variable value.")
     else:
         if os.path.isfile(yml_file):
             docker_compose_file = yml_file
@@ -321,7 +321,7 @@ def find_docker_compose_file(request):
     if not os.path.isfile(docker_compose_file):
         logging.error("Could not find any docker-compose file named either '{0}.yml', '{0}.yaml' or 'docker-compose.yml'".format(request.module.__name__))
 
-    logging.debug("using docker compose file %s" % docker_compose_file)
+    logging.debug(f"using docker compose file {docker_compose_file}")
     return docker_compose_file
 
 
@@ -335,7 +335,7 @@ def connect_to_network(network):
         try:
             my_container = docker_client.containers.get(socket.gethostname())
         except docker.errors.NotFound:
-            logging.warn("container %r not found" % socket.gethostname())
+            logging.warn(f"container {socket.gethostname()!r} not found")
             return
 
         # figure out our container networks
@@ -343,7 +343,7 @@ def connect_to_network(network):
 
         # make sure our container is connected to the nginx-proxy's network
         if network not in my_networks:
-            logging.info("Connecting to docker network: %s" % network.name)
+            logging.info(f"Connecting to docker network: {network.name}")
             network.connect(my_container)
             return network
 
@@ -358,7 +358,7 @@ def disconnect_from_network(network=None):
         try:
             my_container = docker_client.containers.get(socket.gethostname())
         except docker.errors.NotFound:
-            logging.warn("container %r not found" % socket.gethostname())
+            logging.warn(f"container {socket.gethostname()!r} not found")
             return
 
         # figure out our container networks
@@ -366,7 +366,7 @@ def disconnect_from_network(network=None):
 
         # disconnect our container from the given network
         if network.name in my_networks_names:
-            logging.info("Disconnecting from network %s" % network.name)
+            logging.info(f"Disconnecting from network {network.name}")
             network.disconnect(my_container)
 
 
@@ -458,7 +458,7 @@ def pytest_runtest_makereport(item, call):
 def pytest_runtest_setup(item):
     previousfailed = getattr(item.parent, "_previousfailed", None)
     if previousfailed is not None:
-        pytest.xfail("previous test failed (%s)" % previousfailed.name)
+        pytest.xfail(f"previous test failed ({previousfailed.name})")
 
 ###############################################################################
 # 

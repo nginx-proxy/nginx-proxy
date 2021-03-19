@@ -55,7 +55,7 @@ def require_openssl(required_version):
         openssl_version = str(command_output.split()[1])
         return pytest.mark.skipif(
             versiontuple(openssl_version) < versiontuple(required_version),
-            reason="openssl v%s is less than required version %s" % (openssl_version, required_version))
+            reason=f"openssl v{openssl_version} is less than required version {required_version}")
 
 
 ###############################################################################
@@ -87,7 +87,7 @@ def test_web5_dhparam_is_used(docker_compose):
     sut_container = docker_client.containers.get("nginxproxy")
     assert sut_container.status == "running"
 
-    host = "%s:443" % sut_container.attrs["NetworkSettings"]["IPAddress"]
+    host = f"{sut_container.attrs['NetworkSettings']['IPAddress']}:443"
     r = subprocess.check_output(
         f"echo '' | openssl s_client -connect {host} -cipher 'EDH' | grep 'Server Temp Key'", shell=True)
     assert b"Server Temp Key: X25519, 253 bits\n" == r

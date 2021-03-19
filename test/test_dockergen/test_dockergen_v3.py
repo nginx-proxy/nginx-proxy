@@ -24,8 +24,7 @@ def versiontuple(v):
 raw_version = docker.from_env().version()["Version"]
 pytestmark = pytest.mark.skipif(
     versiontuple(raw_version) < (1, 13),
-    reason="Docker compose syntax v3 requires docker engine v1.13 or later (got %s)"
-    % raw_version,
+    reason="Docker compose syntax v3 requires docker engine v1.13 or later (got {raw_version})"
 )
 
 
@@ -64,7 +63,7 @@ def test_forwards_to_whoami(nginx_tmpl, docker_compose, nginxproxy):
     r = nginxproxy.get("http://whoami.nginx.container.docker/")
     assert r.status_code == 200
     whoami_container = docker_compose.containers.get("whoami")
-    assert r.text == "I'm %s\n" % whoami_container.id[:12]
+    assert r.text == f"I'm {whoami_container.id[:12]}\n"
 
 
 if __name__ == "__main__":
