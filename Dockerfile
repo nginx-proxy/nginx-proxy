@@ -1,12 +1,11 @@
 # setup build arguments for version of dependencies to use
 ARG NGINX_VERSION=1.19.3
-ARG GO_VERSION=1.14
 
 ARG DOCKER_GEN_VERSION=0.7.4
 ARG FOREGO_VERSION=0.16.1
 
 # Use a specific version of golang to build both binaries
-FROM golang:$GO_VERSION as gobuilder
+FROM golang:1.15.10 as gobuilder
 
 # Build docker-gen from scratch
 FROM gobuilder as dockergen
