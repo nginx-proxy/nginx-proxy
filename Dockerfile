@@ -1,6 +1,4 @@
 # setup build arguments for version of dependencies to use
-ARG NGINX_VERSION=1.19.3
-
 ARG DOCKER_GEN_VERSION=0.7.4
 ARG FOREGO_VERSION=0.16.1
 
@@ -43,7 +41,7 @@ RUN go get -v ./... && \
    CGO_ENABLED=0 GOOS=linux go build -o forego .
 
 # Build the final image
-FROM nginx:$NGINX_VERSION
+FROM nginx:1.19.3
 LABEL maintainer="Jason Wilder mail@jasonwilder.com"
 
 # Install wget and install/updates certificates
