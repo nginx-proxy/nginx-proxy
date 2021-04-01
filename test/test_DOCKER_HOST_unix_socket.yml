@@ -16,7 +16,7 @@ web2:
 
 
 sut:
-  image: jwilder/nginx-proxy:test
+  image: nginxproxy/nginx-proxy:test
   volumes:
     - /var/run/docker.sock:/f00.sock:ro
     - ./lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro

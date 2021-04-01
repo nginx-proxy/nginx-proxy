@@ -8,13 +8,13 @@ import pytest
 def nginx_tmpl():
     """
     pytest fixture which extracts the the nginx config template from
-    the jwilder/nginx-proxy:test image
+    the nginxproxy/nginx-proxy:test image
     """
     script_dir = os.path.dirname(__file__)
-    logging.info("extracting nginx.tmpl from jwilder/nginx-proxy:test")
+    logging.info("extracting nginx.tmpl from nginxproxy/nginx-proxy:test")
     docker_client = docker.from_env()
     print(docker_client.containers.run(
-        image='jwilder/nginx-proxy:test',
+        image='nginxproxy/nginx-proxy:test',
         remove=True,
         volumes=['{current_dir}:{current_dir}'.format(current_dir=script_dir)],
         entrypoint='sh',
