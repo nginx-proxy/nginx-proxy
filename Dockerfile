@@ -41,7 +41,7 @@ RUN go get -v ./... && \
    CGO_ENABLED=0 GOOS=linux go build -o forego .
 
 # Build the final image
-FROM nginx:1.19.3
+FROM nginx:1.19.9
 LABEL maintainer="Jason Wilder mail@jasonwilder.com"
 
 # Install wget and install/updates certificates
