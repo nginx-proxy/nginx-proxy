@@ -68,11 +68,11 @@ class requests_for_docker(object):
         """
         Return the nginx config file
         """
-        nginx_proxy_containers = docker_client.containers.list(filters={"ancestor": "jwilder/nginx-proxy:test"})
+        nginx_proxy_containers = docker_client.containers.list(filters={"ancestor": "nginxproxy/nginx-proxy:test"})
         if len(nginx_proxy_containers) > 1:
-            pytest.fail("Too many running jwilder/nginx-proxy:test containers", pytrace=False)
+            pytest.fail("Too many running nginxproxy/nginx-proxy:test containers", pytrace=False)
         elif len(nginx_proxy_containers) == 0:
-            pytest.fail("No running jwilder/nginx-proxy:test container", pytrace=False)
+            pytest.fail("No running nginxproxy/nginx-proxy:test container", pytrace=False)
         return get_nginx_conf_from_container(nginx_proxy_containers[0])
 
     def get(self, *args, **kwargs):
@@ -162,16 +162,16 @@ def container_ipv6(container):
 def nginx_proxy_dns_resolver(domain_name):
     """
     if "nginx-proxy" if found in host, return the ip address of the docker container
-    issued from the docker image jwilder/nginx-proxy:test.
+    issued from the docker image nginxproxy/nginx-proxy:test.
 
     :return: IP or None
     """
     log = logging.getLogger('DNS')
     log.debug("nginx_proxy_dns_resolver(%r)" % domain_name)
     if 'nginx-proxy' in domain_name:
-        nginxproxy_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "jwilder/nginx-proxy:test"})
+        nginxproxy_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "nginxproxy/nginx-proxy:test"})
         if len(nginxproxy_containers) == 0:
-            log.warn("no container found from image jwilder/nginx-proxy:test while resolving %r", domain_name)
+            log.warn("no container found from image nginxproxy/nginx-proxy:test while resolving %r", domain_name)
             return
         nginxproxy_container = nginxproxy_containers[0]
         ip = container_ip(nginxproxy_container)
@@ -211,7 +211,7 @@ def monkey_patch_urllib_dns_resolver():
     """
     Alter the behavior of the urllib DNS resolver so that any domain name
     containing substring 'nginx-proxy' will resolve to the IP address
-    of the container created from image 'jwilder/nginx-proxy:test'.
+    of the container created from image 'nginxproxy/nginx-proxy:test'.
     """
     prv_getaddrinfo = socket.getaddrinfo
     dns_cache = {}
@@ -278,10 +278,10 @@ def docker_compose_down(compose_file='docker-compose.yml'):
 
 def wait_for_nginxproxy_to_be_ready():
     """
-    If one (and only one) container started from image jwilder/nginx-proxy:test is found, 
+    If one (and only one) container started from image nginxproxy/nginx-proxy:test is found, 
     wait for its log to contain substring "Watching docker events"
     """
-    containers = docker_client.containers.list(filters={"ancestor": "jwilder/nginx-proxy:test"})
+    containers = docker_client.containers.list(filters={"ancestor": "nginxproxy/nginx-proxy:test"})
     if len(containers) != 1:
         return
     container = containers[0]
@@ -439,7 +439,7 @@ def nginxproxy():
 def pytest_runtest_logreport(report):
     if report.failed:
         if isinstance(report.longrepr, ReprExceptionInfo):
-            test_containers = docker_client.containers.list(all=True, filters={"ancestor": "jwilder/nginx-proxy:test"})
+            test_containers = docker_client.containers.list(all=True, filters={"ancestor": "nginxproxy/nginx-proxy:test"})
             for container in test_containers:
                 report.longrepr.addsection('nginx-proxy logs', container.logs())
                 report.longrepr.addsection('nginx-proxy conf', get_nginx_conf_from_container(container))
@@ -465,9 +465,9 @@ def pytest_runtest_setup(item):
 ###############################################################################
 
 try:
-    docker_client.images.get('jwilder/nginx-proxy:test')
+    docker_client.images.get('nginxproxy/nginx-proxy:test')
 except docker.errors.ImageNotFound:
-    pytest.exit("The docker image 'jwilder/nginx-proxy:test' is missing")
+    pytest.exit("The docker image 'nginxproxy/nginx-proxy:test' is missing")
 
 if docker.__version__ != "2.1.0":
     pytest.exit("This test suite is meant to work with the python docker module v2.1.0")

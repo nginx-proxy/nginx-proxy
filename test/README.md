@@ -15,13 +15,13 @@ If you can't install those requirements on your computer, you can alternatively 
 Prepare the nginx-proxy test image
 ----------------------------------
 
-    docker build -t jwilder/nginx-proxy:test ..
+    docker build -t nginxproxy/nginx-proxy:test ..
 
 or if you want to test the alpine flavor:
 
-    docker build -t jwilder/nginx-proxy:test -f Dockerfile.alpine ..
+    docker build -t nginxproxy/nginx-proxy:test -f Dockerfile.alpine ..
 
-make sure to tag that test image exactly `jwilder/nginx-proxy:test` or the test suite won't work.
+make sure to tag that test image exactly `nginxproxy/nginx-proxy:test` or the test suite won't work.
 
 
 Run the test suite
@@ -65,7 +65,7 @@ In your tests, you can use the `docker_compose` variable to query and command th
 
 Also this fixture alters the way the python interpreter resolves domain names to IP addresses in the following ways:
 
-Any domain name containing the substring `nginx-proxy` will resolve to the IP address of the container that was created from the `jwilder/nginx-proxy:test` image. So all the following domain names will resolve to the nginx-proxy container in tests:
+Any domain name containing the substring `nginx-proxy` will resolve to the IP address of the container that was created from the `nginxproxy/nginx-proxy:test` image. So all the following domain names will resolve to the nginx-proxy container in tests:
 - `nginx-proxy`
 - `nginx-proxy.com`
 - `www.nginx-proxy.com`

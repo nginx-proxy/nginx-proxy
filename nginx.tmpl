@@ -253,8 +253,9 @@ server {
 	{{ $access_log }}
 	
 	# Do not HTTPS redirect Let'sEncrypt ACME challenge
-	location /.well-known/acme-challenge/ {
+	location ^~ /.well-known/acme-challenge/ {
 		auth_basic off;
+		auth_request off;
 		allow all;
 		root /usr/share/nginx/html;
 		try_files $uri =404;
