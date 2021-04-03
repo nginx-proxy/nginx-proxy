@@ -225,6 +225,8 @@ upstream {{ $upstream_name }} {
 {{/* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
 {{ $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
 
+{{/* Get the first redirect defined by containers w/ the same vhost */}}
+{{ $redirectHost := or (first (groupByKeys $containers "Env.REDIRECT")) ""}}
 
 {{/* Get the first cert name defined by containers w/ the same vhost */}}
 {{ $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
@@ -261,10 +263,20 @@ server {
 		try_files $uri =404;
 		break;
 	}
-	
+
+	{{ if (and $redirectHost (ne $redirectHost $host)) }}
+        # Redirect host {{ $host }} => {{ $redirectHost }}
+        {{ end }}
+
+	{{ if (and $redirectHost (ne $redirectHost $host)) }}
+	location / {
+                return 301 https://{{ $redirectHost }}$request_uri;
+        }
+	{{ else }}
 	location / {
 		return 301 https://$host$request_uri;
 	}
+	{{ end }}
 }
 {{ end }}
 
@@ -309,7 +321,12 @@ server {
 	{{ else if (exists "/etc/nginx/vhost.d/default") }}
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
+	
+	{{ if (and $redirectHost (ne $redirectHost $host)) }}
+        # Redirect host {{ $host }} => {{ $redirectHost }}
+        {{ end }}
 
+	{{ if (or (not $redirectHost) (eq $redirectHost $host)) }}
 	location / {
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
@@ -334,6 +351,13 @@ server {
 		include /etc/nginx/vhost.d/default_location;
 		{{ end }}
 	}
+	{{ end }}
+
+	{{ if (and $redirectHost (ne $redirectHost $host)) }}
+        location / {
+                return 301 https://{{$redirectHost}}$request_uri;
+        }
+        {{ end }}
 }
 
 {{ end }}
@@ -358,7 +382,12 @@ server {
 	{{ else if (exists "/etc/nginx/vhost.d/default") }}
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
+	
+	{{ if (and $redirectHost (ne $redirectHost $host)) }}
+        # Redirect host {{ $host }} => {{ $redirectHost }}
+        {{ end }}
 
+	{{ if (or (not $redirectHost) (eq $redirectHost $host)) }}
 	location / {
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
@@ -382,6 +411,13 @@ server {
 		include /etc/nginx/vhost.d/default_location;
 		{{ end }}
 	}
+	{{ end }}
+
+	{{ if (and $redirectHost (ne $redirectHost $host)) }}
+	location / {
+                return 301 http://{{ $redirectHost }}$request_uri;
+        }
+	{{ end }}	
 }
 
 {{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
