@@ -51,6 +51,8 @@ services:
 
   whoami:
     image: jwilder/whoami
+    expose:
+      - "8000"
     environment:
       - VIRTUAL_HOST=whoami.local
 ```
