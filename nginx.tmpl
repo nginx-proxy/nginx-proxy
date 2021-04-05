@@ -72,6 +72,65 @@ location {{ .Path }} {
 	}
 {{ end }}
 
+{{ define "location" }}
+location {{ .Path }} {
+	{{ if eq .Proto "uwsgi" }}
+		include uwsgi_params;
+		uwsgi_pass {{ trim .Proto }}://{{ trim .Upstream }};
+	{{ else if eq .Proto "fastcgi" }}
+		root   {{ trim .Vhostroot }};
+		include fastcgi.conf;
+		fastcgi_pass {{ trim .Upstream }};
+	{{ else if eq .Proto "grpc" }}
+		grpc_pass {{ trim .Proto }}://{{ trim .Upstream }};
+	{{ else }}
+		proxy_pass {{ trim .Proto }}://{{ trim .Upstream }}{{ trim .Dest }};
+	{{ end }}
+
+	{{ if (exists (printf "/etc/nginx/htpasswd/%s" .Host)) }}
+		auth_basic	"Restricted {{ .Host }}";
+		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" .Host) }};
+	{{ end }}
+
+	{{ if (exists (printf "/etc/nginx/vhost.d/%s_location" .Host)) }}
+		include {{ printf "/etc/nginx/vhost.d/%s_location" .Host}};
+	{{ else if (exists (printf "/etc/nginx/vhost.d/%s_%s_location" .Host (sha1 .Path))) }}
+		include {{ printf "/etc/nginx/vhost.d/%s_%s_location" .Host (sha1 .Path)}};
+	{{ else if (exists "/etc/nginx/vhost.d/default_location") }}
+		include /etc/nginx/vhost.d/default_location;
+	{{ end }}
+}
+{{ end }}
+
+{{ define "upstream-definition" }}
+	{{ $networks := .Networks }}
+	upstream {{ .Upstream }} {
+		{{ range $container := .Containers }}
+			{{ $addrLen := len $container.Addresses }}
+			{{ range $knownNetwork := $networks }}
+				{{ range $containerNetwork := $container.Networks }}
+					{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
+						## Can be connected with "{{ $containerNetwork.Name }}" network
+						{{/* If only 1 port exposed, use that */}}
+						{{ if eq $addrLen 1 }}
+							{{ $address := index $container.Addresses 0 }}
+							{{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork) }}
+						{{/* If more than one port exposed, use the one matching VIRTUAL_PORT env var, falling back to standard web port 80 */}}
+						{{ else }}
+							{{ $port := coalesce $container.Env.VIRTUAL_PORT "80" }}
+							{{ $address := where $container.Addresses "Port" $port | first }}
+							{{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork) }}
+						{{ end }}
+					{{ else }}
+						# Cannot connect to network of this container
+						server 127.0.0.1 down;
+					{{ end }}
+				{{ end }}
+			{{ end }}
+		{{ end }}
+	}
+{{ end }}
+
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
 map $http_x_forwarded_proto $proxy_x_forwarded_proto {
@@ -114,6 +173,10 @@ log_format vhost '$host $remote_addr - $remote_user [$time_local] '
                  '"$http_referer" "$http_user_agent"';
 
 access_log off;
+
+{{/* Get the SSL_POLICY defined by this container, falling back to "Mozilla-Intermediate" */}}
+{{ $ssl_policy := or ($.Env.SSL_POLICY) "Mozilla-Intermediate" }}
+{{ template "ssl_policy" (dict "ssl_policy" $ssl_policy) }}
 error_log /dev/stderr;
 
 {{ if $.Env.RESOLVERS }}
@@ -313,12 +376,18 @@ server {
 	{{ end }}
 
 	{{ if eq $nPaths 0 }}
-		{{ template "location" (dict "Path" "/" "Proto" $proto "Upstream" $upstream_name "Host" $host "VHostRoot" $vhost_root) }}
+		{{ template "location" (dict "Path" "/" "Proto" $proto "Upstream" $upstream_name "Host" $host "VHostRoot" $vhost_root "Dest" "") }}
 	{{ else }}
-		{{ range $path, $containers := $paths }}
+		{{ range $path, $container := $paths }}
 			{{ $sum := sha1 $path }}
 			{{ $upstream := printf "%s-%s" $upstream_name $sum }}
-			{{ template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "VHostRoot" $vhost_root) }}
+			{{ $dest := (or (first (groupByKeys $container "Env.VIRTUAL_DEST")) "") }}
+			{{ template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "VHostRoot" $vhost_root "Dest" $dest) }}
+		{{ end }}
+		{{ if (not (contains $paths "/")) }}
+			location / {
+				return 503
+			}
 		{{ end }}
 	{{ end }}
 }
@@ -347,12 +416,18 @@ server {
 	{{ end }}
 
 	{{ if eq $nPaths 0 }}
-		{{ template "location" (dict "Path" "/" "Proto" $proto "Upstream" $upstream_name "Host" $host "VHostRoot" $vhost_root) }}
+		{{ template "location" (dict "Path" "/" "Proto" $proto "Upstream" $upstream_name "Host" $host "VHostRoot" $vhost_root "Dest" "") }}
 	{{ else }}
-		{{ range $path, $containers := $paths }}
+		{{ range $path, $container := $paths }}
 			{{ $sum := sha1 $path }}
 			{{ $upstream := printf "%s-%s" $upstream_name $sum }}
-			{{ template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "VHostRoot" $vhost_root) }}
+			{{ $dest := (or (first (groupByKeys $container "Env.VIRTUAL_DEST")) "") }}
+			{{ template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "VHostRoot" $vhost_root "Dest" $dest) }}
+		{{ end }}
+		{{ if (not (contains $paths "/")) }}
+			location / {
+				return 503
+			}
 		{{ end }}
 	{{ end }}
 }
