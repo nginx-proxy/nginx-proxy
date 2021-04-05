@@ -55,6 +55,7 @@ services:
       - "8000"
     environment:
       - VIRTUAL_HOST=whoami.local
+      - VIRTUAL_PORT=8000
 ```
 
 ```shell
