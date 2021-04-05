@@ -1,0 +1,28 @@
+version: "2"
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ../lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
+      - ./my_custom_proxy_settings.conf:/etc/nginx/vhost.d/nginx-proxy.local_faeee25c67f4f2196a5cf9c7b87b970ed63140de_location:ro
+
+  web1:
+    image: web
+    expose:
+      - "81"
+    environment:
+      WEB_PORTS: 81
+      VIRTUAL_HOST: nginx-proxy.local
+      VIRTUAL_PATH: /path1/
+      VIRTUAL_DEST: /
+
+  web2:
+    image: web
+    expose:
+      - "82"
+    environment:
+      WEB_PORTS: 82
+      VIRTUAL_HOST: nginx-proxy.local
+      VIRTUAL_PATH: /path2/
+      VIRTUAL_DEST: /

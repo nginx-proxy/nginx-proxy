@@ -1,0 +1,38 @@
+version: "2"
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
+
+  web1:
+    image: web
+    container_name: whoami1
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: web.nginx-proxy.local
+      VIRTUAL_PATH: /web1
+      VIRTUAL_DEST: /
+
+  web2:
+    image: web
+    container_name: whoami2
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: web.nginx-proxy.local
+      VIRTUAL_PATH: /web2
+      VIRTUAL_DEST: /
+
+  web3:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: status.nginx-proxy.local
+      VIRTUAL_PATH: /status
