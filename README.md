@@ -111,7 +111,7 @@ allow 172.16.0.0/12;
 deny all;
 ```
 
-When internal-only access is enabled, external clients with be denied with an `HTTP 403 Forbidden`
+When internal-only access is enabled, external clients will be denied with an `HTTP 403 Forbidden`
 
 > If there is a load-balancer / reverse proxy in front of `nginx-proxy` that hides the client IP (example: AWS Application/Elastic Load Balancer), you will need to use the nginx `realip` module (already installed) to extract the client's IP from the HTTP request headers.  Please see the [nginx realip module configuration](http://nginx.org/en/docs/http/ngx_http_realip_module.html) for more details.  This configuration can be added to a new config file and mounted in `/etc/nginx/conf.d/`.
 
