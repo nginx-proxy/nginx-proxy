@@ -146,6 +146,9 @@ To set the default host for nginx use the env var `DEFAULT_HOST=foo.bar.com` for
 
     $ docker run -d -p 80:80 -e DEFAULT_HOST=foo.bar.com -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
 
+nginx-proxy will then redirect all requests to a container where `VIRTUAL_HOST` is set to `DEFAULT_HOST`, if they don't match any (other) `VIRTUAL_HOST`. Using the example above requests without matching `VIRTUAL_HOST` will be redirected to a plain nginx instance after running the following command:
+
+    $ docker run -d -e VIRTUAL_HOST=foo.bar.com nginx
 
 ### Separate Containers
 
