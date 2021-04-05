@@ -32,7 +32,7 @@ This image uses the debian:buster based nginx image.
 
 #### nginxproxy/nginx-proxy:alpine
 
-This image is based on the nginx:alpine image. Use this image to fully support HTTP/2 (including ALPN required by recent Chrome versions). A valid certificate is required as well (see eg. below "SSL Support using letsencrypt" for more info).
+This image is based on the nginx:alpine image. Use this image to fully support HTTP/2 (including ALPN required by recent Chrome versions). A valid certificate is required as well (see eg. below "SSL Support using an ACME CA" for more info).
 
     $ docker pull nginxproxy/nginx-proxy:alpine
 
@@ -185,9 +185,9 @@ $ docker run --volumes-from nginx \
 Finally, start your containers with `VIRTUAL_HOST` environment variables.
 
     $ docker run -e VIRTUAL_HOST=foo.bar.com  ...
-### SSL Support using letsencrypt
+### SSL Support using an ACME CA
 
-[letsencrypt-nginx-proxy-companion](https://github.com/nginx-proxy/docker-letsencrypt-nginx-proxy-companion) is a lightweight companion container for the nginx-proxy. It allows the creation/renewal of Let's Encrypt certificates automatically.
+[acme-companion](https://github.com/nginx-proxy/acme-companion) is a lightweight companion container for the nginx-proxy. It allows the automated creation/renewal of SSL certificates using the ACME protocol.
 
 Set `DHPARAM_GENERATION` environment variable to `false` to disabled Diffie-Hellman parameters completely. This will also ignore auto-generation made by `nginx-proxy`.
 The default value is `true`
