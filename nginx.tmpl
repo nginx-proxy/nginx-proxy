@@ -294,6 +294,26 @@ server {
 	ssl_dhparam {{ printf "/etc/nginx/certs/%s.dhparam.pem" $cert }};
 	{{ end }}
 
+	{{/* SSL Client Certificate Validation */}}
+	{{/* If we have a client specific ca (form of fqdn.ca.crt) then use that */}}
+	{{ if (exists (printf "/etc/nginx/certs/%s.ca.crt" $cert)) }}
+	ssl_client_certificate {{ printf "/etc/nginx/certs/%s.ca.crt" $cert }};
+	ssl_verify_client on;
+	{{/* If a corresponding crl is present for the fqdn specific ca include it */}}
+	{{ if (exists (printf "/etc/nginx/certs/%s.ca.crl" $cert)) }}
+	ssl_crl {{ printf "/etc/nginx/certs/%s.ca.crl" $cert }};
+	{{ end }}
+	{{/* If we didn't have a client specific ca (ca.crt) but we have a global one use that */}}
+	{{ else if (exists "/etc/nginx/certs/ca.crt") }}
+	ssl_client_certificate /etc/nginx/certs/ca.crt;
+	ssl_verify_client on;
+	{{/* If a corresponding crl is present for the global ca include it */}}
+	{{ if (exists "/etc/nginx/certs/ca.crl")}}
+	ssl_crl /etc/nginx/certs/ca.crl;
+	{{ end }}
+	{{ end }}
+
+
 	{{ if (exists (printf "/etc/nginx/certs/%s.chain.pem" $cert)) }}
 	ssl_stapling on;
 	ssl_stapling_verify on;
