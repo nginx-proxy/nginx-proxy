@@ -1,5 +1,5 @@
 # setup build arguments for version of dependencies to use
-ARG DOCKER_GEN_VERSION=0.7.4
+ARG DOCKER_GEN_VERSION=0.7.5
 ARG FOREGO_VERSION=0.16.1
 
 # Use a specific version of golang to build both binaries
