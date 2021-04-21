@@ -1,9 +1,5 @@
 # !!!PLEASE READ!!!
 
-## Questions
-
-If you have a question, DO NOT SUBMIT a new issue.  Please ask the question on the Q&A Group: https://groups.google.com/forum/#!forum/nginx-proxy
-
 ## Bugs or Features
 
 If you are logging a bug or feature request, please search the current open issues to see if there is already a bug or feature opened.
