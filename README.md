@@ -150,6 +150,12 @@ When `HTTPS_METHOD=redirect` defined in container, the default https redirect po
 
     $ docker run -d -p 80:80 -e DEFAULT_HTTPS_REDIRECT_PORT=8443 -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
+### Default proxy timeout
+
+The default proxy timeout time will be 60s for all conteiners, set the env var `DEFAULT_PROXY_TIMEOUT=2m` in nginx container to change this behavior, for example:
+
+    $ docker run -d -p 80:80 -e DEFAULT_PROXY_TIMEOUT=300s -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+
 
 ### Separate Containers
 
@@ -300,7 +306,12 @@ window / different browser.
 
 ### HTTPS External redirect port per container config
 
-By default when `HTTPS_METHOD=redirect` nginx will redirect connections on port HTPP 80 to 443 port or value defined in `DEFAULT_HTTPS_REDIRECT_PORT`, with `HTTPS_REDIRECT_PORT=port` you can change this behavior to another port, for example `HTTPS_REDIRECT_PORT=8443`
+By default when `HTTPS_METHOD=redirect` nginx will redirect connections on port HTPP 80 to 443 port or value defined in `DEFAULT_HTTPS_REDIRECT_PORT`, with `HTTPS_REDIRECT_PORT=port` you can change this behavior by container to another port, for example `HTTPS_REDIRECT_PORT=8443`
+
+### PROXY Timeout
+
+By default nginx will drop a connection after 60s or value defined in `DEFAULT_PROXY_TIMEOUT`, with `PROXY_TIMEOUT=time` you can change this behavior by container to another time, for example `PROXY_TIMEOUT=180s`
+
 
 ### HSTS
 

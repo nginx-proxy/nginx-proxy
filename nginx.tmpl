@@ -207,6 +207,7 @@ upstream {{ $upstream_name }} {
 {{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
 {{ $default_server := index (dict $host "" $default_host "default_server") $host }}
 {{ $default_https_redirect_port := or ($.Env.DEFAULT_HTTPS_REDIRECT_PORT) "443" }}
+{{ $default_proxy_timeout := or ($.Env.DEFAULT_PROXY_TIMEOUT) "60s" }}
 
 {{/* Get the VIRTUAL_PROTO defined by containers w/ the same vhost, falling back to "http" */}}
 {{ $proto := trim (or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http") }}
@@ -219,6 +220,9 @@ upstream {{ $upstream_name }} {
 
 {{/* Get the HTTPS_REDIRECT_PORT defined by containers w/ the same vhost, falling back to "443" */}}
 {{ $https_redirect_port := or (first (groupByKeys $containers "Env.HTTPS_REDIRECT_PORT")) (or $.Env.HTTPS_REDIRECT_PORT $default_https_redirect_port) }}
+
+{{/* Get the PROXY_TIMEOUT defined by containers w/ the same vhost, falling back to "60s" */}}
+{{ $proxy_timeout := or (first (groupByKeys $containers "Env.PROXY_TIMEOUT")) (or $.Env.PROXY_TIMEOUT $default_proxy_timeout)) }}
 
 {{/* Get the SSL_POLICY defined by containers w/ the same vhost, falling back to empty string (use default) */}}
 {{ $ssl_policy := or (first (groupByKeys $containers "Env.SSL_POLICY")) "" }}
@@ -255,7 +259,7 @@ server {
 	listen [::]:{{ $external_http_port }} {{ $default_server }};
 	{{ end }}
 	{{ $access_log }}
-	
+
 	# Do not HTTPS redirect Let'sEncrypt ACME challenge
 	location /.well-known/acme-challenge/ {
 		auth_basic off;
@@ -264,7 +268,7 @@ server {
 		try_files $uri =404;
 		break;
 	}
-	
+
 	location / {
 		return 301 https://$host:{{ $https_redirect_port }}$request_uri;
 	}
@@ -289,6 +293,11 @@ server {
 	ssl_session_timeout 5m;
 	ssl_session_cache shared:SSL:50m;
 	ssl_session_tickets off;
+
+	send_timeout {{ $proxy_timeout }};
+	proxy_connect_timeout {{ $proxy_timeout }};
+	proxy_send_timeout {{ $proxy_timeout }};
+	proxy_read_timeout {{ $proxy_timeout }};
 
 	ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $cert) }};
 	ssl_certificate_key /etc/nginx/certs/{{ (printf "%s.key" $cert) }};
