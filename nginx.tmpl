@@ -222,7 +222,7 @@ upstream {{ $upstream_name }} {
 {{ $https_redirect_port := or (first (groupByKeys $containers "Env.HTTPS_REDIRECT_PORT")) (or $.Env.HTTPS_REDIRECT_PORT $default_https_redirect_port) }}
 
 {{/* Get the PROXY_TIMEOUT defined by containers w/ the same vhost, falling back to "60s" */}}
-{{ $proxy_timeout := or (first (groupByKeys $containers "Env.PROXY_TIMEOUT")) (or $.Env.PROXY_TIMEOUT $default_proxy_timeout)) }}
+{{ $proxy_timeout := or (first (groupByKeys $containers "Env.PROXY_TIMEOUT")) (or $.Env.PROXY_TIMEOUT $default_proxy_timeout) }}
 
 {{/* Get the SSL_POLICY defined by containers w/ the same vhost, falling back to empty string (use default) */}}
 {{ $ssl_policy := or (first (groupByKeys $containers "Env.SSL_POLICY")) "" }}
@@ -294,10 +294,10 @@ server {
 	ssl_session_cache shared:SSL:50m;
 	ssl_session_tickets off;
 
-	send_timeout {{ $proxy_timeout }};
-	proxy_connect_timeout {{ $proxy_timeout }};
-	proxy_send_timeout {{ $proxy_timeout }};
-	proxy_read_timeout {{ $proxy_timeout }};
+	send_timeout {{ trim $proxy_timeout }};
+	proxy_connect_timeout {{ trim $proxy_timeout }};
+	proxy_send_timeout {{ trim $proxy_timeout }};
+	proxy_read_timeout {{ trim $proxy_timeout }};
 
 	ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $cert) }};
 	ssl_certificate_key /etc/nginx/certs/{{ (printf "%s.key" $cert) }};
