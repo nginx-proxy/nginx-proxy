@@ -1,5 +1,5 @@
 ![latest 0.8.0](https://img.shields.io/badge/latest-0.8.0-green.svg?style=flat)
-![nginx 1.19.3](https://img.shields.io/badge/nginx-1.19.3-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Build Status](https://travis-ci.org/nginx/nginx-proxy.svg?branch=main)](https://travis-ci.org/jwilder/nginx-proxy) [![](https://img.shields.io/docker/stars/nginxproxy/nginx-proxy.svg)](https://hub.docker.com/r/nginxproxy/nginx-proxy 'DockerHub') [![](https://img.shields.io/docker/pulls/nginxproxy/nginx-proxy.svg)](https://hub.docker.com/r/nginxproxy/nginx-proxy 'DockerHub')
+![nginx 1.19.10](https://img.shields.io/badge/nginx-1.19.10-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg) [![Test](https://github.com/nginx-proxy/nginx-proxy/actions/workflows/test.yml/badge.svg)](https://github.com/nginx-proxy/nginx-proxy/actions/workflows/test.yml) [![](https://img.shields.io/docker/stars/nginxproxy/nginx-proxy.svg)](https://hub.docker.com/r/nginxproxy/nginx-proxy 'DockerHub') [![](https://img.shields.io/docker/pulls/nginxproxy/nginx-proxy.svg)](https://hub.docker.com/r/nginxproxy/nginx-proxy 'DockerHub')
 
 
 nginx-proxy sets up a container running nginx and [docker-gen][1].  docker-gen generates reverse proxy configs for nginx and reloads nginx when containers are started and stopped.
