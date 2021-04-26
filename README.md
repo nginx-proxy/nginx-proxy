@@ -415,22 +415,15 @@ Before submitting pull requests or issues, please check github to make sure an e
 
 #### Running Tests Locally
 
-To run tests, you need to prepare the docker image to test which must be tagged `nginxproxy/nginx-proxy:test`:
-
-    docker build -t nginxproxy/nginx-proxy:test .  # build the Debian variant image
-
-and call the [test/pytest.sh](test/pytest.sh) script.
-
-Then build the Alpine variant of the image:
-
-    docker build -f Dockerfile.alpine -t nginxproxy/nginx-proxy:test .  # build the Alpline variant image
-
-and call the [test/pytest.sh](test/pytest.sh) script again.
-
-
-If your system has the `make` command, you can automate those tasks by calling:
+To run tests, you just need to run the command below:
 
     make test
 
+This commands run tests on two variants of the nginx-proxy docker image: Debian and Alpine.
+
+You can run the tests for each of these images with their respective commands:
+
+    make test-debian
+    make test-alpine
 
 You can learn more about how the test suite works and how to write new tests in the [test/README.md](test/README.md) file.

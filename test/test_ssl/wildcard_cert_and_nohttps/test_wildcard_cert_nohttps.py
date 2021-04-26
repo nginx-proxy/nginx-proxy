@@ -1,5 +1,5 @@
 import pytest
-from backports.ssl_match_hostname import CertificateError
+from ssl import CertificateError
 from requests.exceptions import SSLError
 
 
@@ -9,19 +9,19 @@ from requests.exceptions import SSLError
     (3, False),
 ])
 def test_http_redirects_to_https(docker_compose, nginxproxy, subdomain, should_redirect_to_https):
-    r = nginxproxy.get("http://%s.web.nginx-proxy.tld/port" % subdomain)
+    r = nginxproxy.get(f"http://{subdomain}.web.nginx-proxy.tld/port")
     if should_redirect_to_https:
         assert len(r.history) > 0
         assert r.history[0].is_redirect
-        assert r.history[0].headers.get("Location") == "https://%s.web.nginx-proxy.tld/port" % subdomain
-    assert "answer from port 8%s\n" % subdomain == r.text
+        assert r.history[0].headers.get("Location") == f"https://{subdomain}.web.nginx-proxy.tld/port"
+    assert f"answer from port 8{subdomain}\n" == r.text
 
 
 @pytest.mark.parametrize("subdomain", [1, 2])
 def test_https_get_served(docker_compose, nginxproxy, subdomain):
-    r = nginxproxy.get("https://%s.web.nginx-proxy.tld/port" % subdomain, allow_redirects=False)
+    r = nginxproxy.get(f"https://{subdomain}.web.nginx-proxy.tld/port", allow_redirects=False)
     assert r.status_code == 200
-    assert "answer from port 8%s\n" % subdomain == r.text
+    assert f"answer from port 8{subdomain}\n" == r.text
 
 
 def test_web3_https_is_500_and_SSL_validation_fails(docker_compose, nginxproxy):
