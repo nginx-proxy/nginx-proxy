@@ -53,7 +53,8 @@ RUN apt-get update \
 
 # Configure Nginx and apply fix for very long server names
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
- && sed -i 's/worker_processes  1/worker_processes  auto/' /etc/nginx/nginx.conf
+ && sed -i 's/worker_processes  1/worker_processes  auto/' /etc/nginx/nginx.conf \
+ && sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf
 
 # Install Forego + docker-gen
 COPY --from=forego /go/src/github.com/ddollar/forego/forego /usr/local/bin/forego
