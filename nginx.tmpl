@@ -172,7 +172,7 @@ server {
 
 {{ $host := trim $host }}
 {{ $is_regexp := hasPrefix "~" $host }}
-{{ $upstream_name := when $is_regexp (sha1 $host) $host }}
+{{ $upstream_name := (print (when $is_regexp (sha1 $host) $host) "-upstream") }}
 
 # {{ $host }}
 upstream {{ $upstream_name }} {
@@ -253,8 +253,9 @@ server {
 	{{ $access_log }}
 	
 	# Do not HTTPS redirect Let'sEncrypt ACME challenge
-	location /.well-known/acme-challenge/ {
+	location ^~ /.well-known/acme-challenge/ {
 		auth_basic off;
+		auth_request off;
 		allow all;
 		root /usr/share/nginx/html;
 		try_files $uri =404;
