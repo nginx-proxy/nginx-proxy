@@ -1,5 +1,5 @@
 # setup build arguments for version of dependencies to use
-ARG DOCKER_GEN_VERSION=0.7.6
+ARG DOCKER_GEN_VERSION=contains
 ARG FOREGO_VERSION=0.16.1
 
 # Use a specific version of golang to build both binaries
@@ -10,7 +10,7 @@ FROM gobuilder as dockergen
 
 ARG DOCKER_GEN_VERSION
 
-RUN git clone https://github.com/jwilder/docker-gen \
+RUN git clone https://github.com/buchdag/docker-gen.git \
    && cd /go/docker-gen \
    && git -c advice.detachedHead=false checkout $DOCKER_GEN_VERSION \
    && go mod download \
