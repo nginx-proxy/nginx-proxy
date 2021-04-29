@@ -22,7 +22,7 @@ def assert_log_contains(expected_log_line):
     """
     sut_container = docker_client.containers.get("nginxproxy")
     docker_logs = sut_container.logs(stdout=True, stderr=True, stream=False, follow=False)
-    assert expected_log_line in docker_logs
+    assert bytes(expected_log_line, encoding="utf8") in docker_logs
 
 
 ###############################################################################
@@ -35,10 +35,10 @@ def test_dhparam_is_generated_if_missing(docker_compose):
     sut_container = docker_client.containers.get("nginxproxy")
     assert sut_container.status == "running"
 
-    assert_log_contains("Generating DH parameters")
+    assert_log_contains("Generating DSA parameters")
     assert_log_contains("dhparam generation complete, reloading nginx")
 
     # Make sure the dhparam in use is not the default, pre-generated one
-    default_checksum = sut_container.exec_run("md5sum /app/dhparam.pem.default").split()
-    generated_checksum = sut_container.exec_run("md5sum /etc/nginx/dhparam/dhparam.pem").split()
+    default_checksum = sut_container.exec_run("md5sum /app/dhparam.pem.default").output.split()
+    generated_checksum = sut_container.exec_run("md5sum /etc/nginx/dhparam/dhparam.pem").output.split()
     assert default_checksum[0] != generated_checksum[0]

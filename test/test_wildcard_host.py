@@ -18,9 +18,9 @@ import pytest
     ("web4.whatever.nginx-proxy.regexp", 84),
 ])
 def test_wildcard_prefix(docker_compose, nginxproxy, host, expected_port):
-    r = nginxproxy.get("http://%s/port" % host)
+    r = nginxproxy.get(f"http://{host}/port")
     assert r.status_code == 200
-    assert r.text == "answer from port %s\n" % expected_port
+    assert r.text == f"answer from port {expected_port}\n"
 
 
 @pytest.mark.parametrize("host", [
@@ -28,5 +28,5 @@ def test_wildcard_prefix(docker_compose, nginxproxy, host, expected_port):
     "web4.whatever.nginx-proxy.regexp-to-infinity-and-beyond"
 ])
 def test_non_matching_host_is_503(docker_compose, nginxproxy, host):
-    r = nginxproxy.get("http://%s/port" % host)
+    r = nginxproxy.get(f"http://{host}/port")
     assert r.status_code == 503, r.text
