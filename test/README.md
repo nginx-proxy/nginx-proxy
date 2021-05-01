@@ -38,7 +38,7 @@ Run one single test module
 Write a test module
 -------------------
 
-This test suite uses [pytest](http://doc.pytest.org/en/latest/). The [conftest.py](conftest.py) file will be automatically loaded by pytest and will provide you with two useful pytest [fixtures](http://doc.pytest.org/en/latest/fixture.html#fixture): 
+This test suite uses [pytest](http://doc.pytest.org/en/latest/). The [conftest.py](conftest.py) file will be automatically loaded by pytest and will provide you with two useful pytest [fixtures](https://docs.pytest.org/en/latest/explanation/fixtures.html): 
 
 - docker_compose
 - nginxproxy
