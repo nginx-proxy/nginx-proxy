@@ -369,7 +369,7 @@ To add settings on a proxy-wide basis, add your configuration file under `/etc/n
 This can be done in a derived image by creating the file in a `RUN` command or by `COPY`ing the file into `conf.d`:
 
 ```Dockerfile
-FROM nginxproxy/nginx-proxy
+FROM nginxproxy/nginx-proxy:latest
 RUN { \
       echo 'server_tokens off;'; \
       echo 'client_max_body_size 100m;'; \
