@@ -97,8 +97,8 @@ server_names_hash_bucket_size 128;
 ssl_dhparam /etc/nginx/dhparam/dhparam.pem;
 {{ end }}
 
-# Set appropriate X-Forwarded-Ssl header
-map $scheme $proxy_x_forwarded_ssl {
+# Set appropriate X-Forwarded-Ssl header based on $proxy_x_forwarded_proto
+map $proxy_x_forwarded_proto $proxy_x_forwarded_ssl {
   default off;
   https on;
 }
