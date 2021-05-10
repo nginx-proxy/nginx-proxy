@@ -1,17 +1,19 @@
 import contextlib
 import logging
 import os
+import re
 import shlex
 import socket
 import subprocess
 import time
-import re
+from typing import List
 
 import backoff
 import docker
 import pytest
 import requests
 from _pytest._code.code import ReprExceptionInfo
+from docker.models.containers import Container
 from requests.packages.urllib3.util.connection import HAS_IPV6
 
 logging.basicConfig(level=logging.INFO)
@@ -63,16 +65,31 @@ class requests_for_docker(object):
         if os.path.isfile(CA_ROOT_CERTIFICATE):
             self.session.verify = CA_ROOT_CERTIFICATE
 
-    def get_conf(self):
+    @staticmethod
+    def get_nginx_proxy_containers() -> List[Container]:
         """
-        Return the nginx config file
+        Return list of containers
         """
         nginx_proxy_containers = docker_client.containers.list(filters={"ancestor": "nginxproxy/nginx-proxy:test"})
         if len(nginx_proxy_containers) > 1:
             pytest.fail("Too many running nginxproxy/nginx-proxy:test containers", pytrace=False)
         elif len(nginx_proxy_containers) == 0:
             pytest.fail("No running nginxproxy/nginx-proxy:test container", pytrace=False)
+        return nginx_proxy_containers
+
+    def get_conf(self):
+        """
+        Return the nginx config file
+        """
+        nginx_proxy_containers = self.get_nginx_proxy_containers()
         return get_nginx_conf_from_container(nginx_proxy_containers[0])
+
+    def get_ip(self) -> str:
+        """
+        Return the nginx container ip address
+        """
+        nginx_proxy_containers = self.get_nginx_proxy_containers()
+        return container_ip(nginx_proxy_containers[0])
 
     def get(self, *args, **kwargs):
         with ipv6(kwargs.pop('ipv6', False)):
@@ -120,7 +137,7 @@ class requests_for_docker(object):
         return getattr(requests, name)
 
 
-def container_ip(container):
+def container_ip(container: Container):
     """
     return the IP address of a container.
 
