@@ -2,15 +2,19 @@
 .PHONY : test-debian test-alpine test
 
 
-update-dependencies:
-	test/requirements/build.sh
+build-webserver:
+	docker build -t web test/requirements/web
 
-test-debian: update-dependencies
-	docker build -t jwilder/nginx-proxy:test .
+build-nginx-proxy-test-debian:
+	docker build -t nginxproxy/nginx-proxy:test .
+
+build-nginx-proxy-test-alpine:
+	docker build -f Dockerfile.alpine -t nginxproxy/nginx-proxy:test .
+
+test-debian: build-webserver build-nginx-proxy-test-debian
 	test/pytest.sh
 
-test-alpine: update-dependencies
-	docker build -f Dockerfile.alpine -t jwilder/nginx-proxy:test .
+test-alpine: build-webserver build-nginx-proxy-test-alpine
 	test/pytest.sh
 
 test: test-debian test-alpine

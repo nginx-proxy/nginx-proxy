@@ -12,7 +12,7 @@ script_dir = os.path.dirname(__file__)
 pytestmark = pytest.mark.xfail()  # TODO delete this marker once those issues are fixed
 
 
-@pytest.yield_fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module", autouse=True)
 def certs():
     """
     pytest fixture that provides cert and key files into the tmp_certs directory
@@ -43,7 +43,7 @@ def test_http_web_is_301(docker_compose, nginxproxy):
 def test_https_web_is_200(docker_compose, nginxproxy):
     r = nginxproxy.get("https://web.nginx-proxy/port")
     assert r.status_code == 200
-    assert 'answer from port 81\n' in r.text
+    assert "answer from port 81\n" in r.text
 
 
 @pytest.mark.incremental

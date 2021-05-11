@@ -26,7 +26,7 @@ def assert_log_contains(expected_log_line):
     """
     sut_container = docker_client.containers.get("nginxproxy")
     docker_logs = sut_container.logs(stdout=True, stderr=True, stream=False, follow=False)
-    assert expected_log_line in docker_logs
+    assert bytes(expected_log_line, encoding="utf8") in docker_logs
 
 
 def require_openssl(required_version):
@@ -42,7 +42,7 @@ def require_openssl(required_version):
     """
 
     def versiontuple(v):
-        clean_v = re.sub("[^\d\.]", "", v)
+        clean_v = re.sub(r"[^\d\.]", "", v)
         return tuple(map(int, (clean_v.split("."))))
 
     try:
@@ -52,10 +52,10 @@ def require_openssl(required_version):
     else:
         if not command_output:
             raise Exception("Could not get openssl version")
-        openssl_version = command_output.split()[1]
+        openssl_version = str(command_output.split()[1])
         return pytest.mark.skipif(
             versiontuple(openssl_version) < versiontuple(required_version),
-            reason="openssl v%s is less than required version %s" % (openssl_version, required_version))
+            reason=f"openssl v{openssl_version} is less than required version {required_version}")
 
 
 ###############################################################################
@@ -71,8 +71,8 @@ def test_dhparam_is_not_generated_if_present(docker_compose):
     assert_log_contains("Custom dhparam.pem file found, generation skipped")
 
     # Make sure the dhparam in use is not the default, pre-generated one
-    default_checksum = sut_container.exec_run("md5sum /app/dhparam.pem.default").split()
-    current_checksum = sut_container.exec_run("md5sum /etc/nginx/dhparam/dhparam.pem").split()
+    default_checksum = sut_container.exec_run("md5sum /app/dhparam.pem.default").output.split()
+    current_checksum = sut_container.exec_run("md5sum /etc/nginx/dhparam/dhparam.pem").output.split()
     assert default_checksum[0] != current_checksum[0]
 
 
@@ -87,7 +87,7 @@ def test_web5_dhparam_is_used(docker_compose):
     sut_container = docker_client.containers.get("nginxproxy")
     assert sut_container.status == "running"
 
-    host = "%s:443" % sut_container.attrs["NetworkSettings"]["IPAddress"]
+    host = f"{sut_container.attrs['NetworkSettings']['IPAddress']}:443"
     r = subprocess.check_output(
-        "echo '' | openssl s_client -connect %s -cipher 'EDH' | grep 'Server Temp Key'" % host, shell=True)
-    assert "Server Temp Key: DH, 2048 bits\n" == r
+        f"echo '' | openssl s_client -connect {host} -cipher 'EDH' | grep 'Server Temp Key'", shell=True)
+    assert b"Server Temp Key: X25519, 253 bits\n" == r

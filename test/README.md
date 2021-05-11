@@ -4,25 +4,20 @@ Nginx proxy test suite
 Install requirements
 --------------------
 
-You need [python 2.7](https://www.python.org/) and [pip](https://pip.pypa.io/en/stable/installing/) installed. Then run the commands:
+You need [python 3.9](https://www.python.org/) and [pip](https://pip.pypa.io/en/stable/installing/) installed. Then run the commands:
 
-    requirements/build.sh
     pip install -r requirements/python-requirements.txt
 
-If you can't install those requirements on your computer, you can alternatively use the _pytest.sh_ script which will run the tests from a Docker container which has those requirements.
 
 
 Prepare the nginx-proxy test image
 ----------------------------------
 
-    docker build -t jwilder/nginx-proxy:test ..
+    make build-nginx-proxy-test-debian
 
 or if you want to test the alpine flavor:
 
-    docker build -t jwilder/nginx-proxy:test -f Dockerfile.alpine ..
-
-make sure to tag that test image exactly `jwilder/nginx-proxy:test` or the test suite won't work.
-
+    make build-nginx-proxy-test-alpine
 
 Run the test suite
 ------------------
@@ -43,7 +38,7 @@ Run one single test module
 Write a test module
 -------------------
 
-This test suite uses [pytest](http://doc.pytest.org/en/latest/). The [conftest.py](conftest.py) file will be automatically loaded by pytest and will provide you with two useful pytest [fixtures](http://doc.pytest.org/en/latest/fixture.html#fixture): 
+This test suite uses [pytest](http://doc.pytest.org/en/latest/). The [conftest.py](conftest.py) file will be automatically loaded by pytest and will provide you with two useful pytest [fixtures](https://docs.pytest.org/en/latest/explanation/fixtures.html): 
 
 - docker_compose
 - nginxproxy
@@ -61,11 +56,11 @@ The fixture will run the _docker-compose_ command with the `-f` option to load t
 
 In the case you are running pytest from within a docker container, the `docker_compose` fixture will make sure the container running pytest is attached to all docker networks. That way, your test will be able to reach any of them.
 
-In your tests, you can use the `docker_compose` variable to query and command the docker daemon as it provides you with a [client from the docker python module](https://docker-py.readthedocs.io/en/2.0.2/client.html#client-reference).
+In your tests, you can use the `docker_compose` variable to query and command the docker daemon as it provides you with a [client from the docker python module](https://docker-py.readthedocs.io/en/4.4.4/client.html#client-reference).
 
 Also this fixture alters the way the python interpreter resolves domain names to IP addresses in the following ways:
 
-Any domain name containing the substring `nginx-proxy` will resolve to the IP address of the container that was created from the `jwilder/nginx-proxy:test` image. So all the following domain names will resolve to the nginx-proxy container in tests:
+Any domain name containing the substring `nginx-proxy` will resolve to the IP address of the container that was created from the `nginxproxy/nginx-proxy:test` image. So all the following domain names will resolve to the nginx-proxy container in tests:
 - `nginx-proxy`
 - `nginx-proxy.com`
 - `www.nginx-proxy.com`
@@ -99,8 +94,7 @@ Furthermore, the nginxproxy methods accept an additional keyword parameter: `ipv
 
 ### The web docker image
 
-When you ran the `requirements/build.sh` script earlier, you built a [`web`](requirements/README.md) docker image which is convenient for running a small web server in a container. This image can produce containers that listens on multiple ports at the same time.
-
+When you run the `make build-webserver` command, you built a [`web`](requirements/README.md) docker image which is convenient for running a small web server in a container. This image can produce containers that listens on multiple ports at the same time.
 
 ### Testing TLS
 
