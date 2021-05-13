@@ -16,7 +16,13 @@
 		{{ end }}
 	{{ else if .Network }}
 		# {{ .Container.Name }}
-		{{ if .Network.IP }}
+		{{ if .Container.Env.UPSTREAM_NAME }}
+			{{ if .Container.Env.VIRTUAL_PORT }}
+				server {{ .Container.Env.UPSTREAM_NAME }}:{{ .Container.Env.VIRTUAL_PORT }};
+			{{ else }}
+				server {{ .Container.Env.UPSTREAM_NAME }};
+			{{ end }}
+		{{ else if .Network.IP }}
 			server {{ .Network.IP }} down;
 		{{ else }}
 			server 127.0.0.1 down;
@@ -184,9 +190,14 @@ upstream {{ $upstream_name }} {
 
 	{{ range $knownNetwork := $CurrentContainer.Networks }}
 		{{ range $containerNetwork := $container.Networks }}
-			{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
-				## Can be connected with "{{ $containerNetwork.Name }}" network
-
+			{{ if (and (ne $containerNetwork.Name "ingress") (or (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host")) $container.Env.UPSTREAM_NAME)) }}
+				{{/* Define $upstream_name if the host is not a docker container */}}
+				{{ if $container.Env.UPSTREAM_NAME }}
+					{{ $upstream_name := $container.Env.UPSTREAM_NAME }}
+					## Host is not a docker container
+				{{ else }}
+					## Can be connected with "{{ $containerNetwork.Name }}" network
+				{{ end }}
 				{{/* If only 1 port exposed, use that */}}
 				{{ if eq $addrLen 1 }}
 					{{ $address := index $container.Addresses 0 }}

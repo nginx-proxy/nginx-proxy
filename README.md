@@ -163,6 +163,22 @@ nginx-proxy will then redirect all requests to a container where `VIRTUAL_HOST` 
 
     $ docker run -d -e VIRTUAL_HOST=foo.bar.com nginx
 
+### Non-Docker Host
+
+If you want to proxy a web server that is not a docker conatiner but still want the benefit of [jwilder/docker-gen](https://index.docker.io/u/jwilder/docker-gen/) and [letsencrypt-nginx-proxy-companion](https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion) you can use a dummy container that just provideds the necessary upstream address to generate the nginx config.
+
+Start a [dummy container](https://hub.docker.com/r/cwempe/docker-dummy/) and define `VIRTUAL_HOST`, `UPSTREAM_NAME` (and `VIRTUAL_PORT` if the port is not 80) with the address of your web server.
+Make sure nginx is able to connect to the web server.
+
+```console
+$ docker run -d \
+    -e VIRTUAL_HOST=foo.bar.com \
+    -e VIRTUAL_PORT=8080 \
+    -e UPSTREAM_NAME=webserver.local \
+    --rm \
+    cwempe/docker-dummy:latest
+```
+
 ### Separate Containers
 
 nginx-proxy can also be run as two separate containers using the [jwilder/docker-gen](https://hub.docker.com/r/jwilder/docker-gen)
