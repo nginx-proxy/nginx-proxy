@@ -47,6 +47,92 @@
 	{{ end }}
 {{ end }}
 
+{{ define "location" }}
+location {{ .Path }} {
+	{{ if eq .Proto "uwsgi" }}
+		include uwsgi_params;
+		uwsgi_pass {{ trim .Proto }}://{{ trim .Upstream }};
+	{{ else if eq .Proto "fastcgi" }}
+		root   {{ trim .Vhostroot }};
+		include fastcgi.conf;
+		fastcgi_pass {{ trim .Upstream }};
+	{{ else if eq .Proto "grpc" }}
+		grpc_pass {{ trim .Proto }}://{{ trim .Upstream }};
+	{{ else }}
+		proxy_pass {{ trim .Proto }}://{{ trim .Upstream }}/;
+	{{ end }}
+
+	{{ if (exists (printf "/etc/nginx/htpasswd/%s" .Host)) }}
+		auth_basic	"Restricted {{ .Host }}";
+		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" .Host) }};
+	{{ end }}
+
+	{{ if (exists (printf "/etc/nginx/vhost.d/%s_location" .Host)) }}
+		include {{ printf "/etc/nginx/vhost.d/%s_location" .Host}};
+	{{ else if (exists "/etc/nginx/vhost.d/default_location") }}
+		include /etc/nginx/vhost.d/default_location;
+	{{ end }}
+}
+{{ end }}
+
+{{ define "upstream-definition" }}
+	{{ $networks := .Networks }}
+	{{ $debug_all := .Debug }}
+	upstream {{ .Upstream }} {
+		{{ $server_found := "false" }}
+		{{ range $container := .Containers }}
+        {{ $debug := (eq (coalesce $container.Env.DEBUG $debug_all "false") "true") }}
+        {{/* If only 1 port exposed, use that as a default, else 80 */}}
+        {{ $defaultPort := (when (eq (len $container.Addresses) 1) (first $container.Addresses) (dict "Port" "80")).Port }}
+        {{ $port := (coalesce $container.Env.VIRTUAL_PORT $defaultPort) }}
+        {{ $address := where $container.Addresses "Port" $port | first }}
+        {{ if $debug }}
+        # Exposed ports: {{ $container.Addresses }}
+        # Default virtual port: {{ $defaultPort }}
+        # VIRTUAL_PORT: {{ $container.Env.VIRTUAL_PORT }}
+                {{ if not $address }}
+        # /!\ Virtual port not exposed
+                {{ end }}
+        {{ end }}
+			{{ range $knownNetwork := $networks }}
+				{{ range $containerNetwork := $container.Networks }}
+					{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
+        ## Can be connected with "{{ $containerNetwork.Name }}" network
+                                {{ if $address }}
+                                        {{/* If we got the containers from swarm and this container's port is published to host, use host IP:PORT */}}
+                                        {{ if and $container.Node.ID $address.HostPort }}
+                                                {{ $server_found = "true" }}
+        # {{ $container.Node.Name }}/{{ $container.Name }}
+        server {{ $container.Node.Address.IP }}:{{ $address.HostPort }};
+                                        {{/* If there is no swarm node or the port is not published on host, use container's IP:PORT */}}
+                                        {{ else if $containerNetwork }}
+                                                {{ $server_found = "true" }}
+        # {{ $container.Name }}
+        server {{ $containerNetwork.IP }}:{{ $address.Port }};
+                                        {{ end }}
+                                {{ else if $containerNetwork }}
+        # {{ $container.Name }}
+                                        {{ if $containerNetwork.IP }}
+                                                {{ $server_found = "true" }}
+        server {{ $containerNetwork.IP }}:{{ $port }};
+                                        {{ else }}
+        # /!\ No IP for this network!
+                                       {{ end }}
+						{{ end }}
+					{{ else }}
+        # Cannot connect to network '{{ $containerNetwork.Name }}' of this container
+					{{ end }}
+				{{ end }}
+			{{ end }}
+		{{ end }}
+		{{/* nginx-proxy/nginx-proxy#1105 */}}
+		{{ if (eq $server_found "false") }}
+        # Fallback entry
+        server 127.0.0.1 down;
+		{{ end }}
+	}
+{{ end }}
+
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
 map $http_x_forwarded_proto $proxy_x_forwarded_proto {
@@ -94,6 +180,7 @@ access_log off;
 {{/* Get the SSL_POLICY defined by this container, falling back to "Mozilla-Intermediate" */}}
 {{ $ssl_policy := or ($.Env.SSL_POLICY) "Mozilla-Intermediate" }}
 {{ template "ssl_policy" (dict "ssl_policy" $ssl_policy) }}
+error_log /dev/stderr;
 
 {{ if $.Env.RESOLVERS }}
 resolver {{ $.Env.RESOLVERS }};
@@ -113,6 +200,7 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 proxy_set_header X-Forwarded-Ssl $proxy_x_forwarded_ssl;
 proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
+proxy_set_header X-Original-URI $request_uri;
 
 # Mitigate httpoxy attack (see README for details)
 proxy_set_header Proxy "";
@@ -156,61 +244,20 @@ server {
 {{ $is_regexp := hasPrefix "~" $host }}
 {{ $upstream_name := (print (when $is_regexp (sha1 $host) $host) "-upstream") }}
 
-# {{ $host }}
-upstream {{ $upstream_name }} {
+{{ $paths := groupBy $containers "Env.VIRTUAL_PATH" }}
+{{ $nPaths := len $paths }}
 
-{{ $server_found := "false" }}
-{{ range $container := $containers }}
-	{{ $debug := (eq (coalesce $container.Env.DEBUG $debug_all "false") "true") }}
-	{{/* If only 1 port exposed, use that as a default, else 80 */}}
-	{{ $defaultPort := (when (eq (len $container.Addresses) 1) (first $container.Addresses) (dict "Port" "80")).Port }}
-	{{ $port := (coalesce $container.Env.VIRTUAL_PORT $defaultPort) }}
-	{{ $address := where $container.Addresses "Port" $port | first }}
-	{{ if $debug }}
-	# Exposed ports: {{ $container.Addresses }}
-	# Default virtual port: {{ $defaultPort }}
-	# VIRTUAL_PORT: {{ $container.Env.VIRTUAL_PORT }}
-		{{ if not $address }}
-	# /!\ Virtual port not exposed
-		{{ end }}
-	{{ end }}
-	{{ range $knownNetwork := $CurrentContainer.Networks }}
-		{{ range $containerNetwork := $container.Networks }}
-			{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
-	## Can be connected with "{{ $containerNetwork.Name }}" network
-				{{ if $address }}
-					{{/* If we got the containers from swarm and this container's port is published to host, use host IP:PORT */}}
-					{{ if and $container.Node.ID $address.HostPort }}
-						{{ $server_found = "true" }}
-	# {{ $container.Node.Name }}/{{ $container.Name }}
-	server {{ $container.Node.Address.IP }}:{{ $address.HostPort }};
-					{{/* If there is no swarm node or the port is not published on host, use container's IP:PORT */}}
-					{{ else if $containerNetwork }}
-						{{ $server_found = "true" }}
-	# {{ $container.Name }}
-	server {{ $containerNetwork.IP }}:{{ $address.Port }};
-					{{ end }}
-				{{ else if $containerNetwork }}
-	# {{ $container.Name }}
-					{{ if $containerNetwork.IP }}
-						{{ $server_found = "true" }}
-	server {{ $containerNetwork.IP }}:{{ $port }};
-					{{ else }}
-	# /!\ No IP for this network!
-					{{ end }}
-				{{ end }}
-			{{ else }}
-	# Cannot connect to network '{{ $containerNetwork.Name }}' of this container
-			{{ end }}
-		{{ end }}
+{{ if eq $nPaths 0 }}
+	# {{ $host }}
+	{{ template "upstream-definition" (dict "Upstream" $upstream_name "Containers" $containers "Networks" $CurrentContainer.Networks "Debug" $debug_all) }}
+{{ else }}
+	{{ range $path, $containers := $paths }}
+		{{ $sum := sha1 $path }}
+		{{ $upstream := printf "%s-%s" $upstream_name $sum }}
+		# {{ $host }}{{ $path }}
+		{{ template "upstream-definition" (dict "Upstream" $upstream "Containers" $containers "Networks" $CurrentContainer.Networks "Debug" $debug_all) }}
 	{{ end }}
 {{ end }}
-{{/* nginx-proxy/nginx-proxy#1105 */}}
-{{ if (eq $server_found "false") }}
-	# Fallback entry
-	server 127.0.0.1 down;
-{{ end }}
-}
 
 {{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
 {{ $default_server := index (dict $host "" $default_host "default_server") $host }}
@@ -331,30 +378,15 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
-	location / {
-		{{ if eq $proto "uwsgi" }}
-		include uwsgi_params;
-		uwsgi_pass {{ trim $proto }}://{{ trim $upstream_name }};
-		{{ else if eq $proto "fastcgi" }}
-		root   {{ trim $vhost_root }};
-		include fastcgi_params;
-		fastcgi_pass {{ trim $upstream_name }};
-		{{ else if eq $proto "grpc" }}
-		grpc_pass {{ trim $proto }}://{{ trim $upstream_name }};
-		{{ else }}
-		proxy_pass {{ trim $proto }}://{{ trim $upstream_name }};
+	{{ if eq $nPaths 0 }}
+		{{ template "location" (dict "Path" "/" "Proto" $proto "Upstream" $upstream_name "Host" $host "Vhostroot" $vhost_root) }}
+	{{ else }}
+		{{ range $path, $container := $paths }}
+			{{ $sum := sha1 $path }}
+			{{ $upstream := printf "%s-%s" $host $sum }}
+			{{ template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "Vhostroot" $vhost_root) }}
 		{{ end }}
-
-		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
-		auth_basic	"Restricted {{ $host }}";
-		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
-		{{ end }}
-		{{ if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
-		include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
-		{{ else if (exists "/etc/nginx/vhost.d/default_location") }}
-		include /etc/nginx/vhost.d/default_location;
-		{{ end }}
-	}
+	{{ end }}
 }
 
 {{ end }}
@@ -383,29 +415,15 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
-	location / {
-		{{ if eq $proto "uwsgi" }}
-		include uwsgi_params;
-		uwsgi_pass {{ trim $proto }}://{{ trim $upstream_name }};
-		{{ else if eq $proto "fastcgi" }}
-		root   {{ trim $vhost_root }};
-		include fastcgi_params;
-		fastcgi_pass {{ trim $upstream_name }};
-		{{ else if eq $proto "grpc" }}
-		grpc_pass {{ trim $proto }}://{{ trim $upstream_name }};
-		{{ else }}
-		proxy_pass {{ trim $proto }}://{{ trim $upstream_name }};
+	{{ if eq $nPaths 0 }}
+		{{ template "location" (dict "Path" "/" "Proto" $proto "Upstream" $upstream_name "Host" $host "Vhostroot" $vhost_root) }}
+	{{ else }}
+		{{ range $path, $container := $paths }}
+			{{ $sum := sha1 $path }}
+			{{ $upstream := printf "%s-%s" $upstream_name $sum }}
+			{{ template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "Vhostroot" $vhost_root) }}
 		{{ end }}
-		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
-		auth_basic	"Restricted {{ $host }}";
-		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
-		{{ end }}
-		{{ if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
-		include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
-		{{ else if (exists "/etc/nginx/vhost.d/default_location") }}
-		include /etc/nginx/vhost.d/default_location;
-		{{ end }}
-	}
+	{{ end }}
 }
 
 {{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
