@@ -276,6 +276,12 @@ upstream {{ $upstream_name }} {
 
 {{ if $is_https }}
 
+{{ $clientCA := trim (or (first (groupByKeys $containers "Env.CLIENT_CA")) (printf "%s.client" $vhostCert)) }}
+{{ $verifyClient := trim (or (first (groupByKeys $containers "Env.VERIFY_CLIENT")) "optional") }}
+{{ $verifyDepth := trim (or (first (groupByKeys $containers "Env.VERIFY_DEPTH")) "2") }}
+
+{{ $is_client_verify := (and (ne $clientCA "") (ne $verifyClient "") (ne $verifyDepth "") (exists (printf "/etc/nginx/certs/%s.pem" $clientCA))) }}
+
 {{ if eq $https_method "redirect" }}
 server {
 	server_name {{ $host }};
@@ -341,6 +347,12 @@ server {
 
 	{{ if (not (or (eq $https_method "noredirect") (eq $hsts "off"))) }}
 	add_header Strict-Transport-Security "{{ trim $hsts }}" always;
+	{{ end }}
+
+	{{ if $is_client_verify }}
+	ssl_client_certificate {{ printf "/etc/nginx/certs/%s.pem" $clientCA }};
+	ssl_verify_client {{ (printf "%s" $verifyClient) }};
+	ssl_verify_depth {{ (printf "%s" $verifyDepth) }};
 	{{ end }}
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
