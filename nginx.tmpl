@@ -166,6 +166,10 @@ proxy_set_header Proxy "";
 {{ $access_log := (or (and (not $.Env.DISABLE_ACCESS_LOGS) "access_log /var/log/nginx/access.log vhost;") "") }}
 
 {{ $enable_ipv6 := eq (or ($.Env.ENABLE_IPV6) "") "true" }}
+{{ $http2 := (or (and (not $.Env.DISABLE_HTTP2) "http2") "") }}
+{{ $enable_http3 := eq (or ($.Env.ENABLE_HTTP3) "") "true" }}
+{{ $alt_svc := or ($.Env.ALT_SVC) "h3-28=\":" $external_https_port "\"; ma=86400, h3-29=\":" $external_https_port "\"; ma=86400" }}
+
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
 	server_tokens off;
@@ -181,12 +185,19 @@ server {
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
 	server_tokens off;
-	listen {{ $external_https_port }} ssl http2;
+	{{ if $enable_http3 }}listen {{ $external_https_port }} quic reuseport;{{ end }}
+	listen {{ $external_https_port }} ssl {{ $http2 }};
 	{{ if $enable_ipv6 }}
-	listen [::]:{{ $external_https_port }} ssl http2;
+	{{ if $enable_http3 }}listen [::]:{{ $external_https_port }} quic reuseport;{{ end }}
+	listen [::]:{{ $external_https_port }} ssl {{ $http2 }};
 	{{ end }}
 	{{ $access_log }}
 	return 503;
+
+	{{ if $enable_http3 }}
+        # Add Alt-Svc header to negotiate HTTP/3.
+        add_header alt-svc '{{ $alt_svc }}';
+	{{ end }}
 
 	ssl_session_cache shared:SSL:50m;
 	ssl_session_tickets off;
@@ -315,11 +326,18 @@ server {
 	{{ if $server_tokens }}
 	server_tokens {{ $server_tokens }};
 	{{ end }}
-	listen {{ $external_https_port }} ssl http2 {{ $default_server }};
+	{{ if $enable_http3 }}listen {{ $external_https_port }} quic {{ $default_server }};{{ end }}
+	listen {{ $external_https_port }} ssl {{ $http2 }} {{ $default_server }};
 	{{ if $enable_ipv6 }}
-	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};
+	{{ if $enable_http3 }}listen [::]:{{ $external_https_port }} quic {{ $default_server }};{{ end }}
+	listen [::]:{{ $external_https_port }} ssl {{ $http2 }} {{ $default_server }};
 	{{ end }}
 	{{ $access_log }}
+
+	{{ if $enable_http3 }}
+        # Add Alt-Svc header to negotiate HTTP/3.
+        add_header alt-svc '{{ $alt_svc }}';
+	{{ end }}
 
 	{{ if eq $network_tag "internal" }}
 	# Only allow traffic from internal clients
@@ -398,7 +416,7 @@ server {
 	{{ end }}
 	listen {{ $external_http_port }} {{ $default_server }};
 	{{ if $enable_ipv6 }}
-	listen [::]:80 {{ $default_server }};
+	listen [::]:{{ $external_http_port }} {{ $default_server }};
 	{{ end }}
 	{{ $access_log }}
 
@@ -444,12 +462,19 @@ server {
 	{{ if $server_tokens }}
 	server_tokens {{ $server_tokens }};
 	{{ end }}
-	listen {{ $external_https_port }} ssl http2 {{ $default_server }};
+	{{ if $enable_http3 }}listen {{ $external_https_port }} quic {{ $default_server }};{{ end }}
+	listen {{ $external_https_port }} ssl {{ $http2 }} {{ $default_server }};
 	{{ if $enable_ipv6 }}
-	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};
+	{{ if $enable_http3 }}listen [::]:{{ $external_https_port }} quic {{ $default_server }};{{ end }}
+	listen [::]:{{ $external_https_port }} ssl {{ $http2 }} {{ $default_server }};
 	{{ end }}
 	{{ $access_log }}
 	return 500;
+
+	{{ if $enable_http3 }}
+        # Add Alt-Svc header to negotiate HTTP/3.
+        add_header alt-svc '{{ $alt_svc }}';
+	{{ end }}
 
 	ssl_certificate /etc/nginx/certs/default.crt;
 	ssl_certificate_key /etc/nginx/certs/default.key;
