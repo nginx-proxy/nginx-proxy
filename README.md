@@ -287,7 +287,7 @@ OpenSSL 1.1.1, Opera 57, and Safari 12.1.  Note that this profile is **not** com
 
 Other policies available through the `SSL_POLICY` environment variable are [`Mozilla-Old`](https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility)
 and the [AWS ELB Security Policies](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html)
-`AWS-TLS-1-2-2017-01`, `AWS-TLS-1-1-2017-01`, `AWS-2016-08`, `AWS-2015-05`, `AWS-2015-03` and `AWS-2015-02`.
+`AWS-FS-1-2-Res-2020-10`, `AWS-FS-1-2-Res-2019-08`, `AWS-FS-1-2-2019-08`, `AWS-FS-1-1-2019-08`, `AWS-FS-2018-06`, `AWS-TLS-1-2-Ext-2018-06`, `AWS-TLS-1-2-2017-01`, `AWS-TLS-1-1-2017-01`, `AWS-2016-08`, `AWS-2015-05`, `AWS-2015-03` and `AWS-2015-02`.
 
 Note that the `Mozilla-Old` policy should use a 1024 bits DH key for compatibility but this container generates
 a 4096 bits key. The [Diffie-Hellman Groups](#diffie-hellman-groups) section details different methods of bypassing
@@ -321,6 +321,27 @@ is enabled with `max-age=31536000` for HTTPS sites.  You can disable HSTS with t
 even if they type in `http://` manually.  The only way to get to an HTTP site after receiving an HSTS 
 response is to clear your browser's HSTS cache.
 
+### HTTP/2 and HTTP/3 support
+
+The default is to have HTTP/2 support enabled, as it is compiled into nginx. There is currently not native
+support for HTTP/3 in nginx, so a custom nginx container would be needed to provide that currently.
+An example container that works with HTTP/3 support currently is: ranadeeppolavarapu/nginx-http3
+
+HTTP/2 provides multi-channel streaming and compression over a single connection, causing performance improvements,
+less latency request times. But it suffers from the flaws of TCP due to packet loss, and this gets compounded
+due to streaming many requests over a single connection. Any lost packets on the connection will cause delays
+and stalls to all other requests that where made on that same connection.
+More reading: [HTTP/2 Issues](https://www.twilio.com/blog/2017/10/http2-issues.html), [Comparing HTTP/3 vs HTTP/2](https://blog.cloudflare.com/http-3-vs-http-2/)
+
+If you need to disable HTTP/2 support, you can include the environment variable `DISABLE_HTTP2=true`
+
+If you are using an HTTP/3 (quic) enabled version of nginx you can pass `ENABLE_HTTP3=true`, and optionally
+also also set `ALT_SVC` set to a custom alt-svc header, with the default currently set to h3-28 and h3-29.
+When enabling HTTP/3 support, you will have to make sure you open up the udp port to it, according to your nginx
+image used, normally 443/udp
+If you are not using the nginx HTTP/3 preview build, you will likely need to use `ENABLE_HTTP3=quic` to use the
+quic tag on the listen line in nginx instead of the http3 tag
+
 ### Basic Authentication Support
 
 In order to be able to secure your virtual host, you have to create a file named as its equivalent VIRTUAL_HOST variable on directory
@@ -335,6 +356,13 @@ $ docker run -d -p 80:80 -p 443:443 \
 ```
 
 You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
+
+### Client Certificates Support
+
+Client certificates can be supported by defining the following environment variables:
+`CLIENT_CA` to be set to the certificate to validate the clients against
+`VERIFY_CLIENT` can be set to `on` to  verify clients, `off` to ignore the client certificates, or `optional` the default to request but not verify
+`VERIFY_DEPTH` to the depth to verify the client certificate
 
 ### Custom Nginx Configuration
 
