@@ -357,13 +357,6 @@ $ docker run -d -p 80:80 -p 443:443 \
 
 You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
 
-### Client Certificates Support
-
-Client certificates can be supported by defining the following environment variables:
-`CLIENT_CA` to be set to the certificate to validate the clients against
-`VERIFY_CLIENT` can be set to `on` to  verify clients, `off` to ignore the client certificates, or `optional` the default to request but not verify
-`VERIFY_DEPTH` to the depth to verify the client certificate
-
 ### Custom Nginx Configuration
 
 If you need to configure Nginx beyond what is possible using environment variables, you can provide custom configuration files on either a proxy-wide or per-`VIRTUAL_HOST` basis.
