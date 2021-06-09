@@ -208,6 +208,10 @@ upstream {{ $upstream_name }} {
 	# Fallback entry
 	server 127.0.0.1 down;
 {{ end }}
+
+	{{ if (exists "/etc/nginx/upstream/default") }}
+	include /etc/nginx/upstream/default;
+	{{ end }}
 }
 
 {{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
