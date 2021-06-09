@@ -167,6 +167,13 @@ nginx-proxy will then redirect all requests to a container where `VIRTUAL_HOST` 
 
     $ docker run -d -e VIRTUAL_HOST=foo.bar.com nginx
 
+### Anonymized logging
+
+The default access log messages created by this container contain information like the IP address, referer and the user agent. To anonymize the IP and remove the referer and user agent from logging, set the env var `ANONYMIZE_LOGGING=1` for example
+
+    $ docker run -d -p 80:80 -e ANONYMIZE_LOGGING=1 -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+
+
 ### Separate Containers
 
 nginx-proxy can also be run as two separate containers using the [jwilder/docker-gen](https://hub.docker.com/r/jwilder/docker-gen)
