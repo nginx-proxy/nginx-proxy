@@ -117,7 +117,7 @@ In this example, the `my-nginx-proxy` container will be connected to `my-network
 
 ### Custom external HTTP/HTTPS ports
 
-If you want to use `nginx-proxy` with different external ports that the default ones of `80` for `HTTP` traffic and `443` for `HTTPS` traffic, you'll have to use the environment variable(s) `HTTP_PORT` and/or `HTTPS_PORT` in addition to the changes to the Docker port mapping. Typical usage, here with the custom ports `1080` and `10443`:
+If you want to use `nginx-proxy` with different external ports that the default ones of `80` for `HTTP` traffic and `443` for `HTTPS` traffic, you'll have to use the environment variable(s) `HTTP_PORT` and/or `HTTPS_PORT` in addition to the changes to the Docker port mapping. If you change the `HTTPS` port, the redirect for `HTTPS` traffic will also be configured to redirect to the custom port. Typical usage, here with the custom ports `1080` and `10443`:
 
     $ docker run -d -p 1080:1080 -p 10443:10443 -e HTTP_PORT=1080 -e HTTPS_PORT=10443 -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
 
