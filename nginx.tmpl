@@ -276,7 +276,11 @@ server {
 	}
 	
 	location / {
+		{{ if eq $external_https_port "443" }}
 		return 301 https://$host$request_uri;
+		{{ else }}
+		return 301 https://$host:{{ $external_https_port }}$request_uri;
+		{{ end }}
 	}
 }
 {{ end }}
