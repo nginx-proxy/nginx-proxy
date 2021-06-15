@@ -7,5 +7,5 @@ updates:
     schedule:
       interval: "daily"
     labels:
-      - "area/chore"
-      - "area/dockerfile"
+      - "type/build"
+      - "scope/dockerfile"
