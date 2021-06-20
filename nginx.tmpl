@@ -4,28 +4,6 @@
 {{ $external_https_port := coalesce $.Env.HTTPS_PORT "443" }}
 {{ $debug_all := $.Env.DEBUG }}
 
-{{ define "upstream" }}
-	{{ if .Address }}
-		{{/* If we got the containers from swarm and this container's port is published to host, use host IP:PORT */}}
-		{{ if and .Container.Node.ID .Address.HostPort }}
-	# {{ .Container.Node.Name }}/{{ .Container.Name }}
-			server {{ .Container.Node.Address.IP }}:{{ .Address.HostPort }};
-		{{/* If there is no swarm node or the port is not published on host, use container's IP:PORT */}}
-		{{ else if .Network }}
-	# {{ .Container.Name }}
-	server {{ .Network.IP }}:{{ .Address.Port }};
-		{{ end }}
-	{{ else if .Network }}
-	# {{ .Container.Name }}
-		{{ if .Network.IP }}
-	server {{ .Network.IP }}:{{ .VirtualPort }};
-		{{ else }}
-	# /!\ No IP for this network!
-		{{ end }}
-	{{ end }}
-
-{{ end }}
-
 {{ define "ssl_policy" }}
 	{{ if eq .ssl_policy "Mozilla-Modern" }}
 		ssl_protocols TLSv1.3;
@@ -185,29 +163,52 @@ upstream {{ $upstream_name }} {
 	{{ $debug := (eq (coalesce $container.Env.DEBUG $debug_all "false") "true") }}
 	{{/* If only 1 port exposed, use that as a default, else 80 */}}
 	{{ $defaultPort := (when (eq (len $container.Addresses) 1) (first $container.Addresses) (dict "Port" "80")).Port }}
+	{{ $port := (coalesce $container.Env.VIRTUAL_PORT $defaultPort) }}
+	{{ $address := where $container.Addresses "Port" $port | first }}
+	{{ if $debug }}
+	# Exposed ports: {{ $container.Addresses }}
+	# Default virtual port: {{ $defaultPort }}
+	# VIRTUAL_PORT: {{ $container.Env.VIRTUAL_PORT }}
+		{{ if not $address }}
+	# /!\ Virtual port not exposed
+		{{ end }}
+	{{ end }}
+	{{ $server_found := "false" }}
 	{{ range $knownNetwork := $CurrentContainer.Networks }}
 		{{ range $containerNetwork := $container.Networks }}
 			{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
 	## Can be connected with "{{ $containerNetwork.Name }}" network
-				{{ $port := (coalesce $container.Env.VIRTUAL_PORT $defaultPort) }}
-				{{ $address := where $container.Addresses "Port" $port | first }}
-				{{ if $debug }}
-	# Exposed ports: {{ $container.Addresses }}
-	# Default virtual port: {{ $defaultPort }}
-	# VIRTUAL_PORT: {{ $container.Env.VIRTUAL_PORT }}
-					{{ if not $address }}
-	# /!\ Virtual port not exposed
+				{{ if $address }}
+					{{/* If we got the containers from swarm and this container's port is published to host, use host IP:PORT */}}
+					{{ if and $container.Node.ID $address.HostPort }}
+						{{ $server_found = "true" }}
+	# {{ $container.Node.Name }}/{{ $container.Name }}
+	server {{ $container.Node.Address.IP }}:{{ $address.HostPort }};
+					{{/* If there is no swarm node or the port is not published on host, use container's IP:PORT */}}
+					{{ else if $containerNetwork }}
+						{{ $server_found = "true" }}
+	# {{ $container.Name }}
+	server {{ $containerNetwork.IP }}:{{ $address.Port }};
+					{{ end }}
+				{{ else if $containerNetwork }}
+	# {{ $container.Name }}
+					{{ if $containerNetwork.IP }}
+						{{ $server_found = "true" }}
+	server {{ $containerNetwork.IP }}:{{ $port }};
+					{{ else }}
+	# /!\ No IP for this network!
 					{{ end }}
 				{{ end }}
-				{{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork "VirtualPort" $port) }}
 			{{ else }}
 	# Cannot connect to network '{{ $containerNetwork.Name }}' of this container
 			{{ end }}
 		{{ end }}
 	{{ end }}
 	{{/* nginx-proxy/nginx-proxy#1105 */}}
+	{{ if (eq $server_found "false") }}
 	# Fallback entry
 	server 127.0.0.1 down;
+	{{ end }}
 {{ end }}
 }
 
