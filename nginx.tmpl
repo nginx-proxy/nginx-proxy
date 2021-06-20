@@ -159,6 +159,7 @@ server {
 # {{ $host }}
 upstream {{ $upstream_name }} {
 
+{{ $server_found := "false" }}
 {{ range $container := $containers }}
 	{{ $debug := (eq (coalesce $container.Env.DEBUG $debug_all "false") "true") }}
 	{{/* If only 1 port exposed, use that as a default, else 80 */}}
@@ -173,7 +174,6 @@ upstream {{ $upstream_name }} {
 	# /!\ Virtual port not exposed
 		{{ end }}
 	{{ end }}
-	{{ $server_found := "false" }}
 	{{ range $knownNetwork := $CurrentContainer.Networks }}
 		{{ range $containerNetwork := $container.Networks }}
 			{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
@@ -204,11 +204,11 @@ upstream {{ $upstream_name }} {
 			{{ end }}
 		{{ end }}
 	{{ end }}
-	{{/* nginx-proxy/nginx-proxy#1105 */}}
-	{{ if (eq $server_found "false") }}
+{{ end }}
+{{/* nginx-proxy/nginx-proxy#1105 */}}
+{{ if (eq $server_found "false") }}
 	# Fallback entry
 	server 127.0.0.1 down;
-	{{ end }}
 {{ end }}
 }
 
