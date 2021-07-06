@@ -111,6 +111,20 @@ The full request URI will be forwarded to the serving container in the `X-Forwar
 
 **NOTE**: Your application needs to be able to generate links starting with `VIRTUAL_PATH`. This can be achieved by it being natively on this path or havin an option to prepend this path. The application does not need to expect this path in the request.
 
+#### VIRTUAL_DEST
+
+This environment variable can be used to rewrite the `VIRTUAL_PATH` part of the requested URL to proxied application. The default value is empty (off).
+Make sure that your settings won't result in the slash missing or being doubled. Both these versions can cause troubles.
+
+If the application runs natively on this sub-path or has a setting to do so, `VIRTUAL_DEST` should not be set or empty.
+If the requests are expected to not contain a sub-path and the generated links contain the sub-path, `VIRTUAL_DEST=/` should be used.
+
+```console
+$ docker run -d -e VIRTUAL_HOST=example.tld -e VIRTUAL_PATH=/app1/ -e VIRTUAL_DEST=/ --name app1 app
+```
+
+In this example, the incoming request `http://example.tld/app1/foo` will be proxied as `http://app1/foo` instead of `http://app1/app1/foo`.
+
 #### DEFAULT_ROOT
 
 This environment variable of the nginx proxy container can be used to customize the return error page if no matching path is found. Furthermore it is possible to use anything which is compatible with the `return` statement of nginx.

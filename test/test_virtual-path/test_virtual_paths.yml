@@ -15,6 +15,7 @@ web1:
     WEB_PORTS: "81"
     VIRTUAL_HOST: "nginx-proxy.test"
     VIRTUAL_PATH: "/web1/"
+    VIRTUAL_DEST: "/"
 
 web2:
   image: web
@@ -24,6 +25,7 @@ web2:
     WEB_PORTS: "82"
     VIRTUAL_HOST: "nginx-proxy.test"
     VIRTUAL_PATH: "/web2/"
+    VIRTUAL_DEST: "/"
 
 web3:
   image: web
