@@ -117,6 +117,12 @@ For each host defined into `VIRTUAL_HOST`, the associated virtual port is retrie
 
 You can also use wildcards at the beginning and the end of host name, like `*.bar.com` or `foo.bar.*`. Or even a regular expression, which can be very useful in conjunction with a wildcard DNS service like [xip.io](http://xip.io), using `~^foo\.bar\..*\.xip\.io` will match `foo.bar.127.0.0.1.xip.io`, `foo.bar.10.0.2.2.xip.io` and all other given IPs. More information about this topic can be found in the nginx documentation about [`server_names`](http://nginx.org/en/docs/http/server_names.html).
 
+### Path-based Routing
+
+You can have multiple containers proxied by the same `VIRTUAL_HOST` by adding a `VIRTUAL_PATH` environment variable containing the absolute path to where the container should be mounted. For example with `VIRTUAL_HOST=foo.example.com` and `VIRTUAL_PATH=/api/v2/service`, then requests to http://foo.example.com/api/v2/service will be routed to the container. If you wish to have a container serve the root while other containers serve other paths, make give the root container a `VIRTUAL_PATH` of `/`.  Unmatched paths will be served by the container at `/` or will return the default nginx error page if no container has been assigned `/`.
+
+The full request URI will be forwarded to the serving container in the `X-Forwarded-Path` header.
+
 ### Multiple Networks
 
 With the addition of [overlay networking](https://docs.docker.com/engine/userguide/networking/get-started-overlay/) in Docker 1.9, your `nginx-proxy` container may need to connect to backend containers on multiple networks. By default, if you don't pass the `--net` flag when your `nginx-proxy` container is created, it will only be attached to the default `bridge` network. This means that it will not be able to connect to containers on networks other than `bridge`.
@@ -337,6 +343,7 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 proxy_set_header X-Forwarded-Ssl $proxy_x_forwarded_ssl;
 proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
+proxy_set_header X-Forwarded-Path $request_uri;
 
 # Mitigate httpoxy attack (see README for details)
 proxy_set_header Proxy "";
