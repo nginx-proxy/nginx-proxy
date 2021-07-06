@@ -106,6 +106,7 @@ You can also use wildcards at the beginning and the end of host name, like `*.ba
 ### Path-based Routing
 
 You can have multiple containers proxied by the same `VIRTUAL_HOST` by adding a `VIRTUAL_PATH` environment variable containing the absolute path to where the container should be mounted. For example with `VIRTUAL_HOST=foo.example.com` and `VIRTUAL_PATH=/api/v2/service`, then requests to http://foo.example.com/api/v2/service will be routed to the container. If you wish to have a container serve the root while other containers serve other paths, give the root container a `VIRTUAL_PATH` of `/`.  Unmatched paths will be served by the container at `/` or will return the default nginx error page if no container has been assigned `/`.
+It is also possible to specify multiple paths with regex locations like `VIRTUAL_PATH=~^/(app1|alternative1)/`. For further details see the nginx documentation on location blocks. This is not compatible with `VIRTUAL_DEST`.
 
 The full request URI will be forwarded to the serving container in the `X-Forwarded-Path` header.
 
@@ -124,6 +125,14 @@ $ docker run -d -e VIRTUAL_HOST=example.tld -e VIRTUAL_PATH=/app1/ -e VIRTUAL_DE
 ```
 
 In this example, the incoming request `http://example.tld/app1/foo` will be proxied as `http://app1/foo` instead of `http://app1/app1/foo`.
+
+#### Per-VIRTUAL_PATH location configuration
+
+The same options as from [Per-VIRTUAL_HOST location configuration](#Per-VIRTUAL_HOST-location-configuration) are available on a `VIRTUAL_PATH` basis.
+The only difference is that the filename gets an additional block `HASH=$(echo -n $VIRTUAL_PATH | sha1sum | awk '{ print $1 }')`. This is the sha1-hash of the `VIRTUAL_PATH` (no newline). This is done filename sanitization purposes.
+The used filename is `${VIRTUAL_HOST}_${HASH}_location`
+
+The filename of the previous example would be `example.tld_8610f6c344b4096614eab6e09d58885349f42faf_location`.
 
 #### DEFAULT_ROOT
 

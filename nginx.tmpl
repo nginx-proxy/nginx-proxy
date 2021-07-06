@@ -70,6 +70,8 @@ location {{ .Path }} {
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s_location" .Host)) }}
 		include {{ printf "/etc/nginx/vhost.d/%s_location" .Host}};
+	{{ else if (exists (printf "/etc/nginx/vhost.d/%s_%s_location" .Host (sha1 .Path) )) }}
+		include {{ printf "/etc/nginx/vhost.d/%s_%s_location" .Host (sha1 .Path) }};
 	{{ else if (exists "/etc/nginx/vhost.d/default_location") }}
 		include /etc/nginx/vhost.d/default_location;
 	{{ end }}
