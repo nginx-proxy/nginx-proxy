@@ -5,6 +5,7 @@
 {{ $external_https_port := coalesce $.Env.HTTPS_PORT "443" }}
 {{ $debug_all := $.Env.DEBUG }}
 {{ $sha1_upstream_name := parseBool (coalesce $.Env.SHA1_UPSTREAM_NAME "false") }}
+{{ $default_root_response := coalesce $.Env.DEFAULT_ROOT "404" }}
 
 {{ define "ssl_policy" }}
 	{{ if eq .ssl_policy "Mozilla-Modern" }}
@@ -392,6 +393,11 @@ server {
 			{{ $upstream := printf "%s-%s" $upstream_name $sum }}
 			{{ template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "Vhostroot" $vhost_root) }}
 		{{ end }}
+		{{ if (not (contains $paths "/")) }}
+			location / {
+				return {{ $default_root_response }};
+			}
+		{{ end }}
 	{{ end }}
 }
 
@@ -428,6 +434,11 @@ server {
 			{{ $sum := sha1 $path }}
 			{{ $upstream := printf "%s-%s" $upstream_name $sum }}
 			{{ template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "Vhostroot" $vhost_root) }}
+		{{ end }}
+		{{ if (not (contains $paths "/")) }}
+			location / {
+				return {{ $default_root_response }};
+			}
 		{{ end }}
 	{{ end }}
 }
