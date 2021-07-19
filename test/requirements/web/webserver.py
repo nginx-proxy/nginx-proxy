@@ -13,13 +13,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path == "/headers":
             response_body += self.headers.as_string()
         elif self.path == "/port":
-            response_body += "answer from port %s\n" % PORT
+            response_body += f"answer from port {PORT}\n"
         elif re.match("/status/(\d+)", self.path):
             result = re.match("/status/(\d+)", self.path)
             response_code = int(result.group(1))
-            response_body += "answer with response code %s\n" % response_code
+            response_body += f"answer with response code {response_code}\n"
         elif self.path == "/":
-            response_body += "I'm %s\n" % os.environ['HOSTNAME']
+            response_body += f"I'm {os.environ['HOSTNAME']}\n"
         else:
             response_body += "No route for this path!\n"
             response_code = 404

@@ -1,8 +1,9 @@
 #!/bin/bash -e
 
-# The first argument is the bit depth of the dhparam, or 2048 if unspecified
-DHPARAM_BITS=${1:-2048}
-GENERATE_DHPARAM=${2:-true}
+# DHPARAM_BITS is the bit depth of the dhparam, or 4096 if unspecified
+DHPARAM_BITS=${DHPARAM_BITS:-4096}
+# DHPARAM_GENERATION=false skips dhparam generation
+DHPARAM_GENERATION=${DHPARAM_GENERATION:-true}
 
 # If a dhparam file is not available, use the pre-generated one and generate a new one in the background.
 # Note that /etc/nginx/dhparam is a volume, so this dhparam will persist restarts.
@@ -14,7 +15,7 @@ GEN_LOCKFILE="/tmp/dhparam_generating.lock"
 PREGEN_HASH=$(md5sum $PREGEN_DHPARAM_FILE | cut -d" " -f1)
 if [[ -f $DHPARAM_FILE ]]; then
     CURRENT_HASH=$(md5sum $DHPARAM_FILE | cut -d" " -f1)
-    if [[ $PREGEN_HASH != $CURRENT_HASH ]]; then
+    if [[ $PREGEN_HASH != "$CURRENT_HASH" ]]; then
         # There is already a dhparam, and it's not the default
         echo "Custom dhparam.pem file found, generation skipped"
         exit 0
@@ -26,7 +27,7 @@ if [[ -f $DHPARAM_FILE ]]; then
     fi
 fi
 
-if [[ $GENERATE_DHPARAM =~ ^[Ff][Aa][Ll][Ss][Ee]$ ]]; then
+if [[ $DHPARAM_GENERATION =~ ^[Ff][Aa][Ll][Ss][Ee]$ ]]; then
     echo "Skipping Diffie-Hellman parameters generation and Ignoring pre-generated dhparam.pem"
     exit 0
 fi
@@ -43,10 +44,10 @@ touch $GEN_LOCKFILE
 # Generate a new dhparam in the background in a low priority and reload nginx when finished (grep removes the progress indicator).
 (
     (
-        nice -n +5 openssl dhparam -out $DHPARAM_FILE.tmp $DHPARAM_BITS 2>&1 \
+        nice -n +5 openssl dhparam -dsaparam -out $DHPARAM_FILE.tmp "$DHPARAM_BITS" 2>&1 \
         && mv $DHPARAM_FILE.tmp $DHPARAM_FILE \
         && echo "dhparam generation complete, reloading nginx" \
         && nginx -s reload
     ) | grep -vE '^[\.+]+'
     rm $GEN_LOCKFILE
-) &disown
+) & disown

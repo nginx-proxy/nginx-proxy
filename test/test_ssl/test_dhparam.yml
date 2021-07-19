@@ -8,7 +8,7 @@ web5:
 
 
 sut:
-  image: jwilder/nginx-proxy:test
+  image: nginxproxy/nginx-proxy:test
   container_name: nginxproxy
   volumes:
     - /var/run/docker.sock:/tmp/docker.sock:ro

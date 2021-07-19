@@ -1,0 +1,46 @@
+name: Tests
+
+on:
+  workflow_dispatch:
+  push:
+    paths-ignore:
+    - 'LICENSE'
+    - '**.md'
+  pull_request:
+    paths-ignore:
+    - 'LICENSE'
+    - '**.md'
+
+jobs:
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: true
+      matrix:
+        base_docker_image: [alpine, debian]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r python-requirements.txt
+        working-directory: test/requirements
+
+      - name: Build Docker web server image
+        run: make build-webserver
+
+      - name: Build Docker nginx proxy test image
+        run: make build-nginx-proxy-test-${{ matrix.base_docker_image }}
+
+      - name: Run tests
+        run: pytest
+        working-directory: test

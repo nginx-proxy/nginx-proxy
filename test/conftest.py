@@ -1,18 +1,19 @@
-from __future__ import print_function
 import contextlib
 import logging
 import os
+import re
 import shlex
 import socket
 import subprocess
 import time
-import re
+from typing import List
 
 import backoff
 import docker
 import pytest
 import requests
 from _pytest._code.code import ReprExceptionInfo
+from docker.models.containers import Container
 from requests.packages.urllib3.util.connection import HAS_IPV6
 
 logging.basicConfig(level=logging.INFO)
@@ -64,16 +65,31 @@ class requests_for_docker(object):
         if os.path.isfile(CA_ROOT_CERTIFICATE):
             self.session.verify = CA_ROOT_CERTIFICATE
 
+    @staticmethod
+    def get_nginx_proxy_containers() -> List[Container]:
+        """
+        Return list of containers
+        """
+        nginx_proxy_containers = docker_client.containers.list(filters={"ancestor": "nginxproxy/nginx-proxy:test"})
+        if len(nginx_proxy_containers) > 1:
+            pytest.fail("Too many running nginxproxy/nginx-proxy:test containers", pytrace=False)
+        elif len(nginx_proxy_containers) == 0:
+            pytest.fail("No running nginxproxy/nginx-proxy:test container", pytrace=False)
+        return nginx_proxy_containers
+
     def get_conf(self):
         """
         Return the nginx config file
         """
-        nginx_proxy_containers = docker_client.containers.list(filters={"ancestor": "jwilder/nginx-proxy:test"})
-        if len(nginx_proxy_containers) > 1:
-            pytest.fail("Too many running jwilder/nginx-proxy:test containers", pytrace=False)
-        elif len(nginx_proxy_containers) == 0:
-            pytest.fail("No running jwilder/nginx-proxy:test container", pytrace=False)
+        nginx_proxy_containers = self.get_nginx_proxy_containers()
         return get_nginx_conf_from_container(nginx_proxy_containers[0])
+
+    def get_ip(self) -> str:
+        """
+        Return the nginx container ip address
+        """
+        nginx_proxy_containers = self.get_nginx_proxy_containers()
+        return container_ip(nginx_proxy_containers[0])
 
     def get(self, *args, **kwargs):
         with ipv6(kwargs.pop('ipv6', False)):
@@ -121,7 +137,7 @@ class requests_for_docker(object):
         return getattr(requests, name)
 
 
-def container_ip(container):
+def container_ip(container: Container):
     """
     return the IP address of a container.
 
@@ -133,7 +149,7 @@ def container_ip(container):
             pytest.skip("This system does not support IPv6")
         ip = container_ipv6(container)
         if ip == '':
-            pytest.skip("Container %s has no IPv6 address" % container.name)
+            pytest.skip(f"Container {container.name} has no IPv6 address")
         else:
             return ip
     else:
@@ -142,7 +158,7 @@ def container_ip(container):
             return net_info["bridge"]["IPAddress"]
 
         # not default bridge network, fallback on first network defined
-        network_name = net_info.keys()[0]
+        network_name = list(net_info.keys())[0]
         return net_info[network_name]["IPAddress"]
 
 
@@ -155,27 +171,27 @@ def container_ipv6(container):
         return net_info["bridge"]["GlobalIPv6Address"]
 
     # not default bridge network, fallback on first network defined
-    network_name = net_info.keys()[0]
+    network_name = list(net_info.keys())[0]
     return net_info[network_name]["GlobalIPv6Address"]
 
 
 def nginx_proxy_dns_resolver(domain_name):
     """
     if "nginx-proxy" if found in host, return the ip address of the docker container
-    issued from the docker image jwilder/nginx-proxy:test.
+    issued from the docker image nginxproxy/nginx-proxy:test.
 
     :return: IP or None
     """
     log = logging.getLogger('DNS')
-    log.debug("nginx_proxy_dns_resolver(%r)" % domain_name)
+    log.debug(f"nginx_proxy_dns_resolver({domain_name!r})")
     if 'nginx-proxy' in domain_name:
-        nginxproxy_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "jwilder/nginx-proxy:test"})
+        nginxproxy_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "nginxproxy/nginx-proxy:test"})
         if len(nginxproxy_containers) == 0:
-            log.warn("no container found from image jwilder/nginx-proxy:test while resolving %r", domain_name)
+            log.warn(f"no container found from image nginxproxy/nginx-proxy:test while resolving {domain_name!r}")
             return
         nginxproxy_container = nginxproxy_containers[0]
         ip = container_ip(nginxproxy_container)
-        log.info("resolving domain name %r as IP address %s of nginx-proxy container %s" % (domain_name, ip, nginxproxy_container.name))
+        log.info(f"resolving domain name {domain_name!r} as IP address {ip} of nginx-proxy container {nginxproxy_container.name}")
         return ip
 
 def docker_container_dns_resolver(domain_name):
@@ -186,24 +202,24 @@ def docker_container_dns_resolver(domain_name):
     :return: IP or None
     """
     log = logging.getLogger('DNS')
-    log.debug("docker_container_dns_resolver(%r)" % domain_name)
+    log.debug(f"docker_container_dns_resolver({domain_name!r})")
 
-    match = re.search('(^|.+\.)(?P<container>[^.]+)\.container\.docker$', domain_name)
+    match = re.search(r'(^|.+\.)(?P<container>[^.]+)\.container\.docker$', domain_name)
     if not match:
-        log.debug("%r does not match" % domain_name)
+        log.debug(f"{domain_name!r} does not match")
         return
 
     container_name = match.group('container')
-    log.debug("looking for container %r" % container_name)
+    log.debug(f"looking for container {container_name!r}")
     try:
         container = docker_client.containers.get(container_name)
     except docker.errors.NotFound:
-        log.warn("container named %r not found while resolving %r" % (container_name, domain_name))
+        log.warn(f"container named {container_name!r} not found while resolving {domain_name!r}")
         return
-    log.debug("container %r found (%s)" % (container.name, container.short_id))
+    log.debug(f"container {container.name!r} found ({container.short_id})")
 
     ip = container_ip(container)
-    log.info("resolving domain name %r as IP address %s of container %s" % (domain_name, ip, container.name))
+    log.info(f"resolving domain name {domain_name!r} as IP address {ip} of container {container.name}")
     return ip 
 
 
@@ -211,12 +227,12 @@ def monkey_patch_urllib_dns_resolver():
     """
     Alter the behavior of the urllib DNS resolver so that any domain name
     containing substring 'nginx-proxy' will resolve to the IP address
-    of the container created from image 'jwilder/nginx-proxy:test'.
+    of the container created from image 'nginxproxy/nginx-proxy:test'.
     """
     prv_getaddrinfo = socket.getaddrinfo
     dns_cache = {}
     def new_getaddrinfo(*args):
-        logging.getLogger('DNS').debug("resolving domain name %s" % repr(args))
+        logging.getLogger('DNS').debug(f"resolving domain name {repr(args)}")
         _args = list(args)
 
         # custom DNS resolvers
@@ -244,7 +260,7 @@ def remove_all_containers():
     for container in docker_client.containers.list(all=True):
         if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER and container.id.startswith(socket.gethostname()):
             continue  # pytest is running within a Docker container, so we do not want to remove that particular container
-        logging.info("removing container %s" % container.name)
+        logging.info(f"removing container {container.name}")
         container.remove(v=True, force=True)
 
 
@@ -253,40 +269,43 @@ def get_nginx_conf_from_container(container):
     return the nginx /etc/nginx/conf.d/default.conf file content from a container
     """
     import tarfile
-    from cStringIO import StringIO
-    strm, stat = container.get_archive('/etc/nginx/conf.d/default.conf')
-    with tarfile.open(fileobj=StringIO(strm.read())) as tf:
+    from io import BytesIO
+
+    strm_generator, stat = container.get_archive('/etc/nginx/conf.d/default.conf')
+    strm_fileobj = BytesIO(b"".join(strm_generator))
+
+    with tarfile.open(fileobj=strm_fileobj) as tf:
         conffile = tf.extractfile('default.conf')
         return conffile.read()
 
 
 def docker_compose_up(compose_file='docker-compose.yml'):
-    logging.info('docker-compose -f %s up -d' % compose_file)
+    logging.info(f'docker-compose -f {compose_file} up -d')
     try:
-        subprocess.check_output(shlex.split('docker-compose -f %s up -d' % compose_file), stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError, e:
-        pytest.fail("Error while runninng 'docker-compose -f %s up -d':\n%s" % (compose_file, e.output), pytrace=False)
+        subprocess.check_output(shlex.split(f'docker-compose -f {compose_file} up -d'), stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        pytest.fail(f"Error while runninng 'docker-compose -f {compose_file} up -d':\n{e.output}", pytrace=False)
 
 
 def docker_compose_down(compose_file='docker-compose.yml'):
-    logging.info('docker-compose -f %s down' % compose_file)
+    logging.info(f'docker-compose -f {compose_file} down')
     try:
-        subprocess.check_output(shlex.split('docker-compose -f %s down' % compose_file), stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError, e:
-        pytest.fail("Error while runninng 'docker-compose -f %s down':\n%s" % (compose_file, e.output), pytrace=False)
+        subprocess.check_output(shlex.split(f'docker-compose -f {compose_file} down'), stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        pytest.fail(f"Error while runninng 'docker-compose -f {compose_file} down':\n{e.output}", pytrace=False)
 
 
 def wait_for_nginxproxy_to_be_ready():
     """
-    If one (and only one) container started from image jwilder/nginx-proxy:test is found, 
+    If one (and only one) container started from image nginxproxy/nginx-proxy:test is found, 
     wait for its log to contain substring "Watching docker events"
     """
-    containers = docker_client.containers.list(filters={"ancestor": "jwilder/nginx-proxy:test"})
+    containers = docker_client.containers.list(filters={"ancestor": "nginxproxy/nginx-proxy:test"})
     if len(containers) != 1:
         return
     container = containers[0]
     for line in container.logs(stream=True):
-        if "Watching docker events" in line:
+        if b"Watching docker events" in line:
             logging.debug("nginx-proxy ready")
             break
 
@@ -307,7 +326,7 @@ def find_docker_compose_file(request):
     if docker_compose_file_module_variable is not None:
         docker_compose_file = os.path.join( test_module_dir, docker_compose_file_module_variable)
         if not os.path.isfile(docker_compose_file):
-            raise ValueError("docker compose file %r could not be found. Check your test module `docker_compose_file` variable value." % docker_compose_file)
+            raise ValueError(f"docker compose file {docker_compose_file!r} could not be found. Check your test module `docker_compose_file` variable value.")
     else:
         if os.path.isfile(yml_file):
             docker_compose_file = yml_file
@@ -319,7 +338,7 @@ def find_docker_compose_file(request):
     if not os.path.isfile(docker_compose_file):
         logging.error("Could not find any docker-compose file named either '{0}.yml', '{0}.yaml' or 'docker-compose.yml'".format(request.module.__name__))
 
-    logging.debug("using docker compose file %s" % docker_compose_file)
+    logging.debug(f"using docker compose file {docker_compose_file}")
     return docker_compose_file
 
 
@@ -333,15 +352,15 @@ def connect_to_network(network):
         try:
             my_container = docker_client.containers.get(socket.gethostname())
         except docker.errors.NotFound:
-            logging.warn("container %r not found" % socket.gethostname())
+            logging.warn(f"container {socket.gethostname()!r} not found")
             return
 
         # figure out our container networks
-        my_networks = my_container.attrs["NetworkSettings"]["Networks"].keys()
+        my_networks = list(my_container.attrs["NetworkSettings"]["Networks"].keys())
 
         # make sure our container is connected to the nginx-proxy's network
         if network not in my_networks:
-            logging.info("Connecting to docker network: %s" % network.name)
+            logging.info(f"Connecting to docker network: {network.name}")
             network.connect(my_container)
             return network
 
@@ -356,15 +375,15 @@ def disconnect_from_network(network=None):
         try:
             my_container = docker_client.containers.get(socket.gethostname())
         except docker.errors.NotFound:
-            logging.warn("container %r not found" % socket.gethostname())
+            logging.warn(f"container {socket.gethostname()!r} not found")
             return
 
         # figure out our container networks
-        my_networks_names = my_container.attrs["NetworkSettings"]["Networks"].keys()
+        my_networks_names = list(my_container.attrs["NetworkSettings"]["Networks"].keys())
 
         # disconnect our container from the given network
         if network.name in my_networks_names:
-            logging.info("Disconnecting from network %s" % network.name)
+            logging.info(f"Disconnecting from network {network.name}")
             network.disconnect(my_container)
 
 
@@ -378,7 +397,7 @@ def connect_to_all_networks():
         return []
     else:
         # find the list of docker networks
-        networks = filter(lambda network: len(network.containers) > 0 and network.name != 'bridge', docker_client.networks.list())
+        networks = [network for network in docker_client.networks.list() if len(network.containers) > 0 and network.name != 'bridge']
         return [connect_to_network(network) for network in networks]
 
 
@@ -388,7 +407,7 @@ def connect_to_all_networks():
 # 
 ###############################################################################
 
-@pytest.yield_fixture(scope="module")
+@pytest.fixture(scope="module")
 def docker_compose(request):
     """
     pytest fixture providing containers described in a docker compose file. After the tests, remove the created containers
@@ -412,7 +431,7 @@ def docker_compose(request):
     restore_urllib_dns_resolver(original_dns_resolver)
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def nginxproxy():
     """
     Provides the `nginxproxy` object that can be used in the same way the requests module is:
@@ -439,7 +458,7 @@ def nginxproxy():
 def pytest_runtest_logreport(report):
     if report.failed:
         if isinstance(report.longrepr, ReprExceptionInfo):
-            test_containers = docker_client.containers.list(all=True, filters={"ancestor": "jwilder/nginx-proxy:test"})
+            test_containers = docker_client.containers.list(all=True, filters={"ancestor": "nginxproxy/nginx-proxy:test"})
             for container in test_containers:
                 report.longrepr.addsection('nginx-proxy logs', container.logs())
                 report.longrepr.addsection('nginx-proxy conf', get_nginx_conf_from_container(container))
@@ -456,7 +475,7 @@ def pytest_runtest_makereport(item, call):
 def pytest_runtest_setup(item):
     previousfailed = getattr(item.parent, "_previousfailed", None)
     if previousfailed is not None:
-        pytest.xfail("previous test failed (%s)" % previousfailed.name)
+        pytest.xfail(f"previous test failed ({previousfailed.name})")
 
 ###############################################################################
 # 
@@ -465,9 +484,9 @@ def pytest_runtest_setup(item):
 ###############################################################################
 
 try:
-    docker_client.images.get('jwilder/nginx-proxy:test')
+    docker_client.images.get('nginxproxy/nginx-proxy:test')
 except docker.errors.ImageNotFound:
-    pytest.exit("The docker image 'jwilder/nginx-proxy:test' is missing")
+    pytest.exit("The docker image 'nginxproxy/nginx-proxy:test' is missing")
 
-if docker.__version__ != "2.1.0":
-    pytest.exit("This test suite is meant to work with the python docker module v2.1.0")
+if docker.__version__ != "4.4.4":
+    pytest.exit("This test suite is meant to work with the python docker module v4.4.4")

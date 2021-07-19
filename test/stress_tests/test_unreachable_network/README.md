@@ -6,7 +6,7 @@ Furthermore, if the nginx-proxy in such state is restarted, the nginx process wi
 
 In the generated nginx config file, we can notice the presence of an empty `upstream {}` block.
 
-This can be fixed by merging [PR-585](https://github.com/jwilder/nginx-proxy/pull/585).
+This can be fixed by merging [PR-585](https://github.com/nginx-proxy/nginx-proxy/pull/585).
 
 ## How to reproduce
 
