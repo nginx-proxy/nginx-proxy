@@ -188,7 +188,11 @@ upstream {{ $upstream_name }} {
 					{{ else if $containerNetwork }}
 						{{ $server_found = "true" }}
 	# {{ $container.Name }}
+						{{ if eq $address.Port "5432"}}
+	server {{ $containerNetwork.IP }}:{{ $address.Port }} max_fails=1 fail_timeout=100000000000s;
+						{{ else }}
 	server {{ $containerNetwork.IP }}:{{ $address.Port }};
+						{{ end }}
 					{{ end }}
 				{{ else if $containerNetwork }}
 	# {{ $container.Name }}
