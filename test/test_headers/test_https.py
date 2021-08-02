@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_arbitrary_headers_are_passed_on(docker_compose, nginxproxy):
     r = nginxproxy.get("https://web.nginx-proxy.tld/headers", headers={'Foo': 'Bar'})
     assert r.status_code == 200
@@ -78,6 +81,7 @@ def test_httpoxy_safe(docker_compose, nginxproxy):
     assert "Proxy:" not in r.text
 
 
+@pytest.mark.filterwarnings('ignore::urllib3.exceptions.InsecureRequestWarning')
 def test_no_host_server_tokens_off(docker_compose, nginxproxy):
     ip = nginxproxy.get_ip()
     r = nginxproxy.get(f"https://{ip}/headers", verify=False)
@@ -86,7 +90,7 @@ def test_no_host_server_tokens_off(docker_compose, nginxproxy):
 
 
 def test_server_tokens_on(docker_compose, nginxproxy):
-    r = nginxproxy.get("https://web.nginx-proxy.tld/headers", verify=False)
+    r = nginxproxy.get("https://web.nginx-proxy.tld/headers")
     assert r.status_code == 200
     assert "Host: web.nginx-proxy.tld" in r.text
     assert r.headers["Server"].startswith("nginx/")

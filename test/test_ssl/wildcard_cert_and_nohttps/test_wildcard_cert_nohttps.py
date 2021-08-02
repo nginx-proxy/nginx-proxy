@@ -23,7 +23,7 @@ def test_https_get_served(docker_compose, nginxproxy, subdomain):
     assert r.status_code == 200
     assert f"answer from port 8{subdomain}\n" == r.text
 
-
+@pytest.mark.filterwarnings('ignore::urllib3.exceptions.InsecureRequestWarning')
 def test_web3_https_is_500_and_SSL_validation_fails(docker_compose, nginxproxy):
     with pytest.raises( (CertificateError, SSLError) ) as excinfo:
         nginxproxy.get("https://3.web.nginx-proxy.tld/port")
