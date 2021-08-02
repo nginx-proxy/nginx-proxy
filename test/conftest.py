@@ -288,11 +288,11 @@ def docker_compose_up(compose_file='docker-compose.yml'):
 
 
 def docker_compose_down(compose_file='docker-compose.yml'):
-    logging.info(f'docker-compose -f {compose_file} down')
+    logging.info(f'docker-compose -f {compose_file} down -v')
     try:
-        subprocess.check_output(shlex.split(f'docker-compose -f {compose_file} down'), stderr=subprocess.STDOUT)
+        subprocess.check_output(shlex.split(f'docker-compose -f {compose_file} down -v'), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        pytest.fail(f"Error while runninng 'docker-compose -f {compose_file} down':\n{e.output}", pytrace=False)
+        pytest.fail(f"Error while runninng 'docker-compose -f {compose_file} down -v':\n{e.output}", pytrace=False)
 
 
 def wait_for_nginxproxy_to_be_ready():
