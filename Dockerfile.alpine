@@ -42,13 +42,13 @@ LABEL maintainer="Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag)"
 
 # Install wget and install/updates certificates
 RUN apk add --no-cache --virtual .run-deps \
-    ca-certificates bash wget openssl \
-    && update-ca-certificates
+   ca-certificates bash wget openssl \
+   && update-ca-certificates
 
 # Configure Nginx and apply fix for very long server names
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
- && sed -i 's/worker_processes  1/worker_processes  auto/' /etc/nginx/nginx.conf \
- && sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf
+   && sed -i 's/worker_processes  1/worker_processes  auto/' /etc/nginx/nginx.conf \
+   && sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf
 
 # Install Forego + docker-gen
 COPY --from=forego /usr/local/bin/forego /usr/local/bin/forego

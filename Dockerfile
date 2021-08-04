@@ -41,17 +41,17 @@ LABEL maintainer="Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag)"
 
 # Install wget and install/updates certificates
 RUN apt-get update \
- && apt-get install -y -q --no-install-recommends \
-    ca-certificates \
-    wget \
- && apt-get clean \
- && rm -r /var/lib/apt/lists/*
+   && apt-get install -y -q --no-install-recommends \
+   ca-certificates \
+   wget \
+   && apt-get clean \
+   && rm -r /var/lib/apt/lists/*
 
 
 # Configure Nginx and apply fix for very long server names
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
- && sed -i 's/worker_processes  1/worker_processes  auto/' /etc/nginx/nginx.conf \
- && sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf
+   && sed -i 's/worker_processes  1/worker_processes  auto/' /etc/nginx/nginx.conf \
+   && sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf
 
 # Install Forego + docker-gen
 COPY --from=forego /usr/local/bin/forego /usr/local/bin/forego
