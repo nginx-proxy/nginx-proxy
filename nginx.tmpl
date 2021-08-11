@@ -389,7 +389,7 @@ server {
 	{{ else }}
 		{{ range $path, $container := $paths }}
 			{{ $sum := sha1 $path }}
-			{{ $upstream := printf "%s-%s" $host $sum }}
+			{{ $upstream := printf "%s-%s" $upstream_name $sum }}
 			{{ template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "Vhostroot" $vhost_root) }}
 		{{ end }}
 	{{ end }}
