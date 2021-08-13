@@ -110,7 +110,7 @@ It is also possible to specify multiple paths with regex locations like `VIRTUAL
 
 The full request URI will be forwarded to the serving container in the `X-Forwarded-Path` header.
 
-**NOTE**: Your application needs to be able to generate links starting with `VIRTUAL_PATH`. This can be achieved by it being natively on this path or havin an option to prepend this path. The application does not need to expect this path in the request.
+**NOTE**: Your application needs to be able to generate links starting with `VIRTUAL_PATH`. This can be achieved by it being natively on this path or having an option to prepend this path. The application does not need to expect this path in the request.
 
 #### VIRTUAL_DEST
 
