@@ -70,10 +70,10 @@ location {{ .Path }} {
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" .Host) }};
 	{{ end }}
 
-	{{ if (exists (printf "/etc/nginx/vhost.d/%s_location" .Host)) }}
-		include {{ printf "/etc/nginx/vhost.d/%s_location" .Host}};
-	{{ else if (exists (printf "/etc/nginx/vhost.d/%s_%s_location" .Host (sha1 .Path) )) }}
+	{{ if (exists (printf "/etc/nginx/vhost.d/%s_%s_location" .Host (sha1 .Path) )) }}
 		include {{ printf "/etc/nginx/vhost.d/%s_%s_location" .Host (sha1 .Path) }};
+	{{ else if (exists (printf "/etc/nginx/vhost.d/%s_location" .Host)) }}
+		include {{ printf "/etc/nginx/vhost.d/%s_location" .Host}};
 	{{ else if (exists "/etc/nginx/vhost.d/default_location") }}
 		include /etc/nginx/vhost.d/default_location;
 	{{ end }}
