@@ -14,11 +14,15 @@ See [Automated Nginx Reverse Proxy for Docker](http://jasonwilder.com/blog/2014/
 
 To run it:
 
-    $ docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+```console
+docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+```
 
 Then start any containers you want proxied with an env var `VIRTUAL_HOST=subdomain.youdomain.com`
 
-    $ docker run -e VIRTUAL_HOST=foo.bar.com  ...
+```console
+docker run -e VIRTUAL_HOST=foo.bar.com  ...
+```
 
 The containers being proxied must [expose](https://docs.docker.com/engine/reference/run/#expose-incoming-ports) the port to be proxied, either by using the `EXPOSE` directive in their `Dockerfile` or by using the `--expose` flag to `docker run` or `docker create` and be in the same network. By default, if you don't pass the --net flag when your nginx-proxy container is created, it will only be attached to the default bridge network. This means that it will not be able to connect to containers on networks other than bridge.
 
@@ -34,13 +38,17 @@ The nginx-proxy images are available in two flavors.
 
 This image uses the debian:buster based nginx image.
 
-    $ docker pull nginxproxy/nginx-proxy:latest
+```console
+docker pull nginxproxy/nginx-proxy:latest
+```
 
 #### nginxproxy/nginx-proxy:alpine
 
 This image is based on the nginx:alpine image. Use this image to fully support HTTP/2 (including ALPN required by recent Chrome versions). A valid certificate is required as well (see eg. below "SSL Support using an ACME CA" for more info).
 
-    $ docker pull nginxproxy/nginx-proxy:alpine
+```console
+docker pull nginxproxy/nginx-proxy:alpine
+```
 
 ### Docker Compose
 
@@ -64,9 +72,13 @@ services:
       - VIRTUAL_PORT=8000
 ```
 
-```shell
-$ docker-compose up
-$ curl -H "Host: whoami.local" localhost
+```console
+docker-compose up
+curl -H "Host: whoami.local" localhost
+```
+
+Example output:
+```console
 I'm 5b129ab83266
 ```
 
@@ -74,7 +86,9 @@ I'm 5b129ab83266
 
 You can activate the IPv6 support for the nginx-proxy container by passing the value `true` to the `ENABLE_IPV6` environment variable:
 
-    $ docker run -d -p 80:80 -e ENABLE_IPV6=true -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+```console
+docker run -d -p 80:80 -e ENABLE_IPV6=true -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+```
 
 #### Scoped IPv6 Resolvers
 
@@ -110,9 +124,9 @@ With the addition of [overlay networking](https://docs.docker.com/engine/usergui
 If you want your `nginx-proxy` container to be attached to a different network, you must pass the `--net=my-network` option in your `docker create` or `docker run` command. At the time of this writing, only a single network can be specified at container creation time. To attach to other networks, you can use the `docker network connect` command after your container is created:
 
 ```console
-$ docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro \
+docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro \
     --name my-nginx-proxy --net my-network nginxproxy/nginx-proxy
-$ docker network connect my-other-network my-nginx-proxy
+docker network connect my-other-network my-nginx-proxy
 ```
 
 In this example, the `my-nginx-proxy` container will be connected to `my-network` and `my-other-network` and will be able to proxy to other containers attached to those networks.
@@ -121,13 +135,15 @@ In this example, the `my-nginx-proxy` container will be connected to `my-network
 
 If you want to use `nginx-proxy` with different external ports that the default ones of `80` for `HTTP` traffic and `443` for `HTTPS` traffic, you'll have to use the environment variable(s) `HTTP_PORT` and/or `HTTPS_PORT` in addition to the changes to the Docker port mapping. If you change the `HTTPS` port, the redirect for `HTTPS` traffic will also be configured to redirect to the custom port. Typical usage, here with the custom ports `1080` and `10443`:
 
-    $ docker run -d -p 1080:1080 -p 10443:10443 -e HTTP_PORT=1080 -e HTTPS_PORT=10443 -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+```console
+docker run -d -p 1080:1080 -p 10443:10443 -e HTTP_PORT=1080 -e HTTPS_PORT=10443 -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+```
 
 ### Internet vs. Local Network Access
 
 If you allow traffic from the public internet to access your `nginx-proxy` container, you may want to restrict some containers to the internal network only, so they cannot be accessed from the public internet.  On containers that should be restricted to the internal network, you should set the environment variable `NETWORK_ACCESS=internal`.  By default, the *internal* network is defined as `127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16`.  To change the list of networks considered internal, mount a file on the `nginx-proxy` at `/etc/nginx/network_internal.conf` with these contents, edited to suit your needs:
 
-```
+```Nginx
 # These networks are considered "internal"
 allow 127.0.0.0/8;
 allow 10.0.0.0/8;
@@ -165,11 +181,15 @@ If you use fastcgi,you can set `VIRTUAL_ROOT=xxx`  for your root directory
 
 To set the default host for nginx use the env var `DEFAULT_HOST=foo.bar.com` for example
 
-    $ docker run -d -p 80:80 -e DEFAULT_HOST=foo.bar.com -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+```console
+docker run -d -p 80:80 -e DEFAULT_HOST=foo.bar.com -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+```
 
 nginx-proxy will then redirect all requests to a container where `VIRTUAL_HOST` is set to `DEFAULT_HOST`, if they don't match any (other) `VIRTUAL_HOST`. Using the example above requests without matching `VIRTUAL_HOST` will be redirected to a plain nginx instance after running the following command:
 
-    $ docker run -d -e VIRTUAL_HOST=foo.bar.com nginx
+```console
+docker run -d -e VIRTUAL_HOST=foo.bar.com nginx
+```
 
 ### Separate Containers
 
@@ -180,8 +200,12 @@ You may want to do this to prevent having the docker socket bound to a publicly 
 You can demo this pattern with docker-compose:
 
 ```console
-$ docker-compose --file docker-compose-separate-containers.yml up
-$ curl -H "Host: whoami.local" localhost
+docker-compose --file docker-compose-separate-containers.yml up
+curl -H "Host: whoami.local" localhost
+```
+
+Example output:
+```console
 I'm 5b129ab83266
 ```
 
@@ -190,12 +214,14 @@ To run nginx proxy as a separate container you'll need to have [nginx.tmpl](http
 First start nginx with a volume:
 
 
-    $ docker run -d -p 80:80 --name nginx -v /tmp/nginx:/etc/nginx/conf.d -t nginx
+```console
+docker run -d -p 80:80 --name nginx -v /tmp/nginx:/etc/nginx/conf.d -t nginx
+```
 
 Then start the docker-gen container with the shared volume and template:
 
-```
-$ docker run --volumes-from nginx \
+```console
+docker run --volumes-from nginx \
     -v /var/run/docker.sock:/tmp/docker.sock:ro \
     -v $(pwd):/etc/docker-gen/templates \
     -t jwilder/docker-gen -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
@@ -203,7 +229,9 @@ $ docker run --volumes-from nginx \
 
 Finally, start your containers with `VIRTUAL_HOST` environment variables.
 
-    $ docker run -e VIRTUAL_HOST=foo.bar.com  ...
+```console
+docker run -e VIRTUAL_HOST=foo.bar.com  ...
+```
 
 ### SSL Support using an ACME CA
 
@@ -211,7 +239,9 @@ Finally, start your containers with `VIRTUAL_HOST` environment variables.
 
 Set `DHPARAM_GENERATION` environment variable to `false` to disabled Diffie-Hellman parameters completely. This will also ignore auto-generation made by `nginx-proxy`. The default value is `true`
 
-     $ docker run -e DHPARAM_GENERATION=false ....
+```console
+docker run -e DHPARAM_GENERATION=false ....
+```
 
 ### SSL Support
 
@@ -219,7 +249,9 @@ SSL is supported using single host, wildcard and SNI certificates using naming c
 
 To enable SSL:
 
-    $ docker run -d -p 80:80 -p 443:443 -v /path/to/certs:/etc/nginx/certs -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+```console
+docker run -d -p 80:80 -p 443:443 -v /path/to/certs:/etc/nginx/certs -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+```
 
 The contents of `/path/to/certs` should contain the certificates and private keys for any virtual hosts in use. The certificate and keys should be named after the virtual host with a `.crt` and `.key` extension. For example, a container with `VIRTUAL_HOST=foo.bar.com` should have a `foo.bar.com.crt` and `foo.bar.com.key` file in the certs directory.
 
@@ -275,8 +307,8 @@ By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.or
 In order to be able to secure your virtual host, you have to create a file named as its equivalent VIRTUAL_HOST variable on directory
 /etc/nginx/htpasswd/$VIRTUAL_HOST
 
-```
-$ docker run -d -p 80:80 -p 443:443 \
+```console
+docker run -d -p 80:80 -p 443:443 \
     -v /path/to/htpasswd:/etc/nginx/htpasswd \
     -v /path/to/certs:/etc/nginx/certs \
     -v /var/run/docker.sock:/tmp/docker.sock:ro \
@@ -330,7 +362,9 @@ RUN { \
 
 Or it can be done by mounting in your custom configuration in your `docker run` command:
 
-    $ docker run -d -p 80:80 -p 443:443 -v /path/to/my_proxy.conf:/etc/nginx/conf.d/my_proxy.conf:ro -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+```console
+docker run -d -p 80:80 -p 443:443 -v /path/to/my_proxy.conf:/etc/nginx/conf.d/my_proxy.conf:ro -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+```
 
 #### Per-VIRTUAL_HOST
 
@@ -340,13 +374,17 @@ In order to allow virtual hosts to be dynamically configured as backends are add
 
 For example, if you have a virtual host named `app.example.com`, you could provide a custom configuration for that host as follows:
 
-    $ docker run -d -p 80:80 -p 443:443 -v /path/to/vhost.d:/etc/nginx/vhost.d:ro -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
-    $ { echo 'server_tokens off;'; echo 'client_max_body_size 100m;'; } > /path/to/vhost.d/app.example.com
+```console
+docker run -d -p 80:80 -p 443:443 -v /path/to/vhost.d:/etc/nginx/vhost.d:ro -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+{ echo 'server_tokens off;'; echo 'client_max_body_size 100m;'; } > /path/to/vhost.d/app.example.com
+```
 
 If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=example.com,www.example.com`), the virtual host configuration file must exist for each hostname. If you would like to use the same configuration for multiple virtual host names, you can use a symlink:
 
-    $ { echo 'server_tokens off;'; echo 'client_max_body_size 100m;'; } > /path/to/vhost.d/www.example.com
-    $ ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
+```console
+{ echo 'server_tokens off;'; echo 'client_max_body_size 100m;'; } > /path/to/vhost.d/www.example.com
+ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
+```
 
 #### Per-VIRTUAL_HOST default configuration
 
@@ -358,13 +396,17 @@ To add settings to the "location" block on a per-`VIRTUAL_HOST` basis, add your 
 
 For example, if you have a virtual host named `app.example.com` and you have configured a proxy_cache `my-cache` in another custom file, you could tell it to use a proxy cache as follows:
 
-    $ docker run -d -p 80:80 -p 443:443 -v /path/to/vhost.d:/etc/nginx/vhost.d:ro -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
-    $ { echo 'proxy_cache my-cache;'; echo 'proxy_cache_valid  200 302  60m;'; echo 'proxy_cache_valid  404 1m;' } > /path/to/vhost.d/app.example.com_location
+```console
+docker run -d -p 80:80 -p 443:443 -v /path/to/vhost.d:/etc/nginx/vhost.d:ro -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+{ echo 'proxy_cache my-cache;'; echo 'proxy_cache_valid  200 302  60m;'; echo 'proxy_cache_valid  404 1m;' } > /path/to/vhost.d/app.example.com_location
+```
 
 If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=example.com,www.example.com`), the virtual host configuration file must exist for each hostname. If you would like to use the same configuration for multiple virtual host names, you can use a symlink:
 
-    $ { echo 'proxy_cache my-cache;'; echo 'proxy_cache_valid  200 302  60m;'; echo 'proxy_cache_valid  404 1m;' } > /path/to/vhost.d/app.example.com_location
-    $ ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
+```console
+{ echo 'proxy_cache my-cache;'; echo 'proxy_cache_valid  200 302  60m;'; echo 'proxy_cache_valid  404 1m;' } > /path/to/vhost.d/app.example.com_location
+ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
+```
 
 #### Per-VIRTUAL_HOST location default configuration
 
@@ -377,12 +419,12 @@ Per virtual-host `servers_tokens` directive can be configured by passing appropr
 
 In case you can't access your VIRTUAL_HOST, set `DEBUG=true` in the client container's environment and have a look at the generated nginx configuration file `/etc/nginx/conf.d/default`:
 
-```
-$ docker exec <nginx-proxy-instance> cat /etc/nginx/conf.d/default
+```console
+docker exec <nginx-proxy-instance> cat /etc/nginx/conf.d/default
 ```
 Especially at `upstream` definition blocks which should look like:
 
-```
+```Nginx
 # foo.example.com
 upstream foo.example.com {
 	## Can be connected with "my_network" network
@@ -409,13 +451,17 @@ Before submitting pull requests or issues, please check github to make sure an e
 
 To run tests, you just need to run the command below:
 
-    make test
+```console
+make test
+```
 
 This commands run tests on two variants of the nginx-proxy docker image: Debian and Alpine.
 
 You can run the tests for each of these images with their respective commands:
 
-    make test-debian
-    make test-alpine
+```console
+make test-debian
+make test-alpine
+```
 
 You can learn more about how the test suite works and how to write new tests in the [test/README.md](test/README.md) file.
