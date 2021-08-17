@@ -150,15 +150,11 @@ If you would like the reverse proxy to connect to your backend using HTTPS inste
 
 ### uWSGI Backends
 
-If you would like to connect to uWSGI backend, set `VIRTUAL_PROTO=uwsgi` on the
-backend container. Your backend container should then listen on a port rather
-than a socket and expose that port.
+If you would like to connect to uWSGI backend, set `VIRTUAL_PROTO=uwsgi` on the backend container. Your backend container should then listen on a port rather than a socket and expose that port.
 
 ### FastCGI Backends
  
-If you would like to connect to FastCGI backend, set `VIRTUAL_PROTO=fastcgi` on the
-backend container. Your backend container should then listen on a port rather
-than a socket and expose that port.
+If you would like to connect to FastCGI backend, set `VIRTUAL_PROTO=fastcgi` on the backend container. Your backend container should then listen on a port rather than a socket and expose that port.
  
 ### FastCGI File Root Directory
 
@@ -177,8 +173,7 @@ nginx-proxy will then redirect all requests to a container where `VIRTUAL_HOST` 
 
 ### Separate Containers
 
-nginx-proxy can also be run as two separate containers using the [jwilder/docker-gen](https://hub.docker.com/r/jwilder/docker-gen)
-image and the official [nginx](https://registry.hub.docker.com/_/nginx/) image.
+nginx-proxy can also be run as two separate containers using the [jwilder/docker-gen](https://hub.docker.com/r/jwilder/docker-gen) image and the official [nginx](https://registry.hub.docker.com/_/nginx/) image.
 
 You may want to do this to prevent having the docker socket bound to a publicly exposed container service.
 
@@ -209,125 +204,71 @@ $ docker run --volumes-from nginx \
 Finally, start your containers with `VIRTUAL_HOST` environment variables.
 
     $ docker run -e VIRTUAL_HOST=foo.bar.com  ...
+
 ### SSL Support using an ACME CA
 
 [acme-companion](https://github.com/nginx-proxy/acme-companion) is a lightweight companion container for the nginx-proxy. It allows the automated creation/renewal of SSL certificates using the ACME protocol.
 
-Set `DHPARAM_GENERATION` environment variable to `false` to disabled Diffie-Hellman parameters completely. This will also ignore auto-generation made by `nginx-proxy`.
-The default value is `true`
+Set `DHPARAM_GENERATION` environment variable to `false` to disabled Diffie-Hellman parameters completely. This will also ignore auto-generation made by `nginx-proxy`. The default value is `true`
 
      $ docker run -e DHPARAM_GENERATION=false ....
+
 ### SSL Support
 
-SSL is supported using single host, wildcard and SNI certificates using naming conventions for
-certificates or optionally specifying a cert name (for SNI) as an environment variable.
+SSL is supported using single host, wildcard and SNI certificates using naming conventions for certificates or optionally specifying a cert name (for SNI) as an environment variable.
 
 To enable SSL:
 
     $ docker run -d -p 80:80 -p 443:443 -v /path/to/certs:/etc/nginx/certs -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
 
-The contents of `/path/to/certs` should contain the certificates and private keys for any virtual
-hosts in use.  The certificate and keys should be named after the virtual host with a `.crt` and
-`.key` extension.  For example, a container with `VIRTUAL_HOST=foo.bar.com` should have a
-`foo.bar.com.crt` and `foo.bar.com.key` file in the certs directory.
+The contents of `/path/to/certs` should contain the certificates and private keys for any virtual hosts in use. The certificate and keys should be named after the virtual host with a `.crt` and `.key` extension. For example, a container with `VIRTUAL_HOST=foo.bar.com` should have a `foo.bar.com.crt` and `foo.bar.com.key` file in the certs directory.
 
-If you are running the container in a virtualized environment (Hyper-V, VirtualBox, etc...),
-/path/to/certs must exist in that environment or be made accessible to that environment.
-By default, Docker is not able to mount directories on the host machine to containers running in a virtual machine.
+If you are running the container in a virtualized environment (Hyper-V, VirtualBox, etc...), /path/to/certs must exist in that environment or be made accessible to that environment. By default, Docker is not able to mount directories on the host machine to containers running in a virtual machine.
 
 #### Diffie-Hellman Groups
 
-Diffie-Hellman groups are enabled by default, with a pregenerated key in `/etc/nginx/dhparam/dhparam.pem`.
-You can mount a different `dhparam.pem` file at that location to override the default cert.
-To use custom `dhparam.pem` files per-virtual-host, the files should be named after the virtual host with a
-`dhparam` suffix and `.pem` extension. For example, a container with `VIRTUAL_HOST=foo.bar.com`
-should have a `foo.bar.com.dhparam.pem` file in the `/etc/nginx/certs` directory.
+Diffie-Hellman groups are enabled by default, with a pregenerated key in `/etc/nginx/dhparam/dhparam.pem`. You can mount a different `dhparam.pem` file at that location to override the default cert. To use custom `dhparam.pem` files per-virtual-host, the files should be named after the virtual host with a `dhparam` suffix and `.pem` extension. For example, a container with `VIRTUAL_HOST=foo.bar.com` should have a `foo.bar.com.dhparam.pem` file in the `/etc/nginx/certs` directory.
 
-> NOTE: If you don't mount a `dhparam.pem` file at `/etc/nginx/dhparam/dhparam.pem`, one will be generated
-at startup.  Since it can take minutes to generate a new `dhparam.pem`, it is done at low priority in the
-background.  Once generation is complete, the `dhparam.pem` is saved on a persistent volume and nginx
-is reloaded.  This generation process only occurs the first time you start `nginx-proxy`.
+> NOTE: If you don't mount a `dhparam.pem` file at `/etc/nginx/dhparam/dhparam.pem`, one will be generated at startup.  Since it can take minutes to generate a new `dhparam.pem`, it is done at low priority in the background. Once generation is complete, the `dhparam.pem` is saved on a persistent volume and nginx is reloaded. This generation process only occurs the first time you start `nginx-proxy`.
 
-> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 4096 bits for A+ security.  Some
-> older clients (like Java 6 and 7) do not support DH keys with over 1024 bits.  In order to support these
-> clients, you must either provide your own `dhparam.pem`, or tell `nginx-proxy` to generate a 1024-bit
-> key on startup by passing `-e DHPARAM_BITS=1024`.
+> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 4096 bits for A+ security. Some older clients (like Java 6 and 7) do not support DH keys with over 1024 bits. In order to support these clients, you must either provide your own `dhparam.pem`, or tell `nginx-proxy` to generate a 1024-bit key on startup by passing `-e DHPARAM_BITS=1024`.
 
-In the separate container setup, no pregenerated key will be available and neither the
-[jwilder/docker-gen](https://hub.docker.com/r/jwilder/docker-gen) image nor the offical
-[nginx](https://registry.hub.docker.com/_/nginx/) image will generate one. If you still want A+ security
-in a separate container setup, you'll have to generate a 2048 or 4096 bits DH key file manually and mount it on the
-nginx container, at `/etc/nginx/dhparam/dhparam.pem`.
+In the separate container setup, no pregenerated key will be available and neither the [jwilder/docker-gen](https://hub.docker.com/r/jwilder/docker-gen) image nor the offical [nginx](https://registry.hub.docker.com/_/nginx/) image will generate one. If you still want A+ security in a separate container setup, you'll have to generate a 2048 or 4096 bits DH key file manually and mount it on the nginx container, at `/etc/nginx/dhparam/dhparam.pem`.
 
 #### Wildcard Certificates
 
-Wildcard certificates and keys should be named after the domain name with a `.crt` and `.key` extension.
-For example `VIRTUAL_HOST=foo.bar.com` would use cert name `bar.com.crt` and `bar.com.key`.
+Wildcard certificates and keys should be named after the domain name with a `.crt` and `.key` extension. For example `VIRTUAL_HOST=foo.bar.com` would use cert name `bar.com.crt` and `bar.com.key`.
 
 #### SNI
 
-If your certificate(s) supports multiple domain names, you can start a container with `CERT_NAME=<name>`
-to identify the certificate to be used.  For example, a certificate for `*.foo.com` and `*.bar.com`
-could be named `shared.crt` and `shared.key`.  A container running with `VIRTUAL_HOST=foo.bar.com`
-and `CERT_NAME=shared` will then use this shared cert.
+If your certificate(s) supports multiple domain names, you can start a container with `CERT_NAME=<name>` to identify the certificate to be used.  For example, a certificate for `*.foo.com` and `*.bar.com` could be named `shared.crt` and `shared.key`.  A container running with `VIRTUAL_HOST=foo.bar.com` and `CERT_NAME=shared` will then use this shared cert.
 
 #### OCSP Stapling
-To enable OCSP Stapling for a domain, `nginx-proxy` looks for a PEM certificate containing the trusted
-CA certificate chain at `/etc/nginx/certs/<domain>.chain.pem`, where `<domain>` is the domain name in
-the `VIRTUAL_HOST` directive.  The format of this file is a concatenation of the public PEM CA
-certificates starting with the intermediate CA most near the SSL certificate, down to the root CA.  This is
-often referred to as the "SSL Certificate Chain".  If found, this filename is passed to the NGINX
-[`ssl_trusted_certificate` directive](http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_trusted_certificate)
-and OCSP Stapling is enabled.
+
+To enable OCSP Stapling for a domain, `nginx-proxy` looks for a PEM certificate containing the trusted CA certificate chain at `/etc/nginx/certs/<domain>.chain.pem`, where `<domain>` is the domain name in the `VIRTUAL_HOST` directive. The format of this file is a concatenation of the public PEM CA certificates starting with the intermediate CA most near the SSL certificate, down to the root CA. This is often referred to as the "SSL Certificate Chain". If found, this filename is passed to the NGINX [`ssl_trusted_certificate` directive](http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_trusted_certificate) and OCSP Stapling is enabled.
 
 #### How SSL Support Works
 
-The default SSL cipher configuration is based on the [Mozilla intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29) version 5.0 which
-should provide compatibility with clients back to Firefox 27, Android 4.4.2, Chrome 31, Edge, IE 11 on Windows 7,
-Java 8u31, OpenSSL 1.0.1, Opera 20, and Safari 9.  Note that the DES-based TLS ciphers were removed for security.
-The configuration also enables HSTS, PFS, OCSP stapling and SSL session caches.  Currently TLS 1.2 and 1.3
-are supported.
+The default SSL cipher configuration is based on the [Mozilla intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29) version 5.0 which should provide compatibility with clients back to Firefox 27, Android 4.4.2, Chrome 31, Edge, IE 11 on Windows 7, Java 8u31, OpenSSL 1.0.1, Opera 20, and Safari 9. Note that the DES-based TLS ciphers were removed for security. The configuration also enables HSTS, PFS, OCSP stapling and SSL session caches. Currently TLS 1.2 and 1.3 are supported.
 
-If you don't require backward compatibility, you can use the [Mozilla modern profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility)
-profile instead by including the environment variable `SSL_POLICY=Mozilla-Modern` to the nginx-proxy container or to your container.
-This profile is compatible with clients back to Firefox 63, Android 10.0, Chrome 70, Edge 75, Java 11,
-OpenSSL 1.1.1, Opera 57, and Safari 12.1.  Note that this profile is **not** compatible with any version of Internet Explorer.
+If you don't require backward compatibility, you can use the [Mozilla modern profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility) profile instead by including the environment variable `SSL_POLICY=Mozilla-Modern` to the nginx-proxy container or to your container. This profile is compatible with clients back to Firefox 63, Android 10.0, Chrome 70, Edge 75, Java 11, OpenSSL 1.1.1, Opera 57, and Safari 12.1.  Note that this profile is **not** compatible with any version of Internet Explorer.
 
-Other policies available through the `SSL_POLICY` environment variable are [`Mozilla-Old`](https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility)
-and the [AWS ELB Security Policies](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html)
-`AWS-TLS-1-2-2017-01`, `AWS-TLS-1-1-2017-01`, `AWS-2016-08`, `AWS-2015-05`, `AWS-2015-03` and `AWS-2015-02`.
+Other policies available through the `SSL_POLICY` environment variable are [`Mozilla-Old`](https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility) and the [AWS ELB Security Policies](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html) `AWS-TLS-1-2-2017-01`, `AWS-TLS-1-1-2017-01`, `AWS-2016-08`, `AWS-2015-05`, `AWS-2015-03` and `AWS-2015-02`.
 
-Note that the `Mozilla-Old` policy should use a 1024 bits DH key for compatibility but this container generates
-a 4096 bits key. The [Diffie-Hellman Groups](#diffie-hellman-groups) section details different methods of bypassing
-this, either globally or per virtual-host.
+Note that the `Mozilla-Old` policy should use a 1024 bits DH key for compatibility but this container generates a 4096 bits key. The [Diffie-Hellman Groups](#diffie-hellman-groups) section details different methods of bypassing this, either globally or per virtual-host.
 
 The default behavior for the proxy when port 80 and 443 are exposed is as follows:
 
-* If a container has a usable cert, port 80 will redirect to 443 for that container so that HTTPS
-is always preferred when available.
+* If a container has a usable cert, port 80 will redirect to 443 for that container so that HTTPS is always preferred when available.
 * If the container does not have a usable cert, a 503 will be returned.
 
-Note that in the latter case, a browser may get an connection error as no certificate is available
-to establish a connection.  A self-signed or generic cert named `default.crt` and `default.key`
-will allow a client browser to make a SSL connection (likely w/ a warning) and subsequently receive
-a 500.
+Note that in the latter case, a browser may get an connection error as no certificate is available to establish a connection. A self-signed or generic cert named `default.crt` and `default.key` will allow a client browser to make a SSL connection (likely w/ a warning) and subsequently receive a 500.
 
-To serve traffic in both SSL and non-SSL modes without redirecting to SSL, you can include the
-environment variable `HTTPS_METHOD=noredirect` (the default is `HTTPS_METHOD=redirect`).  You can also
-disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`, or disable the HTTPS site with
-`HTTPS_METHOD=nohttps`. `HTTPS_METHOD` can be specified on each container for which you want to
-override the default behavior or on the proxy container to set it globally. If `HTTPS_METHOD=noredirect` is used, Strict Transport Security (HSTS)
-is disabled to prevent HTTPS users from being redirected by the client.  If you cannot get to the HTTP
-site after changing this setting, your browser has probably cached the HSTS policy and is automatically
-redirecting you back to HTTPS.  You will need to clear your browser's HSTS cache or use an incognito
-window / different browser.
+To serve traffic in both SSL and non-SSL modes without redirecting to SSL, you can include the environment variable `HTTPS_METHOD=noredirect` (the default is `HTTPS_METHOD=redirect`). You can also disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`, or disable the HTTPS site with `HTTPS_METHOD=nohttps`. `HTTPS_METHOD` can be specified on each container for which you want to override the default behavior or on the proxy container to set it globally. If `HTTPS_METHOD=noredirect` is used, Strict Transport Security (HSTS) is disabled to prevent HTTPS users from being redirected by the client. If you cannot get to the HTTP site after changing this setting, your browser has probably cached the HSTS policy and is automatically redirecting you back to HTTPS. You will need to clear your browser's HSTS cache or use an incognito window / different browser.
 
-By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security) 
-is enabled with `max-age=31536000` for HTTPS sites.  You can disable HSTS with the environment variable 
-`HSTS=off` or use a custom HSTS configuration like `HSTS=max-age=31536000; includeSubDomains; preload`.  
-*WARNING*: HSTS will force your users to visit the HTTPS version of your site for the `max-age` time - 
-even if they type in `http://` manually.  The only way to get to an HTTP site after receiving an HSTS 
-response is to clear your browser's HSTS cache.
+By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security)  is enabled with `max-age=31536000` for HTTPS sites. You can disable HSTS with the environment variable `HSTS=off` or use a custom HSTS configuration like `HSTS=max-age=31536000; includeSubDomains; preload`. 
+
+*WARNING*: HSTS will force your users to visit the HTTPS version of your site for the `max-age` time - even if they type in `http://` manually.  The only way to get to an HTTP site after receiving an HSTS response is to clear your browser's HSTS cache.
 
 ### Basic Authentication Support
 
@@ -350,8 +291,7 @@ If you need to configure Nginx beyond what is possible using environment variabl
 
 #### Replacing default proxy settings
 
-If you want to replace the default proxy settings for the nginx container, add a configuration file at `/etc/nginx/proxy.conf`. A file with the default settings would
-look like this:
+If you want to replace the default proxy settings for the nginx container, add a configuration file at `/etc/nginx/proxy.conf`. A file with the default settings would look like this:
 
 ```Nginx
 # HTTP 1.1 support
@@ -410,13 +350,11 @@ If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=e
 
 #### Per-VIRTUAL_HOST default configuration
 
-If you want most of your virtual hosts to use a default single configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default` file. This file
-will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}` file associated with it.
+If you want most of your virtual hosts to use a default single configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default` file. This file will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}` file associated with it.
 
 #### Per-VIRTUAL_HOST location configuration
 
-To add settings to the "location" block on a per-`VIRTUAL_HOST` basis, add your configuration file under `/etc/nginx/vhost.d`
-just like the previous section except with the suffix `_location`.
+To add settings to the "location" block on a per-`VIRTUAL_HOST` basis, add your configuration file under `/etc/nginx/vhost.d` just like the previous section except with the suffix `_location`.
 
 For example, if you have a virtual host named `app.example.com` and you have configured a proxy_cache `my-cache` in another custom file, you could tell it to use a proxy cache as follows:
 
@@ -430,8 +368,7 @@ If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=e
 
 #### Per-VIRTUAL_HOST location default configuration
 
-If you want most of your virtual hosts to use a default single `location` block configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default_location` file. This file
-will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}_location` file associated with it.
+If you want most of your virtual hosts to use a default single `location` block configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default_location` file. This file will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}_location` file associated with it.
 
 #### Per-VIRTUAL_HOST `server_tokens` configuration
 Per virtual-host `servers_tokens` directive can be configured by passing appropriate value to the `SERVER_TOKENS` environment variable. Please see the [nginx http_core module configuration](https://nginx.org/en/docs/http/ngx_http_core_module.html#server_tokens) for more details.
