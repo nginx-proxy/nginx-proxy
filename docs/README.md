@@ -571,7 +571,7 @@ Complete list of policies available through the `SSL_POLICY` environment variabl
 
 The default behavior for the proxy when port 80 and 443 are exposed is as follows:
 
-- If a virtual host has a usable cert, port 80 will redirect to 443 for that virtual host so that HTTPS is always preferred when available.
+- If a virtual host has a usable cert, port 80 will redirect to 443 for that virtual host so that HTTPS is always preferred when available. This redirect will use a [301 code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/301) for `GET` requests and [308 code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/308) for any other HTTP method (`POST`/`HEAD`/`PUT` etc.).
 - If the virtual host does not have a usable cert, but `default.crt` and `default.key` exist, those will be used as the virtual host's certificate.
 - If the virtual host does not have a usable cert, and `default.crt` and `default.key` do not exist, or if the virtual host is configured not to trust the default certificate, SSL handshake will be rejected (see [Default and Missing Certificate](#default-and-missing-certificate) below).
 
