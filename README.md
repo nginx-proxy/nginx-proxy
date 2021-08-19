@@ -415,6 +415,12 @@ If you want most of your virtual hosts to use a default single `location` block 
 #### Per-VIRTUAL_HOST `server_tokens` configuration
 Per virtual-host `servers_tokens` directive can be configured by passing appropriate value to the `SERVER_TOKENS` environment variable. Please see the [nginx http_core module configuration](https://nginx.org/en/docs/http/ngx_http_core_module.html#server_tokens) for more details.
 
+### Unhashed vs SHA1 upstream names
+
+By default the nginx configuration `upstream` blocks will use this block's corresponding hostname as a predictable name. However, this can cause issues in some setups (see [this issue](https://github.com/nginx-proxy/nginx-proxy/issues/1162)). In those cases you might want to switch to SHA1 names for the `upstream` blocks by setting the `SHA1_UPSTREAM_NAME` environment variable to `true` on the nginx-proxy container.
+
+Please note that using regular expressions in `VIRTUAL_HOST` will always result in a corresponding `upstream` block with an SHA1 name.
+
 ### Troubleshooting
 
 In case you can't access your VIRTUAL_HOST, set `DEBUG=true` in the client container's environment and have a look at the generated nginx configuration file `/etc/nginx/conf.d/default`:
