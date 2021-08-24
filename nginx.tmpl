@@ -52,6 +52,11 @@
 
 {{ define "location" }}
 location {{ .Path }} {
+	{{ if eq .NetworkTag "internal" }}
+	# Only allow traffic from internal clients
+	include /etc/nginx/network_internal.conf;
+	{{ end }}
+
 	{{ if eq .Proto "uwsgi" }}
 		include uwsgi_params;
 		uwsgi_pass {{ trim .Proto }}://{{ trim .Upstream }};
@@ -277,8 +282,6 @@ server {
 {{/* Get the SERVER_TOKENS defined by containers w/ the same vhost, falling back to "" */}}
 {{ $server_tokens := trim (or (first (groupByKeys $containers "Env.SERVER_TOKENS")) "") }}
 
-{{/* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external" */}}
-{{ $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
 
 {{/* Get the HTTPS_METHOD defined by containers w/ the same vhost, falling back to "redirect" */}}
 {{ $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) (or $.Env.HTTPS_METHOD "redirect") }}
@@ -353,11 +356,6 @@ server {
 	{{ end }}
 	{{ $access_log }}
 
-	{{ if eq $network_tag "internal" }}
-	# Only allow traffic from internal clients
-	include /etc/nginx/network_internal.conf;
-	{{ end }}
-
 	{{ template "ssl_policy" (dict "ssl_policy" $ssl_policy) }}
 
 	ssl_session_timeout 5m;
@@ -388,13 +386,17 @@ server {
 	{{ end }}
 
 	{{ if eq $nPaths 0 }}
-		{{ template "location" (dict "Path" "/" "Proto" $proto "Upstream" $upstream_name "Host" $host "Vhostroot" $vhost_root "Dest" "") }}
+		{{/* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external" */}}
+		{{ $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
+		{{ template "location" (dict "Path" "/" "Proto" $proto "Upstream" $upstream_name "Host" $host "Vhostroot" $vhost_root "Dest" "" "NetworkTag" $network_tag) }}
 	{{ else }}
 		{{ range $path, $container := $paths }}
+			{{/* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external" */}}
+			{{ $network_tag := or (first (groupByKeys $container "Env.NETWORK_ACCESS")) "external" }}
 			{{ $sum := sha1 $path }}
 			{{ $upstream := printf "%s-%s" $upstream_name $sum }}
 			{{ $dest := (or (first (groupByKeys $container "Env.VIRTUAL_DEST")) "") }}
-			{{ template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "Vhostroot" $vhost_root "Dest" $dest) }}
+			{{ template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "Vhostroot" $vhost_root "Dest" $dest "NetworkTag" $network_tag) }}
 		{{ end }}
 		{{ if (not (contains $paths "/")) }}
 			location / {
@@ -419,11 +421,6 @@ server {
 	{{ end }}
 	{{ $access_log }}
 
-	{{ if eq $network_tag "internal" }}
-	# Only allow traffic from internal clients
-	include /etc/nginx/network_internal.conf;
-	{{ end }}
-
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
 	{{ else if (exists "/etc/nginx/vhost.d/default") }}
@@ -431,13 +428,17 @@ server {
 	{{ end }}
 
 	{{ if eq $nPaths 0 }}
-		{{ template "location" (dict "Path" "/" "Proto" $proto "Upstream" $upstream_name "Host" $host "Vhostroot" $vhost_root "Dest" "") }}
+		{{/* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external" */}}
+		{{ $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
+		{{ template "location" (dict "Path" "/" "Proto" $proto "Upstream" $upstream_name "Host" $host "Vhostroot" $vhost_root "Dest" "" "NetworkTag" $network_tag) }}
 	{{ else }}
 		{{ range $path, $container := $paths }}
+			{{/* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external" */}}
+			{{ $network_tag := or (first (groupByKeys $container "Env.NETWORK_ACCESS")) "external" }}
 			{{ $sum := sha1 $path }}
 			{{ $upstream := printf "%s-%s" $upstream_name $sum }}
 			{{ $dest := (or (first (groupByKeys $container "Env.VIRTUAL_DEST")) "") }}
-			{{ template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "Vhostroot" $vhost_root "Dest" $dest) }}
+			{{ template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "Vhostroot" $vhost_root "Dest" $dest "NetworkTag" $network_tag) }}
 		{{ end }}
 		{{ if (not (contains $paths "/")) }}
 			location / {
