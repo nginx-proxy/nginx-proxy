@@ -237,7 +237,7 @@ docker run -e VIRTUAL_HOST=foo.bar.com  ...
 
 [acme-companion](https://github.com/nginx-proxy/acme-companion) is a lightweight companion container for the nginx-proxy. It allows the automated creation/renewal of SSL certificates using the ACME protocol.
 
-Set `DHPARAM_GENERATION` environment variable to `false` to disabled Diffie-Hellman parameters completely. This will also ignore auto-generation made by `nginx-proxy`. The default value is `true`
+Set `DHPARAM_GENERATION` environment variable to `false` to disable Diffie-Hellman parameters completely. This will also ignore auto-generation made by `nginx-proxy`. The default value is `true`
 
 ```console
 docker run -e DHPARAM_GENERATION=false ....
