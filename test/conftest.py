@@ -13,6 +13,7 @@ import docker
 import pytest
 import requests
 from _pytest._code.code import ReprExceptionInfo
+from distutils.version import LooseVersion
 from docker.models.containers import Container
 from requests.packages.urllib3.util.connection import HAS_IPV6
 
@@ -488,5 +489,5 @@ try:
 except docker.errors.ImageNotFound:
     pytest.exit("The docker image 'nginxproxy/nginx-proxy:test' is missing")
 
-if docker.__version__ != "5.0.0":
-    pytest.exit("This test suite is meant to work with the python docker module v5.0.0")
+if LooseVersion(docker.__version__) < LooseVersion("5.0.0"):
+    pytest.exit("This test suite is meant to work with the python docker module v5.0.0 or later")
