@@ -57,6 +57,7 @@ jobs:
         id: docker_build_debian
         uses: docker/build-push-action@v2
         with:
+          context: .
           file: Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
@@ -104,6 +105,7 @@ jobs:
         id: docker_build_alpine
         uses: docker/build-push-action@v2
         with:
+          context: .
           file: Dockerfile.alpine
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
