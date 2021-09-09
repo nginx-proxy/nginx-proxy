@@ -2,28 +2,8 @@
 
 {{ $external_http_port := coalesce $.Env.HTTP_PORT "80" }}
 {{ $external_https_port := coalesce $.Env.HTTPS_PORT "443" }}
-
-{{ define "upstream" }}
-	{{ if .Address }}
-		{{/* If we got the containers from swarm and this container's port is published to host, use host IP:PORT */}}
-		{{ if and .Container.Node.ID .Address.HostPort }}
-			# {{ .Container.Node.Name }}/{{ .Container.Name }}
-			server {{ .Container.Node.Address.IP }}:{{ .Address.HostPort }};
-		{{/* If there is no swarm node or the port is not published on host, use container's IP:PORT */}}
-		{{ else if .Network }}
-			# {{ .Container.Name }}
-			server {{ .Network.IP }}:{{ .Address.Port }};
-		{{ end }}
-	{{ else if .Network }}
-		# {{ .Container.Name }}
-		{{ if .Network.IP }}
-			server {{ .Network.IP }} down;
-		{{ else }}
-			server 127.0.0.1 down;
-		{{ end }}
-	{{ end }}
-
-{{ end }}
+{{ $debug_all := $.Env.DEBUG }}
+{{ $sha1_upstream_name := parseBool (coalesce $.Env.SHA1_UPSTREAM_NAME "false") }}
 
 {{ define "ssl_policy" }}
 	{{ if eq .ssl_policy "Mozilla-Modern" }}
@@ -97,8 +77,8 @@ server_names_hash_bucket_size 128;
 ssl_dhparam /etc/nginx/dhparam/dhparam.pem;
 {{ end }}
 
-# Set appropriate X-Forwarded-Ssl header
-map $scheme $proxy_x_forwarded_ssl {
+# Set appropriate X-Forwarded-Ssl header based on $proxy_x_forwarded_proto
+map $proxy_x_forwarded_proto $proxy_x_forwarded_ssl {
   default off;
   https on;
 }
@@ -107,7 +87,8 @@ gzip_types text/plain text/css application/javascript application/json applicati
 
 log_format vhost '$host $remote_addr - $remote_user [$time_local] '
                  '"$request" $status $body_bytes_sent '
-                 '"$http_referer" "$http_user_agent"';
+                 '"$http_referer" "$http_user_agent" '
+                 '"$upstream_addr"';
 
 access_log off;
 
@@ -143,6 +124,7 @@ proxy_set_header Proxy "";
 {{ $enable_ipv6 := eq (or ($.Env.ENABLE_IPV6) "") "true" }}
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
+	server_tokens off;
 	listen {{ $external_http_port }};
 	{{ if $enable_ipv6 }}
 	listen [::]:{{ $external_http_port }};
@@ -154,6 +136,7 @@ server {
 {{ if (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
+	server_tokens off;
 	listen {{ $external_https_port }} ssl http2;
 	{{ if $enable_ipv6 }}
 	listen [::]:{{ $external_https_port }} ssl http2;
@@ -172,35 +155,61 @@ server {
 
 {{ $host := trim $host }}
 {{ $is_regexp := hasPrefix "~" $host }}
-{{ $upstream_name := when $is_regexp (sha1 $host) $host }}
+{{ $upstream_name := when (or $is_regexp $sha1_upstream_name) (sha1 $host) $host }}
 
 # {{ $host }}
 upstream {{ $upstream_name }} {
 
+{{ $server_found := "false" }}
 {{ range $container := $containers }}
-	{{ $addrLen := len $container.Addresses }}
-
+	{{ $debug := (eq (coalesce $container.Env.DEBUG $debug_all "false") "true") }}
+	{{/* If only 1 port exposed, use that as a default, else 80 */}}
+	{{ $defaultPort := (when (eq (len $container.Addresses) 1) (first $container.Addresses) (dict "Port" "80")).Port }}
+	{{ $port := (coalesce $container.Env.VIRTUAL_PORT $defaultPort) }}
+	{{ $address := where $container.Addresses "Port" $port | first }}
+	{{ if $debug }}
+	# Exposed ports: {{ $container.Addresses }}
+	# Default virtual port: {{ $defaultPort }}
+	# VIRTUAL_PORT: {{ $container.Env.VIRTUAL_PORT }}
+		{{ if not $address }}
+	# /!\ Virtual port not exposed
+		{{ end }}
+	{{ end }}
 	{{ range $knownNetwork := $CurrentContainer.Networks }}
 		{{ range $containerNetwork := $container.Networks }}
 			{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
-				## Can be connected with "{{ $containerNetwork.Name }}" network
-
-				{{/* If only 1 port exposed, use that */}}
-				{{ if eq $addrLen 1 }}
-					{{ $address := index $container.Addresses 0 }}
-					{{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork) }}
-				{{/* If more than one port exposed, use the one matching VIRTUAL_PORT env var, falling back to standard web port 80 */}}
-				{{ else }}
-					{{ $port := coalesce $container.Env.VIRTUAL_PORT "80" }}
-					{{ $address := where $container.Addresses "Port" $port | first }}
-					{{ template "upstream" (dict "Container" $container "Address" $address "Network" $containerNetwork) }}
+	## Can be connected with "{{ $containerNetwork.Name }}" network
+				{{ if $address }}
+					{{/* If we got the containers from swarm and this container's port is published to host, use host IP:PORT */}}
+					{{ if and $container.Node.ID $address.HostPort }}
+						{{ $server_found = "true" }}
+	# {{ $container.Node.Name }}/{{ $container.Name }}
+	server {{ $container.Node.Address.IP }}:{{ $address.HostPort }};
+					{{/* If there is no swarm node or the port is not published on host, use container's IP:PORT */}}
+					{{ else if $containerNetwork }}
+						{{ $server_found = "true" }}
+	# {{ $container.Name }}
+	server {{ $containerNetwork.IP }}:{{ $address.Port }};
+					{{ end }}
+				{{ else if $containerNetwork }}
+	# {{ $container.Name }}
+					{{ if $containerNetwork.IP }}
+						{{ $server_found = "true" }}
+	server {{ $containerNetwork.IP }}:{{ $port }};
+					{{ else }}
+	# /!\ No IP for this network!
+					{{ end }}
 				{{ end }}
 			{{ else }}
-				# Cannot connect to network of this container
-				server 127.0.0.1 down;
+	# Cannot connect to network '{{ $containerNetwork.Name }}' of this container
 			{{ end }}
 		{{ end }}
 	{{ end }}
+{{ end }}
+{{/* nginx-proxy/nginx-proxy#1105 */}}
+{{ if (eq $server_found "false") }}
+	# Fallback entry
+	server 127.0.0.1 down;
 {{ end }}
 }
 
@@ -209,6 +218,9 @@ upstream {{ $upstream_name }} {
 
 {{/* Get the VIRTUAL_PROTO defined by containers w/ the same vhost, falling back to "http" */}}
 {{ $proto := trim (or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http") }}
+
+{{/* Get the SERVER_TOKENS defined by containers w/ the same vhost, falling back to "" */}}
+{{ $server_tokens := trim (or (first (groupByKeys $containers "Env.SERVER_TOKENS")) "") }}
 
 {{/* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external" */}}
 {{ $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
@@ -246,6 +258,9 @@ upstream {{ $upstream_name }} {
 {{ if eq $https_method "redirect" }}
 server {
 	server_name {{ $host }};
+	{{ if $server_tokens }}
+	server_tokens {{ $server_tokens }};
+	{{ end }}
 	listen {{ $external_http_port }} {{ $default_server }};
 	{{ if $enable_ipv6 }}
 	listen [::]:{{ $external_http_port }} {{ $default_server }};
@@ -253,8 +268,9 @@ server {
 	{{ $access_log }}
 
 	# Do not HTTPS redirect Let'sEncrypt ACME challenge
-	location /.well-known/acme-challenge/ {
+	location ^~ /.well-known/acme-challenge/ {
 		auth_basic off;
+		auth_request off;
 		allow all;
 		root /usr/share/nginx/html;
 		try_files $uri =404;
@@ -262,13 +278,20 @@ server {
 	}
 
 	location / {
+		{{ if eq $external_https_port "443" }}
 		return 301 https://$host$request_uri;
+		{{ else }}
+		return 301 https://$host:{{ $external_https_port }}$request_uri;
+		{{ end }}
 	}
 }
 {{ end }}
 
 server {
 	server_name {{ $host }};
+	{{ if $server_tokens }}
+	server_tokens {{ $server_tokens }};
+	{{ end }}
 	listen {{ $external_https_port }} ssl http2 {{ $default_server }};
 	{{ if $enable_ipv6 }}
 	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};
@@ -341,6 +364,9 @@ server {
 
 server {
 	server_name {{ $host }};
+	{{ if $server_tokens }}
+	server_tokens {{ $server_tokens }};
+	{{ end }}
 	listen {{ $external_http_port }} {{ $default_server }};
 	{{ if $enable_ipv6 }}
 	listen [::]:80 {{ $default_server }};
@@ -386,6 +412,9 @@ server {
 {{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 server {
 	server_name {{ $host }};
+	{{ if $server_tokens }}
+	server_tokens {{ $server_tokens }};
+	{{ end }}
 	listen {{ $external_https_port }} ssl http2 {{ $default_server }};
 	{{ if $enable_ipv6 }}
 	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};

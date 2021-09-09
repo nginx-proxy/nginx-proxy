@@ -6,9 +6,18 @@ web:
     WEB_PORTS: 80
     VIRTUAL_HOST: web.nginx-proxy.tld
 
+web-server-tokens-off:
+  image: web
+  expose:
+    - "80"
+  environment:
+    WEB_PORTS: 80
+    VIRTUAL_HOST: web-server-tokens-off.nginx-proxy.tld
+    SERVER_TOKENS: "off"
+
 
 sut:
-  image: jwilder/nginx-proxy:test
+  image: nginxproxy/nginx-proxy:test
   volumes:
     - /var/run/docker.sock:/tmp/docker.sock:ro
     - ../lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro

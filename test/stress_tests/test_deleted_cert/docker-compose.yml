@@ -8,7 +8,7 @@ web:
 
 
 reverseproxy:
-  image: jwilder/nginx-proxy:test
+  image: nginxproxy/nginx-proxy:test
   container_name: reverseproxy
   environment:
     DEBUG: "true"

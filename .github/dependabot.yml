@@ -1,0 +1,19 @@
+version: 2
+updates:
+
+  # Maintain dependencies for Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    labels:
+      - "type/build"
+      - "scope/dockerfile"
+
+  # Maintain Python dependencies (test suite)
+  - package-ecosystem: "pip"
+    directory: "/test/requirements"
+    schedule:
+      interval: "daily"
+    labels:
+      - "type/ci"
