@@ -28,7 +28,7 @@ The containers being proxied must [expose](https://docs.docker.com/engine/refere
 
 Provided your DNS is setup to forward foo.bar.com to the host running nginx-proxy, the request will be routed to a container with the `VIRTUAL_HOST` env var set.
 
-Note: providing a port number in `VIRTUAL_HOST` isn't suported, please see [virtual ports](https://github.com/nginx-proxy/nginx-proxy#virtual-ports) or [custom external HTTP/HTTPS ports](https://github.com/nginx-proxy/nginx-proxy#virtual-ports) depending on what you want to achieve.
+Note: providing a port number in `VIRTUAL_HOST` isn't suported, please see [virtual ports](https://github.com/nginx-proxy/nginx-proxy#virtual-ports) or [custom external HTTP/HTTPS ports](https://github.com/nginx-proxy/nginx-proxy#custom-external-httphttps-ports) depending on what you want to achieve.
 
 ### Image variants
 
