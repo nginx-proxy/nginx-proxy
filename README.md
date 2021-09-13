@@ -317,6 +317,14 @@ docker run -d -p 80:80 -p 443:443 \
 
 You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
 
+### Enable CORS with basic authentication
+
+By default CORS preflight requests fails for routes requiring authentication, because all requests should only be forwarded after authentication. If you still need to enable CORS requests on a service with basic authentication you can enable `OPTIONS` requests to be passed without authentication using the `ENABLE_CORS_AUTH` environment variable:
+
+```console
+docker run -d -p 80:80 -e ENABLE_CORS_AUTH=true -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+```
+
 ### Custom Nginx Configuration
 
 If you need to configure Nginx beyond what is possible using environment variables, you can provide custom configuration files on either a proxy-wide or per-`VIRTUAL_HOST` basis.
