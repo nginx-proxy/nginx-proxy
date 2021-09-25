@@ -10,7 +10,7 @@ function _check_unix_socket() {
 			cat >&2 <<-EOT
 				ERROR: you need to share your Docker host socket with a volume at ${SOCKET_FILE}
 				Typically you should run your nginxproxy/nginx-proxy with: \`-v /var/run/docker.sock:${SOCKET_FILE}:ro\`
-				See the documentation at http://git.io/vZaGJ
+				See the documentation at: https://github.com/nginx-proxy/nginx-proxy/#usage
 			EOT
 
 			exit 1
