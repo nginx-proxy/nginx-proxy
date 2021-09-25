@@ -7,7 +7,6 @@ services:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./certs:/etc/nginx/certs:ro
-      - ../../lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
 
   web1:
     image: web
