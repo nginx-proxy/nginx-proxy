@@ -38,29 +38,25 @@ function _setup_dhparam() {
 	echo 'Setting up DH Parameters..'
 
 	# DH params will be supplied for nginx here:
-	DHPARAM_FILE='/etc/nginx/dhparam/dhparam.pem'
+	local DHPARAM_FILE='/etc/nginx/dhparam/dhparam.pem'
 
-	# DH params may be provided by the user (rarely necessary),
-	# or use an existing pre-generated group from RFC7919, defaulting to 4096-bit:
+	# Should be 2048, 3072, or 4096 (default):
+	local FFDHE_GROUP="${DHPARAM_BITS:=4096}"
+
+	# DH params may be provided by the user (rarely necessary)
 	if [[ -f ${DHPARAM_FILE} ]]; then
 		echo 'Warning: A custom dhparam.pem file was provided. Best practice is to use standardized RFC7919 DHE groups instead.' >&2
-	else
-		# ENV DHPARAM_BITS - Defines which RFC7919 DHE group to use (default: 4096-bit):
-		local FFDHE_GROUP="${DHPARAM_BITS:-4096}"
-		# RFC7919 groups are defined here:
-		# https://datatracker.ietf.org/doc/html/rfc7919#appendix-A
-		local RFC7919_DHPARAM_FILE="/app/dhparam/ffdhe${FFDHE_GROUP}.pem"
-
-		# Only the following pre-generated sizes are supported,
-		# emit an error and kill the container if provided an invalid value:
-		if [[ ! ${DHPARAM_BITS} =~ ^(2048|3072|4096)$ ]]; then
-			echo "ERROR: Unsupported DHPARAM_BITS size: ${DHPARAM_BITS}. Use: 2048, 3072, or 4096 (default)." >&2
-			exit 1
-		fi
-
-		# Provide the DH params file to nginx:
-		cp "${RFC7919_DHPARAM_FILE}" "${DHPARAM_FILE}"
+		return 0
+	elif [[ ! ${DHPARAM_BITS} =~ ^(2048|3072|4096)$ ]]; then
+		echo "ERROR: Unsupported DHPARAM_BITS size: ${DHPARAM_BITS}. Use: 2048, 3072, or 4096 (default)." >&2
+		exit 1
 	fi
+
+	# Use an existing pre-generated DH group from RFC7919 (https://datatracker.ietf.org/doc/html/rfc7919#appendix-A):
+	local RFC7919_DHPARAM_FILE="/app/dhparam/ffdhe${FFDHE_GROUP}.pem"
+
+	# Provide the DH params file to nginx:
+	cp "${RFC7919_DHPARAM_FILE}" "${DHPARAM_FILE}"
 }
 
 # Run the init logic if the default CMD was provided
