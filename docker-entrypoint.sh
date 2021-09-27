@@ -32,6 +32,7 @@ function _setup_dhparam() {
 	fi
 }
 
+function _init() {
 # Warn if the DOCKER_HOST socket does not exist
 if [[ $DOCKER_HOST = unix://* ]]; then
 	socket_file=${DOCKER_HOST#unix://}
@@ -41,11 +42,9 @@ if [[ $DOCKER_HOST = unix://* ]]; then
 			Typically you should run your nginxproxy/nginx-proxy with: \`-v /var/run/docker.sock:$socket_file:ro\`
 			See the documentation at http://git.io/vZaGJ
 		EOT
-		
-		# If the user has run the default command and the socket doesn't exist, fail
-		if [ "$1" = forego ] && [ "$2" = start ] && [ "$3" = '-r' ]; then
-			exit 1
-		fi
+
+		exit 1
+
 	fi
 fi
 
@@ -63,6 +62,12 @@ elif [[ $RESOLVERS =~ $SCOPED_IPV6_REGEX ]]; then
 	echo -n "Warning: Scoped IPv6 addresses removed from resolvers: " >&2
 	echo "$RESOLVERS" | grep -Eo "$SCOPED_IPV6_REGEX" | paste -s -d ' ' >&2
 	RESOLVERS=$(echo "$RESOLVERS" | sed -r "s/$SCOPED_IPV6_REGEX//g" | xargs echo -n); export RESOLVERS
+fi
+}
+
+# Run the init logic if the default CMD was provided
+if [[ $* == 'forego start -r' ]]; then
+	_init
 fi
 
 exec "$@"
