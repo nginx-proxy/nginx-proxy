@@ -32,7 +32,7 @@ function _setup_dhparam() {
 	fi
 }
 
-function _init() {
+function _check_unix_socket() {
 	# Warn if the DOCKER_HOST socket does not exist
 	if [[ $DOCKER_HOST = unix://* ]]; then
 		socket_file=${DOCKER_HOST#unix://}
@@ -46,9 +46,9 @@ function _init() {
 			exit 1
 		fi
 	fi
+}
 
-	_setup_dhparam
-
+function _resolvers() {
 	# Compute the DNS resolvers for use in the templates - if the IP contains ":", it's IPv6 and must be enclosed in []
 	RESOLVERS=$(awk '$1 == "nameserver" {print ($2 ~ ":")? "["$2"]": $2}' ORS=' ' /etc/resolv.conf | sed 's/ *$//g'); export RESOLVERS
 
@@ -66,7 +66,11 @@ function _init() {
 
 # Run the init logic if the default CMD was provided
 if [[ $* == 'forego start -r' ]]; then
-	_init
+	_check_unix_socket
+
+	_resolvers
+
+	_setup_dhparam
 fi
 
 exec "$@"
