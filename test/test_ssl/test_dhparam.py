@@ -168,6 +168,16 @@ def test_custom_dhparam_is_supported(docker_compose):
     can_negotiate_dhe_ciphersuite(sut_container)
 
 
+def test_can_skip_dhparam(docker_compose):
+    container_name="dh-skip"
+    sut_container = docker_client.containers.get(container_name)
+    assert sut_container.status == "running"
+
+    assert_log_contains("Skipping Diffie-Hellman parameters setup.", container_name)
+
+    cannot_negotiate_dhe_ciphersuite(sut_container)
+
+
 def test_web5_https_works(docker_compose, nginxproxy):
     r = nginxproxy.get("https://web5.nginx-proxy.tld/port", allow_redirects=False)
     assert r.status_code == 200

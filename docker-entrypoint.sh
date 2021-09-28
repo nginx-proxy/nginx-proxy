@@ -47,6 +47,9 @@ function _setup_dhparam() {
 	if [[ -f ${DHPARAM_FILE} ]]; then
 		echo 'Warning: A custom dhparam.pem file was provided. Best practice is to use standardized RFC7919 DHE groups instead.' >&2
 		return 0
+	elif [[ ${DHPARAM_SKIP:=0} -eq 1 ]]; then
+		echo 'Skipping Diffie-Hellman parameters setup.'
+		return 0
 	elif [[ ! ${DHPARAM_BITS} =~ ^(2048|3072|4096)$ ]]; then
 		echo "ERROR: Unsupported DHPARAM_BITS size: ${DHPARAM_BITS}. Use: 2048, 3072, or 4096 (default)." >&2
 		exit 1

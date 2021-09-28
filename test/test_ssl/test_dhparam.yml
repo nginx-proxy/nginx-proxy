@@ -39,3 +39,12 @@ with_custom_file:
     - /var/run/docker.sock:/tmp/docker.sock:ro
     - ./certs:/etc/nginx/certs:ro
     - ../lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
+
+with_skip:
+  image: nginxproxy/nginx-proxy:test
+  container_name: dh-skip
+  environment:
+    - DHPARAM_SKIP=1
+  volumes:
+    - /var/run/docker.sock:/tmp/docker.sock:ro
+    - ./certs:/etc/nginx/certs:ro
