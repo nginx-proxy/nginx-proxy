@@ -61,32 +61,44 @@ def require_openssl(required_version):
 @require_openssl("1.0.2")
 def negotiate_cipher(sut_container, additional_params='', grep='Cipher is'):
     host = f"{sut_container.attrs['NetworkSettings']['IPAddress']}:443"
-    
-    return subprocess.check_output(
-        f"echo '' | openssl s_client -connect {host} -tls1_2 {additional_params} | grep '{grep}'",
-        shell=True
-    )
+
+    try:
+        # Enforce TLS 1.2 as newer versions don't support custom dhparam or ciphersuite preference.
+        # The empty `echo` is to provide `openssl` user input, so that the process exits: https://stackoverflow.com/a/28567565
+        # `shell=True` enables using a single string to execute as a shell command.
+        # `text=True` prevents the need to compare against byte strings.
+        # `stderr=subprocess.PIPE` removes the output to stderr being interleaved with test case status (output during exceptions).
+        return subprocess.check_output(
+            f"echo '' | openssl s_client -connect {host} -tls1_2 {additional_params} | grep '{grep}'",
+            shell=True,
+            text=True,
+            stderr=subprocess.PIPE,
+        )
+    except subprocess.CalledProcessError as e:
+        # Output a more helpful error, the original exception in this case isn't that helpful.
+        # `from None` to ignore undesired output from exception chaining.
+        raise Exception("Failed to process CLI request:\n" + e.stderr) from None
 
 
 def can_negotiate_dhe_ciphersuite(sut_container):
     r = negotiate_cipher(sut_container, "-cipher 'EDH'")
-    assert b"New, TLSv1.2, Cipher is DHE-RSA-AES256-GCM-SHA384\n" == r
+    assert "New, TLSv1.2, Cipher is DHE-RSA-AES256-GCM-SHA384\n" == r
 
     r2 = negotiate_cipher(sut_container, "-cipher 'EDH'", "Server Temp Key")
-    assert b"DH" in r2
+    assert "DH" in r2
 
 
 def cannot_negotiate_dhe_ciphersuite(sut_container):
     # Fail to negotiate a DHE cipher suite:
     r = negotiate_cipher(sut_container, "-cipher 'EDH'")
-    assert b"New, (NONE), Cipher is (NONE)\n" == r
+    assert "New, (NONE), Cipher is (NONE)\n" == r
 
     # Correctly establish a connection (TLS 1.2):
     r2 = negotiate_cipher(sut_container)
-    assert b"New, TLSv1.2, Cipher is ECDHE-RSA-AES256-GCM-SHA384\n" == r2
+    assert "New, TLSv1.2, Cipher is ECDHE-RSA-AES256-GCM-SHA384\n" == r2
 
     r3 = negotiate_cipher(sut_container, grep="Server Temp Key")
-    assert b"X25519" in r3
+    assert "X25519" in r3
 
 
 # Parse array of container ENV, splitting at the `=` and returning the value, otherwise `None`
