@@ -6,11 +6,36 @@ web5:
     WEB_PORTS: "85"
     VIRTUAL_HOST: "web5.nginx-proxy.tld"
 
-
-sut:
+# sut - System Under Test
+with_default_group:
   image: nginxproxy/nginx-proxy:test
-  container_name: nginxproxy
+  container_name: dh-default
   volumes:
     - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ../lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
     - ./certs:/etc/nginx/certs:ro
+
+with_alternative_group:
+  image: nginxproxy/nginx-proxy:test
+  container_name: dh-env
+  environment:
+    - DHPARAM_BITS=2048
+  volumes:
+    - /var/run/docker.sock:/tmp/docker.sock:ro
+    - ./certs:/etc/nginx/certs:ro
+
+with_invalid_group:
+  image: nginxproxy/nginx-proxy:test
+  container_name: invalid-group-1024
+  environment:
+    - DHPARAM_BITS=1024
+  volumes:
+    - /var/run/docker.sock:/tmp/docker.sock:ro
+    - ./certs:/etc/nginx/certs:ro
+
+with_custom_file:
+  image: nginxproxy/nginx-proxy:test
+  container_name: dh-file
+  volumes:
+    - /var/run/docker.sock:/tmp/docker.sock:ro
+    - ./certs:/etc/nginx/certs:ro
+    - ../lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
