@@ -14,6 +14,12 @@ if [[ $DOCKER_HOST = unix://* ]]; then
 	fi
 fi
 
+if [ "${INCLUDE_STOPPED_CONTAINERS}" == "true" ]; then
+    export INCLUDE_STOPPED=" -include-stopped"
+else
+    export INCLUDE_STOPPED=""
+fi
+
 # Generate dhparam file if required
 /app/generate-dhparam.sh
 
