@@ -12,9 +12,9 @@ DHPARAM_FILE="/etc/nginx/dhparam/dhparam.pem"
 GEN_LOCKFILE="/tmp/dhparam_generating.lock"
 
 # The hash of the pregenerated dhparam file is used to check if the pregen dhparam is already in use
-PREGEN_HASH=$(md5sum $PREGEN_DHPARAM_FILE | cut -d" " -f1)
+PREGEN_HASH=$(sha256sum $PREGEN_DHPARAM_FILE | cut -d" " -f1)
 if [[ -f $DHPARAM_FILE ]]; then
-    CURRENT_HASH=$(md5sum $DHPARAM_FILE | cut -d" " -f1)
+    CURRENT_HASH=$(sha256sum $DHPARAM_FILE | cut -d" " -f1)
     if [[ $PREGEN_HASH != "$CURRENT_HASH" ]]; then
         # There is already a dhparam, and it's not the default
         echo "Custom dhparam.pem file found, generation skipped"
