@@ -1,6 +1,34 @@
 #!/bin/bash
 set -e
 
+function _parse_true() {
+	case "$1" in
+		
+		true | True | TRUE | 1)
+		return 0
+		;;
+		
+		*)
+		return 1
+		;;
+
+	esac
+}
+
+function _parse_false() {
+	case "$1" in
+		
+		false | False | FALSE | 0)
+		return 0
+		;;
+		
+		*)
+		return 1
+		;;
+
+	esac
+}
+
 function _check_unix_socket() {
 	# Warn if the DOCKER_HOST socket does not exist
 	if [[ ${DOCKER_HOST} == unix://* ]]; then
@@ -35,8 +63,6 @@ function _resolvers() {
 }
 
 function _setup_dhparam() {
-	echo 'Setting up DH Parameters..'
-
 	# DH params will be supplied for nginx here:
 	local DHPARAM_FILE='/etc/nginx/dhparam/dhparam.pem'
 
@@ -47,13 +73,19 @@ function _setup_dhparam() {
 	if [[ -f ${DHPARAM_FILE} ]]; then
 		echo 'Warning: A custom dhparam.pem file was provided. Best practice is to use standardized RFC7919 DHE groups instead.' >&2
 		return 0
-	elif [[ ${DHPARAM_SKIP:=0} -eq 1 ]]; then
+	elif _parse_true "${DHPARAM_SKIP:=false}"; then
+		echo 'Skipping Diffie-Hellman parameters setup.'
+		return 0
+	elif _parse_false "${DHPARAM_GENERATION:=true}"; then
+		echo 'Warning: The DHPARAM_GENERATION environment variable is deprecated, please consider using DHPARAM_SKIP set to true instead.' >&2
 		echo 'Skipping Diffie-Hellman parameters setup.'
 		return 0
 	elif [[ ! ${DHPARAM_BITS} =~ ^(2048|3072|4096)$ ]]; then
 		echo "ERROR: Unsupported DHPARAM_BITS size: ${DHPARAM_BITS}. Use: 2048, 3072, or 4096 (default)." >&2
 		exit 1
 	fi
+
+	echo 'Setting up DH Parameters..'
 
 	# Use an existing pre-generated DH group from RFC7919 (https://datatracker.ietf.org/doc/html/rfc7919#appendix-A):
 	local RFC7919_DHPARAM_FILE="/app/dhparam/ffdhe${FFDHE_GROUP}.pem"

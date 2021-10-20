@@ -261,10 +261,10 @@ To use custom `dhparam.pem` files per-virtual-host, the files should be named af
 
 In the separate container setup, no pre-generated key will be available and neither the [jwilder/docker-gen](https://hub.docker.com/r/jwilder/docker-gen) image, nor the offical [nginx](https://registry.hub.docker.com/_/nginx/) image will provide one. If you still want A+ security in a separate container setup, you should mount an RFC7919 DH key file to the nginx container at `/etc/nginx/dhparam/dhparam.pem`.
 
-Set `DHPARAM_SKIP` environment variable to `1` to disable using default Diffie-Hellman parameters. The default value is `0`.
+Set `DHPARAM_SKIP` environment variable to `true` to disable using default Diffie-Hellman parameters. The default value is `false`.
 
 ```console
-docker run -e DHPARAM_SKIP=1 ....
+docker run -e DHPARAM_SKIP=true ....
 ```
 
 #### Wildcard Certificates

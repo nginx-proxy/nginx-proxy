@@ -41,6 +41,13 @@ with_custom_file:
 with_skip:
   container_name: dh-skip
   environment:
-    - DHPARAM_SKIP=1
+    - DHPARAM_SKIP=true
+  image: *img-nginxproxy
+  volumes: *vols-common
+
+with_skip_backward:
+  container_name: dh-skip-backward
+  environment:
+    - DHPARAM_GENERATION=false
   image: *img-nginxproxy
   volumes: *vols-common
