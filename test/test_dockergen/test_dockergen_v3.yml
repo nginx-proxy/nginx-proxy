@@ -5,7 +5,6 @@ services:
     container_name: nginx
     volumes:
       - nginx_conf:/etc/nginx/conf.d
-      - ../lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
 
   dockergen:
     image: jwilder/docker-gen

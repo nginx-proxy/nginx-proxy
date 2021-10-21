@@ -51,7 +51,8 @@ RUN apt-get update \
 # Configure Nginx and apply fix for very long server names
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
    && sed -i 's/worker_processes  1/worker_processes  auto/' /etc/nginx/nginx.conf \
-   && sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf
+   && sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf \
+   && mkdir -p '/etc/nginx/dhparam'
 
 # Install Forego + docker-gen
 COPY --from=forego /usr/local/bin/forego /usr/local/bin/forego
@@ -68,8 +69,6 @@ COPY . /app/
 WORKDIR /app/
 
 ENV DOCKER_HOST unix:///tmp/docker.sock
-
-VOLUME ["/etc/nginx/certs", "/etc/nginx/dhparam"]
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]
