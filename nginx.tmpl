@@ -266,7 +266,7 @@ server {
 	listen [::]:{{ $external_http_port }} {{ $default_server }};
 	{{ end }}
 	{{ $access_log }}
-	
+
 	# Do not HTTPS redirect Let'sEncrypt ACME challenge
 	location ^~ /.well-known/acme-challenge/ {
 		auth_basic off;
@@ -276,7 +276,7 @@ server {
 		try_files $uri =404;
 		break;
 	}
-	
+
 	location / {
 		{{ if eq $external_https_port "443" }}
 		return 301 https://$host$request_uri;
