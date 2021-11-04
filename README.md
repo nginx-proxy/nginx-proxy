@@ -257,7 +257,7 @@ If you are running the container in a virtualized environment (Hyper-V, VirtualB
 
 To use custom `dhparam.pem` files per-virtual-host, the files should be named after the virtual host with a `dhparam` suffix and `.pem` extension. For example, a container with `VIRTUAL_HOST=foo.bar.com` should have a `foo.bar.com.dhparam.pem` file in the `/etc/nginx/certs` directory.
 
-> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 4096 bits for A+ security. Some older clients (like Java 6 and 7) do not support DH keys with over 1024 bits. In order to support these clients, you must either provide your own `dhparam.pem`.
+> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 4096 bits for A+ security. Some older clients (like Java 6 and 7) do not support DH keys with over 1024 bits. In order to support these clients, you must provide your own `dhparam.pem`.
 
 In the separate container setup, no pre-generated key will be available and neither the [jwilder/docker-gen](https://hub.docker.com/r/jwilder/docker-gen) image, nor the offical [nginx](https://registry.hub.docker.com/_/nginx/) image will provide one. If you still want A+ security in a separate container setup, you should mount an RFC7919 DH key file to the nginx container at `/etc/nginx/dhparam/dhparam.pem`.
 
