@@ -36,7 +36,7 @@ RUN git clone https://github.com/nginx-proxy/forego/ \
    && rm -rf /go/forego
 
 # Build the final image
-FROM nginx:1.21.3
+FROM nginx:1.21.4
 LABEL maintainer="Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag)"
 
 # Install wget and install/updates certificates
