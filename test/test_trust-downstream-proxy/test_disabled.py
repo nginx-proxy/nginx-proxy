@@ -8,6 +8,11 @@ import re
     ('https://web.nginx-proxy.tld/headers', 'X-Forwarded-Proto', None, 'https'),
     ('https://web.nginx-proxy.tld/headers', 'X-Forwarded-Proto', 'f00', 'https'),
 
+    ('http://web.nginx-proxy.tld/headers', 'X-Forwarded-Host', None, 'web.nginx-proxy.tld'),
+    ('http://web.nginx-proxy.tld/headers', 'X-Forwarded-Host', 'example.com', 'web.nginx-proxy.tld'),
+    ('https://web.nginx-proxy.tld/headers', 'X-Forwarded-Host', None, 'web.nginx-proxy.tld'),
+    ('https://web.nginx-proxy.tld/headers', 'X-Forwarded-Host', 'example.com', 'web.nginx-proxy.tld'),
+
     ('http://web.nginx-proxy.tld/headers', 'X-Forwarded-Port', None, '80'),
     ('http://web.nginx-proxy.tld/headers', 'X-Forwarded-Port', '1234', '80'),
     ('https://web.nginx-proxy.tld/headers', 'X-Forwarded-Port', None, '443'),

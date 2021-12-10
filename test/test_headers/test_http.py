@@ -30,6 +30,19 @@ def test_X_Forwarded_Proto_is_passed_on(docker_compose, nginxproxy):
     assert "X-Forwarded-Proto: f00\n" in r.text
 
 
+##### Testing the handling of X-Forwarded-Host #####
+
+def test_X_Forwarded_Host_is_generated(docker_compose, nginxproxy):
+    r = nginxproxy.get("http://web.nginx-proxy.tld/headers")
+    assert r.status_code == 200
+    assert "X-Forwarded-Host: web.nginx-proxy.tld\n" in r.text
+
+def test_X_Forwarded_Host_is_passed_on(docker_compose, nginxproxy):
+    r = nginxproxy.get("http://web.nginx-proxy.tld/headers", headers={'X-Forwarded-Host': 'example.com'})
+    assert r.status_code == 200
+    assert "X-Forwarded-Host: example.com\n" in r.text
+
+
 ##### Testing the handling of X-Forwarded-Port #####
 
 def test_X_Forwarded_Port_is_generated(docker_compose, nginxproxy):
