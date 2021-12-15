@@ -1,0 +1,30 @@
+version: '2'
+services:
+  http-proxy:
+    # Details: 
+    # - https://github.com/wellic/nginx-proxy
+    # - https://github.com/nginxproxy/nginx-proxy
+    # - https://github.com/wellic/dinghy-http-proxy
+    # - https://github.com/codekitchen/dinghy-http-proxy
+    
+    image: nginxproxy/nginx-proxy
+    container_name: http-proxy
+    privileged: true
+    environment:
+#      - DNS_IP=127.0.0.1
+      - CONTAINER_NAME=http-proxy
+    ports:
+      - "80:80"
+#      - "443:443"
+#      - "19322:19322/udp"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+
+  whoami:
+    image: jwilder/whoami
+    expose:
+      - "8000"
+    environment:
+      - VIRTUAL_HOST=whoami.local
+      - VIRTUAL_PORT=8000
+
