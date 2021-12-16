@@ -83,6 +83,16 @@ map $proxy_x_forwarded_proto $proxy_x_forwarded_ssl {
   https on;
 }
 
+# Expires map
+map $sent_http_content_type $expires {
+  default                   off;
+  ~application/             30d;
+  ~text/                    30d;
+  ~audio/                   365d;
+  ~video/                   365d;
+  ~image/                   365d;
+}
+
 gzip_types text/plain text/css application/javascript application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 
 log_format vhost '$host $remote_addr - $remote_user [$time_local] '
@@ -298,6 +308,8 @@ server {
 	{{ end }}
 	{{ $access_log }}
 
+	expires $expires;
+
 	{{ if eq $network_tag "internal" }}
 	# Only allow traffic from internal clients
 	include /etc/nginx/network_internal.conf;
@@ -372,6 +384,8 @@ server {
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
 	{{ $access_log }}
+
+	expires $expires;
 
 	{{ if eq $network_tag "internal" }}
 	# Only allow traffic from internal clients
