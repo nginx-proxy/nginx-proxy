@@ -101,6 +101,13 @@ def cannot_negotiate_dhe_ciphersuite(sut_container):
     assert "X25519" in r3
 
 
+def should_be_equivalent_content(sut_container, expected, actual):
+    expected_checksum = sut_container.exec_run(f"md5sum {expected}").output.split()[0]
+    actual_checksum = sut_container.exec_run(f"md5sum {actual}").output.split()[0]
+
+    assert expected_checksum == actual_checksum
+
+
 # Parse array of container ENV, splitting at the `=` and returning the value, otherwise `None`
 def get_env(sut_container, var):
   env = sut_container.attrs['Config']['Env']
@@ -125,14 +132,17 @@ def test_default_dhparam_is_ffdhe4096(docker_compose):
 
     assert_log_contains("Setting up DH Parameters..", container_name)
 
-    # Make sure the dhparam file used is the default ffdhe4096.pem:
-    default_checksum = sut_container.exec_run("md5sum /app/dhparam/ffdhe4096.pem").output.split()
-    current_checksum = sut_container.exec_run("md5sum /etc/nginx/dhparam/dhparam.pem").output.split()
-    assert default_checksum[0] == current_checksum[0]
+    # `dhparam.pem` contents should match the default (ffdhe4096.pem):
+    should_be_equivalent_content(
+        sut_container,
+        "/app/dhparam/ffdhe4096.pem",
+        "/etc/nginx/dhparam/dhparam.pem"
+    )
 
     can_negotiate_dhe_ciphersuite(sut_container)
 
 
+# Overrides default DH group via ENV `DHPARAM_BITS=3072`:
 def test_can_change_dhparam_group(docker_compose):
     container_name="dh-env"
     sut_container = docker_client.containers.get(container_name)
@@ -140,10 +150,12 @@ def test_can_change_dhparam_group(docker_compose):
 
     assert_log_contains("Setting up DH Parameters..", container_name)
 
-    # Make sure the dhparam file used is ffdhe2048.pem, not the default (ffdhe4096.pem):
-    default_checksum = sut_container.exec_run("md5sum /app/dhparam/ffdhe2048.pem").output.split()
-    current_checksum = sut_container.exec_run("md5sum /etc/nginx/dhparam/dhparam.pem").output.split()
-    assert default_checksum[0] == current_checksum[0]
+    # `dhparam.pem` contents should not match the default (ffdhe4096.pem):
+    should_be_equivalent_content(
+        sut_container,
+        "/app/dhparam/ffdhe3072.pem",
+        "/etc/nginx/dhparam/dhparam.pem"
+    )
 
     can_negotiate_dhe_ciphersuite(sut_container)
 
@@ -162,6 +174,7 @@ def test_fail_if_dhparam_group_not_supported(docker_compose):
     )
 
 
+# Overrides default DH group by providing a custom `/etc/nginx/dhparam/dhparam.pem`:
 def test_custom_dhparam_is_supported(docker_compose):
     container_name="dh-file"
     sut_container = docker_client.containers.get(container_name)
@@ -172,10 +185,12 @@ def test_custom_dhparam_is_supported(docker_compose):
         container_name
     )
 
-    # Make sure the dhparam file used is not the default (ffdhe4096.pem):
-    default_checksum = sut_container.exec_run("md5sum /app/dhparam/ffdhe4096.pem").output.split()
-    current_checksum = sut_container.exec_run("md5sum /etc/nginx/dhparam/dhparam.pem").output.split()
-    assert default_checksum[0] != current_checksum[0]
+    # `dhparam.pem` contents should not match the default (ffdhe4096.pem):
+    should_be_equivalent_content(
+        sut_container,
+        "/app/dhparam/ffdhe3072.pem",
+        "/etc/nginx/dhparam/dhparam.pem"
+    )
 
     can_negotiate_dhe_ciphersuite(sut_container)
 
@@ -188,6 +203,7 @@ def test_can_skip_dhparam(docker_compose):
     assert_log_contains("Skipping Diffie-Hellman parameters setup.", container_name)
 
     cannot_negotiate_dhe_ciphersuite(sut_container)
+
 
 def test_can_skip_dhparam_backward_compatibility(docker_compose):
     container_name="dh-skip-backward"

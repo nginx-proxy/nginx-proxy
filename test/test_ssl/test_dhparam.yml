@@ -19,7 +19,7 @@ with_default_group:
 with_alternative_group:
   container_name: dh-env
   environment:
-    - DHPARAM_BITS=2048
+    - DHPARAM_BITS=3072
   image: *img-nginxproxy
   volumes: *vols-common
 
@@ -33,7 +33,7 @@ with_invalid_group:
 with_custom_file:
   container_name: dh-file
   image: *img-nginxproxy
-  volumes: 
+  volumes:
     - *docker-sock
     - *nginx-certs
     - ../../dhparam/ffdhe3072.pem:/etc/nginx/dhparam/dhparam.pem:ro
