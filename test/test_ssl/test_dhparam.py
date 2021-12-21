@@ -200,6 +200,30 @@ def test_custom_dhparam_is_supported(docker_compose):
     can_negotiate_dhe_ciphersuite(sut_container, 3072)
 
 
+# Only `web2` has a site-specific DH param file (which overrides all other DH config)
+# Other tests here use `web5` explicitly, or implicitly (via ENV `DEFAULT_HOST`, otherwise first HTTPS server)
+def test_custom_dhparam_is_supported_per_site(docker_compose):
+    container_name="dh-file"
+    sut_container = docker_client.containers.get(container_name)
+    assert sut_container.status == "running"
+
+    # A site specific `dhparam.pem` with DH group size of 2048-bit.
+    # DH group size should not match the:
+    # - 4096-bit default.
+    # - 3072-bit default, overriden by file.
+    should_be_equivalent_content(
+        sut_container,
+        "/app/dhparam/ffdhe2048.pem",
+        "/etc/nginx/certs/web2.nginx-proxy.tld.dhparam.pem"
+    )
+
+    # `-servername` required for nginx-proxy to respond with site-specific DH params used:
+    can_negotiate_dhe_ciphersuite(sut_container, 2048, '-servername web2.nginx-proxy.tld')
+
+
+# NOTE: These two tests will fail without the ENV `DEFAULT_HOST` to prevent
+# accidentally falling back to `web2` as the default server, which has explicit DH params configured.
+# Only copying DH params is skipped, not explicit usage via user providing custom files.
 def test_can_skip_dhparam(docker_compose):
     container_name="dh-skip"
     sut_container = docker_client.containers.get(container_name)
