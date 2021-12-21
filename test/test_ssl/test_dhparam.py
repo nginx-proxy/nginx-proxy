@@ -1,5 +1,6 @@
 import re
 import subprocess
+import os
 
 import backoff
 import docker
@@ -104,6 +105,22 @@ def cannot_negotiate_dhe_ciphersuite(sut_container):
 
     r3 = negotiate_cipher(sut_container, grep="Server Temp Key")
     assert "X25519" in r3
+
+
+# To verify self-signed certificates, the file path to their CA cert must be provided.
+# Use the `fqdn` arg to specify the `VIRTUAL_HOST` to request for verification for that cert.
+#
+# Resolves the following stderr warnings regarding self-signed cert verification and missing SNI:
+# `Can't use SSL_get_servername`
+# `verify error:num=20:unable to get local issuer certificate`
+# `verify error:num=21:unable to verify the first certificate`
+#
+# The stderr output is hidden due to running the openssl command with `stderr=subprocess.PIPE`.
+def can_verify_chain_of_trust(sut_container, ca_cert, fqdn):
+    openssl_params = f"-CAfile '{ca_cert}' -servername '{fqdn}'"
+
+    r = negotiate_cipher(sut_container, openssl_params, "Verify return code")
+    assert "Verify return code: 0 (ok)" in r
 
 
 def should_be_equivalent_content(sut_container, expected, actual):
@@ -219,6 +236,15 @@ def test_custom_dhparam_is_supported_per_site(docker_compose):
 
     # `-servername` required for nginx-proxy to respond with site-specific DH params used:
     can_negotiate_dhe_ciphersuite(sut_container, 2048, '-servername web2.nginx-proxy.tld')
+
+    # --Unrelated to DH support--
+    # - `web5` is missing a certificate, but falls back to available `/etc/nginx/certs/nginx-proxy.tld.crt` via `nginx.tmpl` "closest" result.
+    # - `web2` has it's own cert provisioned at `/etc/nginx/certs/web2.nginx-proxy.tld.crt`.
+    can_verify_chain_of_trust(
+        sut_container,
+        ca_cert = f"{os.getcwd()}/certs/ca-root.crt",
+        fqdn    = 'web2.nginx-proxy.tld'
+    )
 
 
 # NOTE: These two tests will fail without the ENV `DEFAULT_HOST` to prevent
