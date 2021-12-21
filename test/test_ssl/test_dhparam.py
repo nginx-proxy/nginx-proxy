@@ -80,12 +80,17 @@ def negotiate_cipher(sut_container, additional_params='', grep='Cipher is'):
         raise Exception("Failed to process CLI request:\n" + e.stderr) from None
 
 
-def can_negotiate_dhe_ciphersuite(sut_container):
-    r = negotiate_cipher(sut_container, "-cipher 'EDH'")
+# The default `dh_bits` can vary due to configuration.
+# `additional_params` allows for adjusting the request to a specific `VIRTUAL_HOST`,
+# where DH size can differ from the configured global default DH size.
+def can_negotiate_dhe_ciphersuite(sut_container, dh_bits=4096, additional_params=''):
+    openssl_params = f"-cipher 'EDH' {additional_params}"
+
+    r = negotiate_cipher(sut_container, openssl_params)
     assert "New, TLSv1.2, Cipher is DHE-RSA-AES256-GCM-SHA384\n" == r
 
-    r2 = negotiate_cipher(sut_container, "-cipher 'EDH'", "Server Temp Key")
-    assert "DH" in r2
+    r2 = negotiate_cipher(sut_container, openssl_params, "Server Temp Key")
+    assert f"Server Temp Key: DH, {dh_bits} bits" in r2
 
 
 def cannot_negotiate_dhe_ciphersuite(sut_container):
@@ -139,7 +144,7 @@ def test_default_dhparam_is_ffdhe4096(docker_compose):
         "/etc/nginx/dhparam/dhparam.pem"
     )
 
-    can_negotiate_dhe_ciphersuite(sut_container)
+    can_negotiate_dhe_ciphersuite(sut_container, 4096)
 
 
 # Overrides default DH group via ENV `DHPARAM_BITS=3072`:
@@ -157,7 +162,7 @@ def test_can_change_dhparam_group(docker_compose):
         "/etc/nginx/dhparam/dhparam.pem"
     )
 
-    can_negotiate_dhe_ciphersuite(sut_container)
+    can_negotiate_dhe_ciphersuite(sut_container, 3072)
 
 
 def test_fail_if_dhparam_group_not_supported(docker_compose):
@@ -192,7 +197,7 @@ def test_custom_dhparam_is_supported(docker_compose):
         "/etc/nginx/dhparam/dhparam.pem"
     )
 
-    can_negotiate_dhe_ciphersuite(sut_container)
+    can_negotiate_dhe_ciphersuite(sut_container, 3072)
 
 
 def test_can_skip_dhparam(docker_compose):
