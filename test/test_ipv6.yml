@@ -33,7 +33,6 @@ services:
     image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
     environment:
       ENABLE_IPV6: "true"
     networks:
