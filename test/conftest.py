@@ -28,7 +28,9 @@ FORCE_CONTAINER_IPV6 = False  # ugly global state to consider containers' IPv6 a
 
 
 docker_client = docker.from_env()
-test_container = socket.gethostname()
+
+# Name of pytest container to reference if it's being used for running tests
+test_container = 'nginx-proxy-pytest'
 
 
 ###############################################################################
@@ -260,7 +262,7 @@ def restore_urllib_dns_resolver(getaddrinfo_func):
 
 def remove_all_containers():
     for container in docker_client.containers.list(all=True):
-        if PYTEST_RUNNING_IN_CONTAINER and container.id.startswith(test_container):
+        if PYTEST_RUNNING_IN_CONTAINER and container.name == test_container:
             continue  # pytest is running within a Docker container, so we do not want to remove that particular container
         logging.info(f"removing container {container.name}")
         container.remove(v=True, force=True)
