@@ -367,7 +367,7 @@ def connect_to_network(network):
             return None
 
         # make sure our container is connected to the nginx-proxy's network
-        if network not in my_networks:
+        if network.name not in my_networks:
             logging.info(f"Connecting to docker network: {network.name}")
             network.connect(my_container)
             return network
@@ -405,7 +405,7 @@ def connect_to_all_networks():
         return []
     else:
         # find the list of docker networks
-        networks = [network for network in docker_client.networks.list() if len(network.containers) > 0 and network.name != 'bridge']
+        networks = [network for network in docker_client.networks.list(greedy=True) if len(network.containers) > 0 and network.name != 'bridge']
         return [connect_to_network(network) for network in networks]
 
 
