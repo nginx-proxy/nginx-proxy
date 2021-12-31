@@ -23,7 +23,7 @@ logging.getLogger('DNS').setLevel(logging.DEBUG)
 logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
 CA_ROOT_CERTIFICATE = os.path.join(os.path.dirname(__file__), 'certs/ca-root.crt')
-I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER = os.path.isfile("/.dockerenv")
+PYTEST_RUNNING_IN_CONTAINER = os.environ.get('PYTEST_RUNNING_IN_CONTAINER') == "1"
 FORCE_CONTAINER_IPV6 = False  # ugly global state to consider containers' IPv6 address instead of IPv4
 
 
@@ -259,7 +259,7 @@ def restore_urllib_dns_resolver(getaddrinfo_func):
 
 def remove_all_containers():
     for container in docker_client.containers.list(all=True):
-        if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER and container.id.startswith(socket.gethostname()):
+        if PYTEST_RUNNING_IN_CONTAINER and container.id.startswith(socket.gethostname()):
             continue  # pytest is running within a Docker container, so we do not want to remove that particular container
         logging.info(f"removing container {container.name}")
         container.remove(v=True, force=True)
@@ -349,7 +349,7 @@ def connect_to_network(network):
 
     :return: the name of the network we were connected to, or None
     """
-    if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER:
+    if PYTEST_RUNNING_IN_CONTAINER:
         try:
             my_container = docker_client.containers.get(socket.gethostname())
         except docker.errors.NotFound:
@@ -372,7 +372,7 @@ def disconnect_from_network(network=None):
 
     :param network: name of a docker network to disconnect from
     """
-    if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER and network is not None:
+    if PYTEST_RUNNING_IN_CONTAINER and network is not None:
         try:
             my_container = docker_client.containers.get(socket.gethostname())
         except docker.errors.NotFound:
@@ -394,7 +394,7 @@ def connect_to_all_networks():
 
     :return: a list of networks we connected to
     """
-    if not I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER:
+    if not PYTEST_RUNNING_IN_CONTAINER:
         return []
     else:
         # find the list of docker networks
