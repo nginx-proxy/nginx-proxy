@@ -239,6 +239,11 @@ def monkey_patch_urllib_dns_resolver():
         logging.getLogger('DNS').debug(f"resolving domain name {repr(args)}")
         _args = list(args)
 
+        # Fail early when querying IP directly and it is forced ipv6 when not supported,
+        # Otherwise a pytest container not using the host network fails to pass `test_raw-ip-vhost`.
+        if FORCE_CONTAINER_IPV6 and not HAS_IPV6:
+            pytest.skip("This system does not support IPv6")
+
         # custom DNS resolvers
         ip = nginx_proxy_dns_resolver(args[0])
         if ip is None:
@@ -366,8 +371,9 @@ def connect_to_network(network):
         if 'host' in my_networks:
             return None
 
-        # make sure our container is connected to the nginx-proxy's network
-        if network.name not in my_networks:
+        # Make sure our container is connected to the nginx-proxy's network,
+        # but avoid connecting to `none` network (not valid) with `test_server-down` tests
+        if network.name not in my_networks and network.name != 'none':
             logging.info(f"Connecting to docker network: {network.name}")
             network.connect(my_container)
             return network
