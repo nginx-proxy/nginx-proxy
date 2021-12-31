@@ -28,6 +28,7 @@ FORCE_CONTAINER_IPV6 = False  # ugly global state to consider containers' IPv6 a
 
 
 docker_client = docker.from_env()
+test_container = socket.gethostname()
 
 
 ###############################################################################
@@ -259,7 +260,7 @@ def restore_urllib_dns_resolver(getaddrinfo_func):
 
 def remove_all_containers():
     for container in docker_client.containers.list(all=True):
-        if PYTEST_RUNNING_IN_CONTAINER and container.id.startswith(socket.gethostname()):
+        if PYTEST_RUNNING_IN_CONTAINER and container.id.startswith(test_container):
             continue  # pytest is running within a Docker container, so we do not want to remove that particular container
         logging.info(f"removing container {container.name}")
         container.remove(v=True, force=True)
@@ -351,9 +352,9 @@ def connect_to_network(network):
     """
     if PYTEST_RUNNING_IN_CONTAINER:
         try:
-            my_container = docker_client.containers.get(socket.gethostname())
+            my_container = docker_client.containers.get(test_container)
         except docker.errors.NotFound:
-            logging.warn(f"container {socket.gethostname()!r} not found")
+            logging.warn(f"container {test_container} not found")
             return
 
         # figure out our container networks
@@ -374,9 +375,9 @@ def disconnect_from_network(network=None):
     """
     if PYTEST_RUNNING_IN_CONTAINER and network is not None:
         try:
-            my_container = docker_client.containers.get(socket.gethostname())
+            my_container = docker_client.containers.get(test_container)
         except docker.errors.NotFound:
-            logging.warn(f"container {socket.gethostname()!r} not found")
+            logging.warn(f"container {test_container} not found")
             return
 
         # figure out our container networks
