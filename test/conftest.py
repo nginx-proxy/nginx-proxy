@@ -362,6 +362,10 @@ def connect_to_network(network):
         # figure out our container networks
         my_networks = list(my_container.attrs["NetworkSettings"]["Networks"].keys())
 
+        # If the pytest container is using host networking, it cannot connect to container networks (not required with host network) 
+        if 'host' in my_networks:
+            return None
+
         # make sure our container is connected to the nginx-proxy's network
         if network not in my_networks:
             logging.info(f"Connecting to docker network: {network.name}")
