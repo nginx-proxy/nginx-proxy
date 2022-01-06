@@ -23,17 +23,20 @@ logging.getLogger('DNS').setLevel(logging.DEBUG)
 logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
 CA_ROOT_CERTIFICATE = os.path.join(os.path.dirname(__file__), 'certs/ca-root.crt')
-I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER = os.path.isfile("/.dockerenv")
+PYTEST_RUNNING_IN_CONTAINER = os.environ.get('PYTEST_RUNNING_IN_CONTAINER') == "1"
 FORCE_CONTAINER_IPV6 = False  # ugly global state to consider containers' IPv6 address instead of IPv4
 
 
 docker_client = docker.from_env()
 
+# Name of pytest container to reference if it's being used for running tests
+test_container = 'nginx-proxy-pytest'
+
 
 ###############################################################################
-# 
+#
 # utilities
-# 
+#
 ###############################################################################
 
 @contextlib.contextmanager
@@ -57,7 +60,7 @@ def ipv6(force_ipv6=True):
 
 class requests_for_docker(object):
     """
-    Proxy for calling methods of the requests module. 
+    Proxy for calling methods of the requests module.
     When a HTTP response failed due to HTTP Error 404 or 502, retry a few times.
     Provides method `get_conf` to extract the nginx-proxy configuration content.
     """
@@ -221,7 +224,7 @@ def docker_container_dns_resolver(domain_name):
 
     ip = container_ip(container)
     log.info(f"resolving domain name {domain_name!r} as IP address {ip} of container {container.name}")
-    return ip 
+    return ip
 
 
 def monkey_patch_urllib_dns_resolver():
@@ -235,6 +238,11 @@ def monkey_patch_urllib_dns_resolver():
     def new_getaddrinfo(*args):
         logging.getLogger('DNS').debug(f"resolving domain name {repr(args)}")
         _args = list(args)
+
+        # Fail early when querying IP directly and it is forced ipv6 when not supported,
+        # Otherwise a pytest container not using the host network fails to pass `test_raw-ip-vhost`.
+        if FORCE_CONTAINER_IPV6 and not HAS_IPV6:
+            pytest.skip("This system does not support IPv6")
 
         # custom DNS resolvers
         ip = nginx_proxy_dns_resolver(args[0])
@@ -259,7 +267,7 @@ def restore_urllib_dns_resolver(getaddrinfo_func):
 
 def remove_all_containers():
     for container in docker_client.containers.list(all=True):
-        if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER and container.id.startswith(socket.gethostname()):
+        if PYTEST_RUNNING_IN_CONTAINER and container.name == test_container:
             continue  # pytest is running within a Docker container, so we do not want to remove that particular container
         logging.info(f"removing container {container.name}")
         container.remove(v=True, force=True)
@@ -298,7 +306,7 @@ def docker_compose_down(compose_file='docker-compose.yml'):
 
 def wait_for_nginxproxy_to_be_ready():
     """
-    If one (and only one) container started from image nginxproxy/nginx-proxy:test is found, 
+    If one (and only one) container started from image nginxproxy/nginx-proxy:test is found,
     wait for its log to contain substring "Watching docker events"
     """
     containers = docker_client.containers.list(filters={"ancestor": "nginxproxy/nginx-proxy:test"})
@@ -349,18 +357,23 @@ def connect_to_network(network):
 
     :return: the name of the network we were connected to, or None
     """
-    if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER:
+    if PYTEST_RUNNING_IN_CONTAINER:
         try:
-            my_container = docker_client.containers.get(socket.gethostname())
+            my_container = docker_client.containers.get(test_container)
         except docker.errors.NotFound:
-            logging.warn(f"container {socket.gethostname()!r} not found")
+            logging.warn(f"container {test_container} not found")
             return
 
         # figure out our container networks
         my_networks = list(my_container.attrs["NetworkSettings"]["Networks"].keys())
 
-        # make sure our container is connected to the nginx-proxy's network
-        if network not in my_networks:
+        # If the pytest container is using host networking, it cannot connect to container networks (not required with host network) 
+        if 'host' in my_networks:
+            return None
+
+        # Make sure our container is connected to the nginx-proxy's network,
+        # but avoid connecting to `none` network (not valid) with `test_server-down` tests
+        if network.name not in my_networks and network.name != 'none':
             logging.info(f"Connecting to docker network: {network.name}")
             network.connect(my_container)
             return network
@@ -372,11 +385,11 @@ def disconnect_from_network(network=None):
 
     :param network: name of a docker network to disconnect from
     """
-    if I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER and network is not None:
+    if PYTEST_RUNNING_IN_CONTAINER and network is not None:
         try:
-            my_container = docker_client.containers.get(socket.gethostname())
+            my_container = docker_client.containers.get(test_container)
         except docker.errors.NotFound:
-            logging.warn(f"container {socket.gethostname()!r} not found")
+            logging.warn(f"container {test_container} not found")
             return
 
         # figure out our container networks
@@ -394,27 +407,27 @@ def connect_to_all_networks():
 
     :return: a list of networks we connected to
     """
-    if not I_AM_RUNNING_INSIDE_A_DOCKER_CONTAINER:
+    if not PYTEST_RUNNING_IN_CONTAINER:
         return []
     else:
         # find the list of docker networks
-        networks = [network for network in docker_client.networks.list() if len(network.containers) > 0 and network.name != 'bridge']
+        networks = [network for network in docker_client.networks.list(greedy=True) if len(network.containers) > 0 and network.name != 'bridge']
         return [connect_to_network(network) for network in networks]
 
 
 ###############################################################################
-# 
+#
 # Py.test fixtures
-# 
+#
 ###############################################################################
 
 @pytest.fixture(scope="module")
 def docker_compose(request):
     """
     pytest fixture providing containers described in a docker compose file. After the tests, remove the created containers
-    
+
     A custom docker compose file name can be defined in a variable named `docker_compose_file`.
-    
+
     Also, in the case where pytest is running from a docker container, this fixture makes sure
     our container will be attached to all the docker networks.
     """
@@ -450,9 +463,9 @@ def nginxproxy():
 
 
 ###############################################################################
-# 
+#
 # Py.test hooks
-# 
+#
 ###############################################################################
 
 # pytest hook to display additionnal stuff in test report
@@ -479,9 +492,9 @@ def pytest_runtest_setup(item):
         pytest.xfail(f"previous test failed ({previousfailed.name})")
 
 ###############################################################################
-# 
+#
 # Check requirements
-# 
+#
 ###############################################################################
 
 try:
