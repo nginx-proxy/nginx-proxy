@@ -1,6 +1,6 @@
 # setup build arguments for version of dependencies to use
 ARG DOCKER_GEN_VERSION=0.7.7
-ARG FOREGO_VERSION=v0.17.0
+ARG GOREMAN_VERSION=v0.3.8
 
 # Use a specific version of golang to build both binaries
 FROM golang:1.16.7 as gobuilder
@@ -20,20 +20,20 @@ RUN git clone https://github.com/jwilder/docker-gen \
    && cd - \
    && rm -rf /go/docker-gen
 
-# Build forego from scratch
-FROM gobuilder as forego
+# Build goreman from scratch
+FROM gobuilder as goreman
 
-ARG FOREGO_VERSION
+ARG GOREMAN_VERSION
 
-RUN git clone https://github.com/nginx-proxy/forego/ \
-   && cd /go/forego \
-   && git -c advice.detachedHead=false checkout $FOREGO_VERSION \
+RUN git clone https://github.com/mattn/goreman/ \
+   && cd /go/goreman \
+   && git -c advice.detachedHead=false checkout $GOREMAN_VERSION \
    && go mod download \
-   && CGO_ENABLED=0 GOOS=linux go build -o forego . \
+   && CGO_ENABLED=0 GOOS=linux go build -o goreman . \
    && go clean -cache \
-   && mv forego /usr/local/bin/ \
+   && mv goreman /usr/local/bin/ \
    && cd - \
-   && rm -rf /go/forego
+   && rm -rf /go/goreman
 
 # Build the final image
 FROM nginx:1.21.5
@@ -54,8 +54,8 @@ RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
    && sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf \
    && mkdir -p '/etc/nginx/dhparam'
 
-# Install Forego + docker-gen
-COPY --from=forego /usr/local/bin/forego /usr/local/bin/forego
+# Install goreman + docker-gen
+COPY --from=goreman /usr/local/bin/goreman /usr/local/bin/goreman
 COPY --from=dockergen /usr/local/bin/docker-gen /usr/local/bin/docker-gen
 
 # Add DOCKER_GEN_VERSION environment variable
@@ -71,4 +71,4 @@ WORKDIR /app/
 ENV DOCKER_HOST unix:///tmp/docker.sock
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["forego", "start", "-r"]
+CMD ["goreman", "start"]

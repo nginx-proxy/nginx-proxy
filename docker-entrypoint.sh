@@ -95,7 +95,7 @@ function _setup_dhparam() {
 }
 
 # Run the init logic if the default CMD was provided
-if [[ $* == 'forego start -r' ]]; then
+if [[ $* == 'goreman start' ]]; then
 	_check_unix_socket
 
 	_resolvers

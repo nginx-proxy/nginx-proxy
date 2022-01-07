@@ -25,26 +25,26 @@ Log shows:
 ```
 webB_1          | starting a web server listening on port 82
 webA_1          | starting a web server listening on port 81
-reverseproxy    | forego     | starting dockergen.1 on port 5000
-reverseproxy    | forego     | starting nginx.1 on port 5100
+reverseproxy    | goreman     | starting dockergen.1 on port 5000
+reverseproxy    | goreman     | starting nginx.1 on port 5100
 reverseproxy    | dockergen.1 | 2017/02/20 01:10:24 Generated '/etc/nginx/conf.d/default.conf' from 3 containers
 reverseproxy    | dockergen.1 | 2017/02/20 01:10:24 Running 'nginx -s reload'
 reverseproxy    | dockergen.1 | 2017/02/20 01:10:24 Error running notify command: nginx -s reload, exit status 1
 reverseproxy    | dockergen.1 | 2017/02/20 01:10:24 Watching docker events
 reverseproxy    | dockergen.1 | 2017/02/20 01:10:24 Contents of /etc/nginx/conf.d/default.conf did not change. Skipping notification 'nginx -s reload'
-reverseproxy    | reverseproxy    | forego     | starting dockergen.1 on port 5000  <---- nginx-proxy container restarted
-reverseproxy    | forego     | starting nginx.1 on port 5100
+reverseproxy    | reverseproxy    | goreman     | starting dockergen.1 on port 5000  <---- nginx-proxy container restarted
+reverseproxy    | goreman     | starting nginx.1 on port 5100
 reverseproxy    | dockergen.1 | 2017/02/20 01:10:24 Generated '/etc/nginx/conf.d/default.conf' from 3 containers
 reverseproxy    | dockergen.1 | 2017/02/20 01:10:24 Running 'nginx -s reload'
 reverseproxy    | dockergen.1 | 2017/02/20 01:10:24 Error running notify command: nginx -s reload, exit status 1
 reverseproxy    | dockergen.1 | 2017/02/20 01:10:24 Watching docker events
 reverseproxy    | dockergen.1 | 2017/02/20 01:10:24 Contents of /etc/nginx/conf.d/default.conf did not change. Skipping notification 'nginx -s reload'
-reverseproxy    | forego     | starting dockergen.1 on port 5000
-reverseproxy    | forego     | starting nginx.1 on port 5100
-reverseproxy    | nginx.1    | 2017/02/20 01:11:02 [emerg] 17#17: no servers are inside upstream in /etc/nginx/conf.d/default.conf:64
-reverseproxy    | forego     | starting nginx.1 on port 5200
-reverseproxy    | forego     | sending SIGTERM to nginx.1
-reverseproxy    | forego     | sending SIGTERM to dockergen.1
+reverseproxy    | goreman     | starting dockergen.1 on port 5000
+reverseproxy    | goreman     | starting nginx.1 on port 5100
+reverseproxy    | nginx.1     | 2017/02/20 01:11:02 [emerg] 17#17: no servers are inside upstream in /etc/nginx/conf.d/default.conf:64
+reverseproxy    | goreman     | starting nginx.1 on port 5200
+reverseproxy    | goreman     | sending SIGTERM to nginx.1
+reverseproxy    | goreman     | sending SIGTERM to dockergen.1
 reverseproxy exited with code 0
 reverseproxy exited with code 0
 
