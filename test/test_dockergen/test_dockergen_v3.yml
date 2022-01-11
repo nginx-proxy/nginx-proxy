@@ -7,7 +7,7 @@ services:
       - nginx_conf:/etc/nginx/conf.d
 
   dockergen:
-    image: jwilder/docker-gen
+    image: nginxproxy/docker-gen
     command: -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro

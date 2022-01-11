@@ -11,7 +11,7 @@ FROM gobuilder as dockergen
 
 ARG DOCKER_GEN_VERSION
 
-RUN git clone https://github.com/jwilder/docker-gen \
+RUN git clone https://github.com/nginx-proxy/docker-gen \
    && cd /go/docker-gen \
    && git -c advice.detachedHead=false checkout $DOCKER_GEN_VERSION \
    && go mod download \

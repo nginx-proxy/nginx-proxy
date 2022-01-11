@@ -193,7 +193,7 @@ docker run -d -e VIRTUAL_HOST=foo.bar.com nginx
 
 ### Separate Containers
 
-nginx-proxy can also be run as two separate containers using the [jwilder/docker-gen](https://hub.docker.com/r/jwilder/docker-gen) image and the official [nginx](https://registry.hub.docker.com/_/nginx/) image.
+nginx-proxy can also be run as two separate containers using the [nginxproxy/docker-gen](https://hub.docker.com/r/nginxproxy/docker-gen) image and the official [nginx](https://registry.hub.docker.com/_/nginx/) image.
 
 You may want to do this to prevent having the docker socket bound to a publicly exposed container service.
 
@@ -224,7 +224,7 @@ Then start the docker-gen container with the shared volume and template:
 docker run --volumes-from nginx \
     -v /var/run/docker.sock:/tmp/docker.sock:ro \
     -v $(pwd):/etc/docker-gen/templates \
-    -t jwilder/docker-gen -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    -t nginxproxy/docker-gen -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
 ```
 
 Finally, start your containers with `VIRTUAL_HOST` environment variables.
@@ -259,7 +259,7 @@ To use custom `dhparam.pem` files per-virtual-host, the files should be named af
 
 > COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 4096 bits for A+ security. Some older clients (like Java 6 and 7) do not support DH keys with over 1024 bits. In order to support these clients, you must provide your own `dhparam.pem`.
 
-In the separate container setup, no pre-generated key will be available and neither the [jwilder/docker-gen](https://hub.docker.com/r/jwilder/docker-gen) image, nor the offical [nginx](https://registry.hub.docker.com/_/nginx/) image will provide one. If you still want A+ security in a separate container setup, you should mount an RFC7919 DH key file to the nginx container at `/etc/nginx/dhparam/dhparam.pem`.
+In the separate container setup, no pre-generated key will be available and neither the [nginxproxy/docker-gen](https://hub.docker.com/r/nginxproxy/docker-gen) image, nor the offical [nginx](https://registry.hub.docker.com/_/nginx/) image will provide one. If you still want A+ security in a separate container setup, you should mount an RFC7919 DH key file to the nginx container at `/etc/nginx/dhparam/dhparam.pem`.
 
 Set `DHPARAM_SKIP` environment variable to `true` to disable using default Diffie-Hellman parameters. The default value is `false`.
 
