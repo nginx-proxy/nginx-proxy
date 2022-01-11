@@ -39,6 +39,14 @@ RUN git clone https://github.com/nginx-proxy/forego/ \
 FROM nginx:1.21.5
 LABEL maintainer="Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag)"
 
+ARG NGINX_PROXY_VERSION
+# Add DOCKER_GEN_VERSION environment variable
+# Because some external projects rely on it
+ARG DOCKER_GEN_VERSION
+ENV NGINX_PROXY_VERSION=${NGINX_PROXY_VERSION} \
+   DOCKER_GEN_VERSION=${DOCKER_GEN_VERSION} \
+   DOCKER_HOST=unix:///tmp/docker.sock
+
 # Install wget and install/updates certificates
 RUN apt-get update \
    && apt-get install -y -q --no-install-recommends \
@@ -58,17 +66,10 @@ RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
 COPY --from=forego /usr/local/bin/forego /usr/local/bin/forego
 COPY --from=dockergen /usr/local/bin/docker-gen /usr/local/bin/docker-gen
 
-# Add DOCKER_GEN_VERSION environment variable
-# Because some external projects rely on it
-ARG DOCKER_GEN_VERSION
-ENV DOCKER_GEN_VERSION=${DOCKER_GEN_VERSION}
-
 COPY network_internal.conf /etc/nginx/
 
 COPY . /app/
 WORKDIR /app/
-
-ENV DOCKER_HOST unix:///tmp/docker.sock
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]
