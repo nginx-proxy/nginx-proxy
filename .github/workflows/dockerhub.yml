@@ -31,7 +31,7 @@ jobs:
 
       - name: Get Docker tags for Debian based image
         id: docker_meta_debian
-        uses: crazy-max/ghaction-docker-meta@v2
+        uses: docker/metadata-action@v3
         with:
           images: |
             nginxproxy/nginx-proxy
@@ -82,7 +82,7 @@ jobs:
 
       - name: Get Docker tags for Alpine based image
         id: docker_meta_alpine
-        uses: crazy-max/ghaction-docker-meta@v2
+        uses: docker/metadata-action@v3
         with:
           images: |
             nginxproxy/nginx-proxy
