@@ -37,7 +37,6 @@ RUN git clone https://github.com/nginx-proxy/forego/ \
 
 # Build the final image
 FROM nginx:1.21.5
-LABEL maintainer="Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag)"
 
 ARG NGINX_PROXY_VERSION
 # Add DOCKER_GEN_VERSION environment variable
