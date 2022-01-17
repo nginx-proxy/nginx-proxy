@@ -315,6 +315,8 @@ docker run -d -p 80:80 -p 443:443 \
     nginxproxy/nginx-proxy
 ```
 
+It is also possible to create the default htpasswd file /etc/nginx/htpasswd/default that is used when no file named after $VIRTUAL_HOST is present. This can be used when all virtual host should have the same Basic Authentication anyway or as an extra security measure to make sure that no service is exposed to the wild internet without authentication even if there is a error in the configuration and/or file naming.
+
 You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
 
 ### Custom Nginx Configuration
