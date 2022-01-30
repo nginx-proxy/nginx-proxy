@@ -256,9 +256,20 @@ upstream {{ $upstream_name }} {
 {{/* Use the cert specified on the container or fallback to the best vhost match */}}
 {{ $cert := (coalesce $certName $vhostCert) }}
 
-{{ $is_https := (and (ne $https_method "nohttps") (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) }}
+{{ $is_https := (ne $https_method "nohttps") }}
 
 {{ if $is_https }}
+{{/* No cert? But we do want HTTPS! Let's fallback on the nginx default one.
+     And set up acme-challenge so that Let's Encrpyt can do its job */}}
+{{ if (eq $cert "") }}
+# WARNING: No certificate found - Using 'default' as fallback
+{{ else }}
+    {{ if (not (and (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)))) }}
+# WARNING: Certificate '{{ $cert }}' doesn't exist yet - Falling back on 'default'
+    {{ end }}
+{{ end }}
+{{ $cert := coalesce $cert "default" }}
+{{ $cert := when (and (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) $cert "default" }}
 
 {{ if eq $https_method "redirect" }}
 server {
@@ -381,6 +392,16 @@ server {
 	{{ if eq $network_tag "internal" }}
 	# Only allow traffic from internal clients
 	include /etc/nginx/network_internal.conf;
+	{{ else }}
+		{{ if (eq $https_method "noredirect") }}
+	location /.well-known/acme-challenge/ {
+		auth_basic off;
+		allow all;
+		root /usr/share/nginx/html;
+		try_files $uri =404;
+		break;
+	}
+		{{ end }}
 	{{ end }}
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
