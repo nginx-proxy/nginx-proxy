@@ -2,7 +2,7 @@ This directory contains resources to build Docker images tests depend on
 
 # Build images
 
-    ./build.sh   
+    make build-webserver
 
 
 # python-requirements.txt

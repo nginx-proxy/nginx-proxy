@@ -7,5 +7,13 @@ updates:
     schedule:
       interval: "daily"
     labels:
-      - "area/chore"
-      - "area/dockerfile"
+      - "type/build"
+      - "scope/dockerfile"
+
+  # Maintain Python dependencies (test suite)
+  - package-ecosystem: "pip"
+    directory: "/test/requirements"
+    schedule:
+      interval: "daily"
+    labels:
+      - "type/ci"
