@@ -19,9 +19,8 @@ https:
 
 # Proxy
 sut:
-  image: jwilder/nginx-proxy:test
+  image: nginxproxy/nginx-proxy:test
   volumes:
     - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ./lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
     - ./test_ssl/certs:/etc/nginx/certs:ro
   
