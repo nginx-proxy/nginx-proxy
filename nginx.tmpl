@@ -127,6 +127,7 @@ proxy_set_header Proxy "";
 {{ $access_log := (or (and (not $.Env.DISABLE_ACCESS_LOGS) "access_log /var/log/nginx/access.log vhost;") "") }}
 
 {{ $enable_ipv6 := eq (or ($.Env.ENABLE_IPV6) "") "true" }}
+{{ $enable_cors_auth := eq (or ($.Env.ENABLE_CORS_AUTH) "") "false" }}
 server {
 	server_name _; # This is just an invalid value which will never trigger on a real hostname.
 	server_tokens off;
@@ -352,8 +353,15 @@ server {
 		{{ end }}
 
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
+		{{ if $enable_cors_auth }}
+		limit_except OPTIONS {
+		  auth_basic	"Restricted {{ $host }}";
+		  auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
+		}
+		{{ else }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
+		{{ end }}
 		{{ end }}
 		{{ if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
 		include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
