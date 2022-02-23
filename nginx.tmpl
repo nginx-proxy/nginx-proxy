@@ -180,6 +180,11 @@ upstream {{ $upstream_name }} {
 	# /!\ Virtual port not exposed
 		{{ end }}
 	{{ end }}
+	{{ if (eq $container.Env.VIRTUAL_IP "127.0.0.1") }}
+	{{ $server_found = "true" }}
+	## Detected host proxy port forward
+	server {{ $container.Env.VIRTUAL_IP }}:{{ $container.Env.VIRTUAL_PORT }};
+	{{ else }}
 	{{ range $knownNetwork := $CurrentContainer.Networks }}
 		{{ range $containerNetwork := $container.Networks }}
 			{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
@@ -209,6 +214,7 @@ upstream {{ $upstream_name }} {
 	# Cannot connect to network '{{ $containerNetwork.Name }}' of this container
 			{{ end }}
 		{{ end }}
+	{{ end }}
 	{{ end }}
 {{ end }}
 {{/* nginx-proxy/nginx-proxy#1105 */}}
