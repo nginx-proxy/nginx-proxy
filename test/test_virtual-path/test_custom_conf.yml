@@ -42,7 +42,6 @@ sut:
     DEFAULT_ROOT: 418
   volumes:
     - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ../lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
     - ./foo.conf:/etc/nginx/vhost.d/foo.nginx-proxy.test:ro
     - ./bar.conf:/etc/nginx/vhost.d/nginx-proxy.test_918d687a929083edd0c7224ee2293e0e7c062ab4_location:ro
     - ./alternate.conf:/etc/nginx/vhost.d/nginx-proxy.test_7fb22b74bbdf907425dbbad18e4462565cada230_location:ro

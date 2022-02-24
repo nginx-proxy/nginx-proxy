@@ -32,7 +32,6 @@ sut:
   image: nginxproxy/nginx-proxy:test
   volumes:
     - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ../lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
     - ./default.conf:/etc/nginx/vhost.d/default_location:ro
     - ./host.conf:/etc/nginx/vhost.d/bar.nginx-proxy.test_location:ro
     - ./path.conf:/etc/nginx/vhost.d/bar.nginx-proxy.test_99f2db0ed8aa95dbb5b87fca79c7eff2ff6bb8bd_location:ro
