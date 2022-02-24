@@ -242,6 +242,11 @@ upstream {{ $upstream_name }} {
 {{/* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
 {{ $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
 
+{{/* Which regexes when matching to send upstream when using fastcgi. If not defined, send everything upstream. Make sure the VIRTUAL_ROOT is available to this container when using this */}}
+{{ $vhost_upstream_regexes := trim (or (first (groupByKeys $containers "Env.UPSTREAM_REGEXES")) "") }}
+
+{{/* Which filename to use as index file */}}
+{{ $vhost_index := or (first (groupByKeys $containers "Env.INDEX")) "" }}
 
 {{/* Get the first cert name defined by containers w/ the same vhost */}}
 {{ $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
@@ -337,18 +342,52 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
-	location / {
+	{{ if $vhost_upstream_regexes }}
+	root {{ trim $vhost_root }};
+	location ~* "^({{ $vhost_upstream_regexes }})$" {
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
 		uwsgi_pass {{ trim $proto }}://{{ trim $upstream_name }};
 		{{ else if eq $proto "fastcgi" }}
-		root   {{ trim $vhost_root }};
 		include fastcgi_params;
+		{{ if $vhost_index }}
+		fastcgi_param SCRIPT_FILENAME $document_root/{{ $vhost_index }};
+		{{ end }}
 		fastcgi_pass {{ trim $upstream_name }};
 		{{ else if eq $proto "grpc" }}
 		grpc_pass {{ trim $proto }}://{{ trim $upstream_name }};
 		{{ else }}
 		proxy_pass {{ trim $proto }}://{{ trim $upstream_name }};
+		{{ end }}
+
+		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
+		auth_basic	"Restricted {{ $host }}";
+		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
+		{{ end }}
+		{{ if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
+		include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
+		{{ else if (exists "/etc/nginx/vhost.d/default_location") }}
+		include /etc/nginx/vhost.d/default_location;
+		{{ end }}
+	}
+	{{ end }}
+	location / {
+		{{ if not $vhost_upstream_regexes }}
+			{{ if eq $proto "uwsgi" }}
+			include uwsgi_params;
+			uwsgi_pass {{ trim $proto }}://{{ trim $upstream_name }};
+			{{ else if eq $proto "fastcgi" }}
+			include fastcgi_params;
+			{{ if $vhost_index }}
+			fastcgi_param SCRIPT_FILENAME $document_root/{{ $vhost_index }};
+			{{ end }}
+			fastcgi_pass {{ trim $upstream_name }};
+			{{ else }}
+			proxy_pass {{ trim $proto }}://{{ trim $upstream_name }};
+			{{ end }}
+		{{ else if $vhost_index }}
+			index {{ $vhost_index }};
+			try_files $uri $uri/ /{{ $vhost_index }}?$query_string;
 		{{ end }}
 
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
@@ -389,19 +428,54 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
-	location / {
+	{{ if $vhost_upstream_regexes }}
+	root {{ trim $vhost_root }};
+	location ~* "^({{ $vhost_upstream_regexes }})$" {
 		{{ if eq $proto "uwsgi" }}
 		include uwsgi_params;
 		uwsgi_pass {{ trim $proto }}://{{ trim $upstream_name }};
 		{{ else if eq $proto "fastcgi" }}
-		root   {{ trim $vhost_root }};
 		include fastcgi_params;
+		{{ if $vhost_index }}
+		fastcgi_param SCRIPT_FILENAME $document_root/{{ $vhost_index }};
+		{{ end }}
 		fastcgi_pass {{ trim $upstream_name }};
 		{{ else if eq $proto "grpc" }}
 		grpc_pass {{ trim $proto }}://{{ trim $upstream_name }};
 		{{ else }}
 		proxy_pass {{ trim $proto }}://{{ trim $upstream_name }};
 		{{ end }}
+
+		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
+		auth_basic	"Restricted {{ $host }}";
+		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
+		{{ end }}
+		{{ if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
+		include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
+		{{ else if (exists "/etc/nginx/vhost.d/default_location") }}
+		include /etc/nginx/vhost.d/default_location;
+		{{ end }}
+	}
+	{{ end }}
+	location / {
+		{{ if not $vhost_upstream_regexes }}
+			{{ if eq $proto "uwsgi" }}
+			include uwsgi_params;
+			uwsgi_pass {{ trim $proto }}://{{ trim $upstream_name }};
+			{{ else if eq $proto "fastcgi" }}
+			include fastcgi_params;
+			{{ if $vhost_index }}
+			fastcgi_param SCRIPT_FILENAME $document_root/{{ $vhost_index }};
+			{{ end }}
+			fastcgi_pass {{ trim $upstream_name }};
+			{{ else }}
+			proxy_pass {{ trim $proto }}://{{ trim $upstream_name }};
+			{{ end }}
+		{{ else if $vhost_index }}
+			index {{ $vhost_index }};
+			try_files $uri $uri/ /{{ $vhost_index }}?$query_string;
+		{{ end }}
+
 		{{ if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};

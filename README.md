@@ -174,8 +174,25 @@ If you would like to connect to FastCGI backend, set `VIRTUAL_PROTO=fastcgi` on 
  
 ### FastCGI File Root Directory
 
-If you use fastcgi,you can set `VIRTUAL_ROOT=xxx`  for your root directory
+If you use fastcgi, you can set `VIRTUAL_ROOT=xxx` for your root directory
 
+### Sending only certain files upstream
+
+You can set `UPSTREAM_REGEXES=xxx` to only send certain requests upstream.
+The rest of the files will be served locally. If you want to send multiple
+regexes upstream, separate them like this: `UPSTREAM_REGEXES=/en|.*\.php|.*\.php5`
+
+Above example will send example.com/en and all .php and .php5 files upstream.
+
+When doing this, make sure the VIRTUAL_ROOT is also available to this container.
+The easiest way to do this is defining the VOLUME in your upstream container and
+using
+[volumes_from](https://docs.docker.com/compose/compose-file/compose-file-v2/#volumes_from)
+or equivalent.
+
+You likely also want to set `INDEX=xxx` to send non-matching URLs upstream. For
+example, think of an url like /user/login, which won't resolve to a local file,
+but which the upstream fastcgi will understand: `INDEX=index.php`.
 
 ### Default Host
 
