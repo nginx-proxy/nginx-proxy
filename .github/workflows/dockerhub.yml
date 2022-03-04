@@ -119,6 +119,7 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: |
+            ghcr.io/nginx-proxy/nginx-proxy
             nginxproxy/nginx-proxy
             jwilder/nginx-proxy
           tags: |
@@ -142,6 +143,13 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push the Alpine based image
         if: github.ref == 'refs/heads/main'
