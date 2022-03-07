@@ -7,13 +7,11 @@ on:
   push:
     branches:
       - main
-      - dev
     tags:
       - '*.*.*'
     paths-ignore:
       - 'test/*'
       - '.gitignore'
-      - '.travis.yml'
       - 'docker-compose-separate-containers.yml'
       - 'docker-compose.yml'
       - 'LICENSE'
@@ -45,7 +43,6 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
           labels: |
             org.opencontainers.image.authors=Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag), Jason Wilder
             org.opencontainers.image.version=${{ env.GIT_DESCRIBE }}
@@ -70,7 +67,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push the Debian based image
-        if: github.ref == 'refs/heads/main'
         id: docker_build_debian
         uses: docker/build-push-action@v2
         with:
@@ -83,24 +79,7 @@ jobs:
           labels: ${{ steps.docker_meta_debian.outputs.labels }}
 
       - name: Images digests
-        if: github.ref == 'refs/heads/main'
         run: echo ${{ steps.docker_build_debian.outputs.digest }}
-
-      - name: Build and push the Debian based dev image
-        if: github.ref == 'refs/heads/dev'
-        id: docker_build_debian_dev
-        uses: docker/build-push-action@v2
-        with:
-          file: Dockerfile
-          build-args: DOCKER_GEN_VERSION=main
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
-          push: true
-          tags: ${{ steps.docker_meta_debian.outputs.tags }}
-          labels: ${{ steps.docker_meta_debian.outputs.labels }}
-      
-      - name: Images digests
-        if: github.ref == 'refs/heads/dev'
-        run: echo ${{ steps.docker_build_debian_dev.outputs.digest }}
 
   multiarch-build-alpine:
     runs-on: ubuntu-latest
@@ -126,7 +105,6 @@ jobs:
             type=semver,suffix=-alpine,pattern={{version}}
             type=semver,suffix=-alpine,pattern={{major}}.{{minor}}
             type=raw,value=alpine,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=dev-alpine,enable=${{ github.ref == 'refs/heads/dev' }}
           labels: |
             org.opencontainers.image.authors=Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag), Jason Wilder
             org.opencontainers.image.version=${{ env.GIT_DESCRIBE }}
@@ -152,7 +130,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push the Alpine based image
-        if: github.ref == 'refs/heads/main'
         id: docker_build_alpine
         uses: docker/build-push-action@v2
         with:
@@ -165,21 +142,4 @@ jobs:
           labels: ${{ steps.docker_meta_alpine.outputs.labels }}
 
       - name: Images digests
-        if: github.ref == 'refs/heads/main'
         run: echo ${{ steps.docker_build_alpine.outputs.digest }}
-      
-      - name: Build and push the Alpine based dev image
-        if: github.ref == 'refs/heads/dev'
-        id: docker_build_alpine_dev
-        uses: docker/build-push-action@v2
-        with:
-          file: Dockerfile.alpine
-          build-args: DOCKER_GEN_VERSION=main
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
-          push: true
-          tags: ${{ steps.docker_meta_alpine.outputs.tags }}
-          labels: ${{ steps.docker_meta_alpine.outputs.labels }}
-
-      - name: Images digests
-        if: github.ref == 'refs/heads/dev'
-        run: echo ${{ steps.docker_build_alpine_dev.outputs.digest }}
