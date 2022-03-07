@@ -1,6 +1,10 @@
 .git
+.github
+test
 .dockerignore
-circle.yml
+.gitignore
+*.yml
+Dockerfile*
+LICENSE
 Makefile
 README.md
-test
