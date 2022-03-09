@@ -5,6 +5,5 @@ test
 .gitignore
 *.yml
 Dockerfile*
-LICENSE
 Makefile
 README.md
