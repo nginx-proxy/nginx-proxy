@@ -369,10 +369,19 @@ By default, `nginx-proxy` forwards all incoming request headers from the client 
   * `Proxy`: Always removed if present. This prevents attackers from using the so-called [httpoxy attack](http://httpoxy.org). There is no legitimate reason for a client to send this header, and there are many vulnerable languages / platforms (`CVE-2016-5385`, `CVE-2016-5386`, `CVE-2016-5387`, `CVE-2016-5388`, `CVE-2016-1000109`, `CVE-2016-1000110`, `CERT-VU#797896`).
   * `X-Real-IP`: Set to the client's IP address.
   * `X-Forwarded-For`: The client's IP address is appended to the value provided by the client. (If the client did not provide this header, it is set to the client's IP address.)
-  * `X-Forwarded-Proto`: If the client did not provide this header, this is set to `http` for plain HTTP connections and `https` for TLS connections. Otherwise, the header is forwarded to the backend server unmodified.
+  * `X-Forwarded-Proto`: If the client did not provide this header or if the `TRUST_DOWNSTREAM_PROXY` environment variable is set to `false` (see below), this is set to `http` for plain HTTP connections and `https` for TLS connections. Otherwise, the header is forwarded to the backend server unmodified.
   * `X-Forwarded-Ssl`: Set to `on` if the `X-Forwarded-Proto` header sent to the backend server is `https`, otherwise set to `off`.
-  * `X-Forwarded-Port`: If the client did not provide this header, this is set to the port of the server that accepted the client's request. Otherwise, the header is forwarded to the backend server unmodified.
+  * `X-Forwarded-Port`: If the client did not provide this header or if the `TRUST_DOWNSTREAM_PROXY` environment variable is set to `false` (see below), this is set to the port of the server that accepted the client's request. Otherwise, the header is forwarded to the backend server unmodified.
   * `X-Original-URI`: Set to the original request URI.
+
+#### Trusting Downstream Proxy Headers
+
+For legacy compatibility reasons, `nginx-proxy` forwards any client-supplied `X-Forwarded-Proto` (which affects the value of `X-Forwarded-Ssl`) and `X-Forwarded-Port` headers unchecked and unmodified. To prevent malicious clients from spoofing the protocol or port that is perceived by your backend server, you are encouraged to set the `TRUST_DOWNSTREAM_PROXY` value to `false` if:
+
+  * you do not operate a second reverse proxy downstream of `nginx-proxy`, or
+  * you do operate a second reverse proxy downstream of `nginx-proxy` but that proxy forwards those headers unchecked from untrusted clients.
+
+The default for `TRUST_DOWNSTREAM_PROXY` may change to `false` in a future version of `nginx-proxy`. If you require it to be enabled, you are encouraged to explicitly set it to `true` to avoid compatibility problems when upgrading.
 
 ### Custom Nginx Configuration
 

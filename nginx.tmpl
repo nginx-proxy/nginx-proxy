@@ -6,6 +6,7 @@
 {{ $debug_all := $.Env.DEBUG }}
 {{ $sha1_upstream_name := parseBool (coalesce $.Env.SHA1_UPSTREAM_NAME "false") }}
 {{ $default_root_response := coalesce $.Env.DEFAULT_ROOT "404" }}
+{{ $trust_downstream_proxy := parseBool (coalesce $.Env.TRUST_DOWNSTREAM_PROXY "true") }}
 
 {{ define "ssl_policy" }}
 	{{ if eq .ssl_policy "Mozilla-Modern" }}
@@ -150,14 +151,14 @@ upstream {{ .Upstream }} {
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
 map $http_x_forwarded_proto $proxy_x_forwarded_proto {
-  default $http_x_forwarded_proto;
+  default {{ if $trust_downstream_proxy }}$http_x_forwarded_proto{{ else }}$scheme{{ end }};
   ''      $scheme;
 }
 
 # If we receive X-Forwarded-Port, pass it through; otherwise, pass along the
 # server port the client connected to
 map $http_x_forwarded_port $proxy_x_forwarded_port {
-  default $http_x_forwarded_port;
+  default {{ if $trust_downstream_proxy }}$http_x_forwarded_port{{ else }}$server_port{{ end }};
   ''      $server_port;
 }
 
