@@ -122,7 +122,7 @@ You can also use wildcards at the beginning and the end of host name, like `*.ba
 You can have multiple containers proxied by the same `VIRTUAL_HOST` by adding a `VIRTUAL_PATH` environment variable containing the absolute path to where the container should be mounted. For example with `VIRTUAL_HOST=foo.example.com` and `VIRTUAL_PATH=/api/v2/service`, then requests to http://foo.example.com/api/v2/service will be routed to the container. If you wish to have a container serve the root while other containers serve other paths, give the root container a `VIRTUAL_PATH` of `/`.  Unmatched paths will be served by the container at `/` or will return the default nginx error page if no container has been assigned `/`.
 It is also possible to specify multiple paths with regex locations like `VIRTUAL_PATH=~^/(app1|alternative1)/`. For further details see the nginx documentation on location blocks. This is not compatible with `VIRTUAL_DEST`.
 
-The full request URI will be forwarded to the serving container in the `X-Forwarded-Path` header.
+The full request URI will be forwarded to the serving container in the `X-Original-URI` header.
 
 **NOTE**: Your application needs to be able to generate links starting with `VIRTUAL_PATH`. This can be achieved by it being natively on this path or having an option to prepend this path. The application does not need to expect this path in the request.
 
@@ -381,7 +381,7 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 proxy_set_header X-Forwarded-Ssl $proxy_x_forwarded_ssl;
 proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
-proxy_set_header X-Forwarded-Path $request_uri;
+proxy_set_header X-Original-URI $request_uri;
 
 # Mitigate httpoxy attack (see README for details)
 proxy_set_header Proxy "";
