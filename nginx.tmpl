@@ -167,8 +167,8 @@ map $http_x_forwarded_port $proxy_x_forwarded_port {
   ''      $server_port;
 }
 
-# If we receive Upgrade, set Connection to "upgrade"; otherwise, delete any
-# Connection header that may have been passed to this server
+# If we receive Upgrade, set Connection to "upgrade"; otherwise, preserve
+# NGINX's default behavior ("Connection: close").
 map $http_upgrade $proxy_connection {
   default upgrade;
   '' close;
