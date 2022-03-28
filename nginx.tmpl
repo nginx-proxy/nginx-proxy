@@ -90,7 +90,7 @@
 	{{ $networks := .Networks }}
 	{{ $debug_all := .Debug }}
 upstream {{ .Upstream }} {
-	{{ $server_found := "false" }}
+	{{ $server_found := false }}
 	{{ range $container := .Containers }}
         {{ $debug := (eq (coalesce $container.Env.DEBUG $debug_all "false") "true") }}
         {{/* If only 1 port exposed, use that as a default, else 80 */}}
@@ -112,19 +112,19 @@ upstream {{ .Upstream }} {
                     {{ if $address }}
                         {{/* If we got the containers from swarm and this container's port is published to host, use host IP:PORT */}}
                         {{ if and $container.Node.ID $address.HostPort }}
-                            {{ $server_found = "true" }}
+                            {{ $server_found = true }}
         # {{ $container.Node.Name }}/{{ $container.Name }}
         server {{ $container.Node.Address.IP }}:{{ $address.HostPort }};
                         {{/* If there is no swarm node or the port is not published on host, use container's IP:PORT */}}
                         {{ else if $containerNetwork }}
-                            {{ $server_found = "true" }}
+                            {{ $server_found = true }}
         # {{ $container.Name }}
         server {{ $containerNetwork.IP }}:{{ $address.Port }};
                         {{ end }}
                     {{ else if $containerNetwork }}
         # {{ $container.Name }}
                         {{ if $containerNetwork.IP }}
-                            {{ $server_found = "true" }}
+                            {{ $server_found = true }}
         server {{ $containerNetwork.IP }}:{{ $port }};
                         {{ else }}
         # /!\ No IP for this network!
@@ -137,7 +137,7 @@ upstream {{ .Upstream }} {
 		{{ end }}
 	{{ end }}
 	{{/* nginx-proxy/nginx-proxy#1105 */}}
-	{{ if (eq $server_found "false") }}
+	{{ if not $server_found }}
         # Fallback entry
         server 127.0.0.1 down;
 	{{ end }}
