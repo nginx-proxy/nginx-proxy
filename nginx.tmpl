@@ -51,10 +51,10 @@
 {{ end }}
 
 {{ define "location" }}
-location {{ .Path }} {
+	location {{ .Path }} {
 	{{ if eq .NetworkTag "internal" }}
-	# Only allow traffic from internal clients
-	include /etc/nginx/network_internal.conf;
+		# Only allow traffic from internal clients
+		include /etc/nginx/network_internal.conf;
 	{{ end }}
 
 	{{ if eq .Proto "uwsgi" }}
@@ -88,7 +88,7 @@ location {{ .Path }} {
 {{ define "upstream" }}
 	{{ $networks := .Networks }}
 	{{ $debug_all := .Debug }}
-	upstream {{ .Upstream }} {
+upstream {{ .Upstream }} {
 	{{ $server_found := "false" }}
 	{{ range $container := .Containers }}
         {{ $debug := (eq (coalesce $container.Env.DEBUG $debug_all "false") "true") }}
@@ -140,7 +140,7 @@ location {{ .Path }} {
         # Fallback entry
         server 127.0.0.1 down;
 	{{ end }}
-	}
+}
 {{ end }}
 
 {{ if ne $nginx_proxy_version "" }}
