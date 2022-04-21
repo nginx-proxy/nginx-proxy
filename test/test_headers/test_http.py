@@ -57,6 +57,18 @@ def test_X_Forwarded_Ssl_is_overwritten(docker_compose, nginxproxy):
     assert r.status_code == 200
     assert "X-Forwarded-Ssl: off\n" in r.text
 
+##### Testing the handling of X-Forwarded-Host #####
+
+def test_X_Forwarded_Host_is_generated(docker_compose, nginxproxy):
+    r = nginxproxy.get("http://web.nginx-proxy.tld/headers")
+    assert r.status_code == 200
+    assert "X-Forwarded-Host: web.nginx-proxy.tld\n" in r.text
+
+def test_X_Forwarded_Host_is_overwritten(docker_compose, nginxproxy):
+    r = nginxproxy.get("http://web.nginx-proxy.tld/headers", headers={'X-Forwarded-Host': 'foo.bar.baz'})
+    assert r.status_code == 200
+    assert "X-Forwarded-Host: web.nginx-proxy.tld\n" in r.text
+
 
 ##### Other headers
 
