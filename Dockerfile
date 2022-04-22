@@ -71,4 +71,4 @@ COPY app nginx.tmpl LICENSE /app/
 WORKDIR /app/
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["forego", "start", "-r", "--nocolor"]
+CMD ["forego", "start", "-r"]
