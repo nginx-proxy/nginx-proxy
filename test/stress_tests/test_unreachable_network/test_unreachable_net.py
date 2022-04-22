@@ -3,8 +3,6 @@ from time import sleep
 import pytest
 import requests
 
-pytestmark = pytest.mark.xfail()  # TODO delete this marker once #585 is merged
-
 
 def test_default_nginx_welcome_page_should_not_be_served(docker_compose, nginxproxy):
     r = nginxproxy.get("http://whatever.nginx-proxy/", allow_redirects=False)

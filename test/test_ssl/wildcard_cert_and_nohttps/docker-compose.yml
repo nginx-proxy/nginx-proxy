@@ -3,11 +3,10 @@ version: "3"
 services:
 
   proxy:
-    image: jwilder/nginx-proxy:test
+    image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./certs:/etc/nginx/certs:ro
-      - ../../lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
 
   web1:
     image: web
