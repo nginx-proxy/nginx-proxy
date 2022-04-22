@@ -62,10 +62,10 @@ def test_X_Forwarded_Host_is_generated(docker_compose, nginxproxy):
     assert r.status_code == 200
     assert "X-Forwarded-Host: web.nginx-proxy.tld\n" in r.text
 
-def test_X_Forwarded_Host_is_overwritten(docker_compose, nginxproxy):
+def test_X_Forwarded_Host_is_passed_on(docker_compose, nginxproxy):
     r = nginxproxy.get("http://web.nginx-proxy.tld/headers", headers={'X-Forwarded-Host': 'foo.bar.baz'})
     assert r.status_code == 200
-    assert "X-Forwarded-Host: web.nginx-proxy.tld\n" in r.text
+    assert "X-Forwarded-Host: foo.bar.baz\n" in r.text
 
 
 ##### Other headers
