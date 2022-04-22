@@ -269,6 +269,9 @@ server {
 {{ $paths := groupBy $containers "Env.VIRTUAL_PATH" }}
 {{ $nPaths := len $paths }}
 
+{{ $paths := groupBy $containers "Env.VIRTUAL_PATH" }}
+{{ $nPaths := len $paths }}
+
 {{ if eq $nPaths 0 }}
 	# {{ $host }}
 	{{ template "upstream" (dict "Upstream" $upstream_name "Containers" $containers "Networks" $CurrentContainer.Networks "Debug" $debug_all) }}
@@ -374,6 +377,7 @@ server {
 	listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};
 	{{ end }}
 	{{ $access_log }}
+
 	client_max_body_size 0;
 
 	{{ template "ssl_policy" (dict "ssl_policy" $ssl_policy) }}
