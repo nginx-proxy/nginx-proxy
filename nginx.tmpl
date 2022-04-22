@@ -269,32 +269,29 @@ server {
 {{ $paths := groupBy $containers "Env.VIRTUAL_PATH" }}
 {{ $nPaths := len $paths }}
 
-{{ $paths := groupBy $containers "Env.VIRTUAL_PATH" }}
-{{ $nPaths := len $paths }}
-
 {{ if eq $nPaths 0 }}
 	# {{ $host }}
 	{{ template "upstream" (dict "Upstream" $upstream_name "Containers" $containers "Networks" $CurrentContainer.Networks "Debug" $debug_all) }}
 {{ else }}
 	{{ range $path, $containers := $paths }}
-        {{ range $container := $containers }}
-            {{ $addrLen := len $container.Addresses }}
+		{{ range $container := $containers }}
+			{{ $addrLen := len $container.Addresses }}
 
-            {{ range $knownNetwork := $CurrentContainer.Networks }}
-                {{ range $containerNetwork := $container.Networks }}
-                    {{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
-                        ## Can be connected with "{{ $containerNetwork.Name }}" network
-                        {{ $sum := sha1 $path }}
-                        {{ $upstream := printf "%s-%s" $upstream_name $sum }}
-                        # {{ $host }}{{ $path }}
-                        {{ template "upstream" (dict "Upstream" $upstream "Containers" $containers "Networks" $CurrentContainer.Networks "Debug" $debug_all) }}
-                    {{ else }}
-                        # Cannot connect to network of this container
-                        server 127.0.0.1 down;
-                    {{ end }}
-                {{ end }}
-            {{ end }}
-        {{ end }}
+			{{ range $knownNetwork := $CurrentContainer.Networks }}
+				{{ range $containerNetwork := $container.Networks }}
+					{{ if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
+						## Can be connected with "{{ $containerNetwork.Name }}" network
+						{{ $sum := sha1 $path }}
+						{{ $upstream := printf "%s-%s" $upstream_name $sum }}
+						# {{ $host }}{{ $path }}
+						{{ template "upstream" (dict "Upstream" $upstream "Containers" $containers "Networks" $CurrentContainer.Networks "Debug" $debug_all) }}
+					{{ else }}
+						# Cannot connect to network of this container
+						server 127.0.0.1 down;
+					{{ end }}
+				{{ end }}
+			{{ end }}
+		{{ end }}
 	{{ end }}
 {{ end }}
 
