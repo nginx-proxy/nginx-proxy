@@ -125,6 +125,10 @@ upstream {{ .Upstream }} {
                         {{ if $containerNetwork.IP }}
                             {{ $server_found = "true" }}
         server {{ $containerNetwork.IP }}:{{ $port }};
+                        {{/* The container is in the host network and wants to be exposed */}}
+                        {{ else if (and $container.Env.VIRTUAL_PORT (eq $containerNetwork.Name "host")) }}
+                            {{ $server_found = "true" }}
+        server 127.0.0.1:{{ $port }};
                         {{ else }}
         # /!\ No IP for this network!
                     	{{ end }}
