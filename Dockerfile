@@ -1,9 +1,9 @@
 # setup build arguments for version of dependencies to use
-ARG DOCKER_GEN_VERSION=0.7.7
+ARG DOCKER_GEN_VERSION=0.9.0
 ARG FOREGO_VERSION=v0.17.0
 
 # Use a specific version of golang to build both binaries
-FROM golang:1.16.7 as gobuilder
+FROM golang:1.18.1 as gobuilder
 
 # Build docker-gen from scratch
 FROM gobuilder as dockergen
@@ -55,7 +55,7 @@ RUN apt-get update \
    && rm -r /var/lib/apt/lists/*
 
 
-# Configure Nginx and apply fix for very long server names
+# Configure Nginx
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
    && sed -i 's/worker_processes  1/worker_processes  auto/' /etc/nginx/nginx.conf \
    && sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf \
@@ -67,7 +67,7 @@ COPY --from=dockergen /usr/local/bin/docker-gen /usr/local/bin/docker-gen
 
 COPY network_internal.conf /etc/nginx/
 
-COPY . /app/
+COPY app nginx.tmpl LICENSE /app/
 WORKDIR /app/
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

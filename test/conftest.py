@@ -192,6 +192,10 @@ def nginx_proxy_dns_resolver(domain_name):
         nginxproxy_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "nginxproxy/nginx-proxy:test"})
         if len(nginxproxy_containers) == 0:
             log.warn(f"no container found from image nginxproxy/nginx-proxy:test while resolving {domain_name!r}")
+            exited_nginxproxy_containers = docker_client.containers.list(filters={"status": "exited", "ancestor": "nginxproxy/nginx-proxy:test"})
+            if len(exited_nginxproxy_containers) > 0:
+                exited_nginxproxy_container_logs = exited_nginxproxy_containers[0].logs()
+                log.warn(f"nginxproxy/nginx-proxy:test container might have exited unexpectedly. Container logs: " + "\n" + exited_nginxproxy_container_logs.decode())
             return
         nginxproxy_container = nginxproxy_containers[0]
         ip = container_ip(nginxproxy_container)
