@@ -191,6 +191,12 @@ log_format vhost '$host $remote_addr - $remote_user [$time_local] '
 
 access_log off;
 
+{{ range $key, $val := .Env }}
+{{ if and $val (hasPrefix "nginx_" (toLower $key)) }}
+{{ trimPrefix "nginx_" (toLower $key) }} {{ $val }};
+{{ end }}
+{{ end }}
+
 {{/* Get the SSL_POLICY defined by this container, falling back to "Mozilla-Intermediate" */}}
 {{ $ssl_policy := or ($.Env.SSL_POLICY) "Mozilla-Intermediate" }}
 {{ template "ssl_policy" (dict "ssl_policy" $ssl_policy) }}
@@ -376,6 +382,12 @@ server {
 	add_header Strict-Transport-Security "{{ trim $hsts }}" always;
 	{{ end }}
 
+	{{ range $key, $val := (first $containers).Env }}
+	{{ if and $val (hasPrefix "nginx_" (toLower $key)) }}
+	{{ trimPrefix "nginx_" (toLower $key) }} {{ $val }};
+	{{ end }}
+	{{ end }}
+
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
 	{{ else if (exists "/etc/nginx/vhost.d/default") }}
@@ -423,6 +435,12 @@ server {
 	listen [::]:{{ $external_http_port }} {{ $default_server }};
 	{{ end }}
 	{{ $access_log }}
+
+	{{ range $key, $val := (first $containers).Env }}
+	{{ if and $val (hasPrefix "nginx_" (toLower $key)) }}
+	{{ trimPrefix "nginx_" (toLower $key) }} {{ $val }};
+	{{ end }}
+	{{ end }}
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
