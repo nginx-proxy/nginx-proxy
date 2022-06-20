@@ -35,6 +35,36 @@ RUN git clone https://github.com/nginx-proxy/forego/ \
    && cd - \
    && rm -rf /go/forego
 
+
+# Build headers more module from scratch
+FROM nginx:1.21.6 AS headers-more-nginx-module
+
+# nginx:alpine contains NGINX_VERSION environment variable, like so:
+# ENV NGINX_VERSION 1.15.0
+ARG HEADERS_MORE_VERSION=v0.33
+
+RUN apt-get update \
+    && apt-get install -y \
+        build-essential \
+        libpcre++-dev \
+        zlib1g-dev \
+        libgeoip-dev \
+        wget \
+        git
+# Download sources
+RUN wget "http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz" -O nginx.tar.gz
+
+RUN cd /opt \
+    && git clone --depth 1 -b $HEADERS_MORE_VERSION --single-branch https://github.com/openresty/headers-more-nginx-module.git \
+    && cd /opt/headers-more-nginx-module \
+    && git submodule update --init \
+    && cd /opt \
+    && wget -O - http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz | tar zxfv - \
+    && mv /opt/nginx-$NGINX_VERSION /opt/nginx \
+    && cd /opt/nginx \
+    && ./configure --with-compat --add-dynamic-module=/opt/headers-more-nginx-module \
+    && make modules 
+
 # Build the final image
 FROM nginx:1.21.6
 
@@ -45,6 +75,12 @@ ARG DOCKER_GEN_VERSION
 ENV NGINX_PROXY_VERSION=${NGINX_PROXY_VERSION} \
    DOCKER_GEN_VERSION=${DOCKER_GEN_VERSION} \
    DOCKER_HOST=unix:///tmp/docker.sock
+
+# Copy more filter modules to the image
+COPY --from=headers-more-nginx-module /opt/nginx/objs/ngx_http_headers_more_filter_module.so /usr/lib/nginx/modules
+RUN chmod -R 644 \
+        /usr/lib/nginx/modules/ngx_http_headers_more_filter_module.so \
+    && sed -i '1iload_module \/usr\/lib\/nginx\/modules\/ngx_http_headers_more_filter_module.so;' /etc/nginx/nginx.conf 
 
 # Install wget and install/updates certificates
 RUN apt-get update \
