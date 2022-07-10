@@ -62,7 +62,7 @@
 		uwsgi_pass {{ trim .Proto }}://{{ trim .Upstream }};
 	{{ else if eq .Proto "fastcgi" }}
 		root   {{ trim .VhostRoot }};
-		include fastcgi_params;
+		include fastcgi.conf;
 		fastcgi_pass {{ trim .Upstream }};
 	{{ else if eq .Proto "grpc" }}
 		grpc_pass {{ trim .Proto }}://{{ trim .Upstream }};
