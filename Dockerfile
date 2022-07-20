@@ -36,7 +36,7 @@ RUN git clone https://github.com/nginx-proxy/forego/ \
    && rm -rf /go/forego
 
 # Build the final image
-FROM nginx:1.21.6
+FROM nginx:1.23.1
 
 ARG NGINX_PROXY_VERSION
 # Add DOCKER_GEN_VERSION environment variable
