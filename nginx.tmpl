@@ -388,7 +388,7 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
-	{{ if $vouch_internal_location }}
+	{{ if ne $vouch_internal_location "" }}
 	auth_request /vouchValidate;
 
 	location = /vouchValidate {
@@ -411,16 +411,13 @@ server {
     }
 	{{ end }}
 
-	{{ if $vouch_external_location }}
+	{{ if ne $vouch_external_location "" }}
 	# if validate returns `401 not authorized` then forward the request to the error401block
 	error_page 401 = @error401;
 
 	location @error401 {
 		# redirect to Vouch Proxy for login
 		return 302 https://{{ $vouch_external_location }}/login?url=$scheme://$http_host$request_uri&vouch-failcount=$auth_resp_failcount&X-Vouch-Token=$auth_resp_jwt&error=$auth_resp_err;
-		# you usually *want* to redirect to Vouch running behind the same Nginx config proteced by https
-		# but to get started you can just forward the end user to the port that vouch is running on
-		# return 302 http://vouch.yourdomain.com:9090/login?url=$scheme://$http_host$request_uri&vouch-failcount=$auth_resp_failcount&X-Vouch-Token=$auth_resp_jwt&error=$auth_resp_err;
 	}
 	{{ end }}
 
