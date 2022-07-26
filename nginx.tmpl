@@ -306,6 +306,12 @@ server {
 {{/* Use the cert specified on the container or fallback to the best vhost match */}}
 {{ $cert := (coalesce $certName $vhostCert) }}
 
+{{/* Get the VOUCH_INTERNAL_LOCATION defined by containers w/ the same vhost, falling back to empty string (use default) */}}
+{{ $vouch_internal_location := or (first (groupByKeys $containers "Env.VOUCH_INTERNAL_LOCATION")) "" }}
+
+{{/* Get the VOUCH_EXTERNAL_LOCATION defined by containers w/ the same vhost, falling back to empty string (use default) */}}
+{{ $vouch_external_location := or (first (groupByKeys $containers "Env.VOUCH_EXTERNAL_LOCATION")) "" }}
+
 {{ $is_https := (and (ne $https_method "nohttps") (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) }}
 
 {{ if $is_https }}
@@ -380,6 +386,42 @@ server {
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
 	{{ else if (exists "/etc/nginx/vhost.d/default") }}
 	include /etc/nginx/vhost.d/default;
+	{{ end }}
+
+	{{ if $vouch_internal_location }}
+	auth_request /vouchValidate;
+
+	location = /vouchValidate {
+		# forward the /validate request to Vouch Proxy
+		proxy_pass {{ $vouch_internal_location }}/validate;
+		# be sure to pass the original host header
+		proxy_set_header Host $http_host;
+
+		# Vouch Proxy only acts on the request headers
+		proxy_pass_request_body off;
+		proxy_set_header Content-Length "";
+
+		# optionally add X-Vouch-User as returned by Vouch Proxy along with the request
+		auth_request_set $auth_resp_x_vouch_user $upstream_http_x_vouch_user;
+
+		# these return values are used by the @error401 call
+		auth_request_set $auth_resp_jwt $upstream_http_x_vouch_jwt;
+		auth_request_set $auth_resp_err $upstream_http_x_vouch_err;
+		auth_request_set $auth_resp_failcount $upstream_http_x_vouch_failcount;
+    }
+	{{ end }}
+
+	{{ if $vouch_external_location }}
+	# if validate returns `401 not authorized` then forward the request to the error401block
+	error_page 401 = @error401;
+
+	location @error401 {
+		# redirect to Vouch Proxy for login
+		return 302 https://{{ $vouch_external_location }}/login?url=$scheme://$http_host$request_uri&vouch-failcount=$auth_resp_failcount&X-Vouch-Token=$auth_resp_jwt&error=$auth_resp_err;
+		# you usually *want* to redirect to Vouch running behind the same Nginx config proteced by https
+		# but to get started you can just forward the end user to the port that vouch is running on
+		# return 302 http://vouch.yourdomain.com:9090/login?url=$scheme://$http_host$request_uri&vouch-failcount=$auth_resp_failcount&X-Vouch-Token=$auth_resp_jwt&error=$auth_resp_err;
+	}
 	{{ end }}
 
 	{{ if eq $nPaths 0 }}
