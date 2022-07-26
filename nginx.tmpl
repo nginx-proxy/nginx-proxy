@@ -306,11 +306,11 @@ server {
 {{/* Use the cert specified on the container or fallback to the best vhost match */}}
 {{ $cert := (coalesce $certName $vhostCert) }}
 
-{{/* Get the VOUCH_INTERNAL_LOCATION defined by containers w/ the same vhost, falling back to empty string (use default) */}}
-{{ $vouch_internal_location := or (first (groupByKeys $containers "Env.VOUCH_INTERNAL_LOCATION")) "" }}
+{{/* Get the VOUCH_PRIVATE_URL defined by containers w/ the same vhost, falling back to empty string (use default) */}}
+{{ $vouch_private_url := or (first (groupByKeys $containers "Env.VOUCH_PRIVATE_URL")) "" }}
 
-{{/* Get the VOUCH_EXTERNAL_LOCATION defined by containers w/ the same vhost, falling back to empty string (use default) */}}
-{{ $vouch_external_location := or (first (groupByKeys $containers "Env.VOUCH_EXTERNAL_LOCATION")) "" }}
+{{/* Get the VOUCH_PUBLIC_URL defined by containers w/ the same vhost, falling back to empty string (use default) */}}
+{{ $vouch_public_url := or (first (groupByKeys $containers "Env.VOUCH_PUBLIC_URL")) "" }}
 
 {{ $is_https := (and (ne $https_method "nohttps") (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) }}
 
@@ -388,12 +388,12 @@ server {
 	include /etc/nginx/vhost.d/default;
 	{{ end }}
 
-	{{ if ne $vouch_internal_location "" }}
+	{{ if (and (ne $vouch_private_url "") (ne $vouch_public_url "")) }}
 	auth_request /vouchValidate;
 
 	location = /vouchValidate {
 		# forward the /validate request to Vouch Proxy
-		proxy_pass {{ $vouch_internal_location }}/validate;
+		proxy_pass {{ $vouch_private_url }}/validate;
 		# be sure to pass the original host header
 		proxy_set_header Host $http_host;
 
@@ -409,15 +409,13 @@ server {
 		auth_request_set $auth_resp_err $upstream_http_x_vouch_err;
 		auth_request_set $auth_resp_failcount $upstream_http_x_vouch_failcount;
     }
-	{{ end }}
 
-	{{ if ne $vouch_external_location "" }}
 	# if validate returns `401 not authorized` then forward the request to the error401block
 	error_page 401 = @error401;
 
 	location @error401 {
 		# redirect to Vouch Proxy for login
-		return 302 {{ $vouch_external_location }}/login?url=$scheme://$http_host$request_uri&vouch-failcount=$auth_resp_failcount&X-Vouch-Token=$auth_resp_jwt&error=$auth_resp_err;
+		return 302 {{ $vouch_public_url }}/login?url=$scheme://$http_host$request_uri&vouch-failcount=$auth_resp_failcount&X-Vouch-Token=$auth_resp_jwt&error=$auth_resp_err;
 	}
 	{{ end }}
 

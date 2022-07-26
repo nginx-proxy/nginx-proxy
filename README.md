@@ -365,8 +365,8 @@ You'll need apache2-utils on the machine where you plan to create the htpasswd f
 
 You can also secure your virtual hosts by using the auth_request nginx module in conjunction with the authentication proxy [vouch-proxy](https://github.com/vouch/vouch-proxy).
 Set the following variables on the container you want secured:
-VOUCH_INTERNAL_LOCATION - private URL to your vouch-proxy instance, to perform validations again
-VOUCH_EXTERNAL_LOCATION - public URL to your vouch-proxy instance
+VOUCH_PRIVATE_URL - private URL to your vouch-proxy instance, to perform validations again
+VOUCH_PUBLIC_URL - public URL to your vouch-proxy instance
 
 ```yaml
   authtest:
@@ -376,8 +376,8 @@ VOUCH_EXTERNAL_LOCATION - public URL to your vouch-proxy instance
       - LETSENCRYPT_HOST=authtest.mydomain.com
       - VIRTUAL_HOST=authtest.mydomain.com
       - VIRTUAL_PORT=80
-      - VOUCH_INTERNAL_LOCATION=http://vouch-proxy:9090
-      - VOUCH_EXTERNAL_LOCATION=https://vouch.mydomain.com
+      - VOUCH_PRIVATE_URL=http://vouch-proxy:9090
+      - VOUCH_PUBLIC_URL=https://vouch.mydomain.com
     expose:
       - "80"
 ```
