@@ -431,9 +431,13 @@ If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=e
 ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
 ```
 
+**NOTE**: If you use the [acme-companion](https://github.com/nginx-proxy/acme-companion) companion container, configuration files mounted in `/etc/nginx/vhost.d` will be appended by the container. Appended files contain an extra location, for ACME challenges, that should be left as-is.
+
 #### Per-VIRTUAL_HOST default configuration
 
 If you want most of your virtual hosts to use a default single configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default` file. This file will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}` file associated with it.
+
+**NOTE**: If you use the [acme-companion](https://github.com/nginx-proxy/acme-companion) companion container, configuration files mounted in `/etc/nginx/vhost.d` will be appended by the container. Appended files contain an extra location, for ACME challenges, that should be left as-is.
 
 #### Per-VIRTUAL_HOST location configuration
 
