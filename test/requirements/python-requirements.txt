@@ -1,5 +1,5 @@
 backoff==1.11.1
 docker-compose==1.29.2
-docker==5.0.3
+docker==6.0.0
 pytest==7.1.2
 requests==2.27.1
