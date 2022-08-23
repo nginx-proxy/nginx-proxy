@@ -152,7 +152,7 @@ The filename of the previous example would be `example.tld_8610f6c344b4096614eab
 
 This environment variable of the nginx proxy container can be used to customize the return error page if no matching path is found. Furthermore it is possible to use anything which is compatible with the `return` statement of nginx.
 
-For example `DEFAUL_ROOT=418` will return a 418 error page instead of the normal 404 one.
+For example `DEFAULT_ROOT=418` will return a 418 error page instead of the normal 404 one.
 Another example is `DEFAULT_ROOT="301 https://github.com/nginx-proxy/nginx-proxy/blob/main/README.md"` which would redirect an invalid request to this documentation.
 Nginx variables such as $scheme, $host, and $request_uri can be used. However, care must be taken to make sure the $ signs are escaped properly.
 If you want to use `301 $scheme://$host/myapp1$request_uri` you should use:
