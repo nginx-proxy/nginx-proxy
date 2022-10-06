@@ -1,4 +1,4 @@
-backoff==2.1.2
+backoff==2.2.1
 docker-compose==1.29.2
 docker==6.0.0
 pytest==7.1.3
