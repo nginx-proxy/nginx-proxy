@@ -12,7 +12,6 @@ on:
     paths-ignore:
       - 'test/*'
       - '.gitignore'
-      - '.travis.yml'
       - 'docker-compose-separate-containers.yml'
       - 'docker-compose.yml'
       - 'LICENSE'
@@ -37,12 +36,13 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: |
+            ghcr.io/nginx-proxy/nginx-proxy
             nginxproxy/nginx-proxy
             jwilder/nginx-proxy
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
           labels: |
             org.opencontainers.image.authors=Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag), Jason Wilder
             org.opencontainers.image.version=${{ env.GIT_DESCRIBE }}
@@ -58,6 +58,13 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push the Debian based image
         id: docker_build_debian
@@ -91,12 +98,13 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: |
+            ghcr.io/nginx-proxy/nginx-proxy
             nginxproxy/nginx-proxy
             jwilder/nginx-proxy
           tags: |
             type=semver,suffix=-alpine,pattern={{version}}
             type=semver,suffix=-alpine,pattern={{major}}.{{minor}}
-            type=raw,value=alpine,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }}
+            type=raw,value=alpine,enable=${{ github.ref == 'refs/heads/main' }}
           labels: |
             org.opencontainers.image.authors=Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag), Jason Wilder
             org.opencontainers.image.version=${{ env.GIT_DESCRIBE }}
@@ -113,6 +121,13 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push the Alpine based image
         id: docker_build_alpine
