@@ -54,7 +54,7 @@ with_custom_file:
   volumes:
     - *docker-sock
     - *nginx-certs
-    - ../../dhparam/ffdhe3072.pem:/etc/nginx/dhparam/dhparam.pem:ro
+    - ../../app/dhparam/ffdhe3072.pem:/etc/nginx/dhparam/dhparam.pem:ro
 
 with_skip:
   container_name: dh-skip
