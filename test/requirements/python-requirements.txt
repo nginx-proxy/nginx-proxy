@@ -1,5 +1,5 @@
 backoff==1.11.1
 docker-compose==1.29.2
 docker==5.0.3
-pytest==7.1.2
+pytest==7.2.0
 requests==2.27.1
