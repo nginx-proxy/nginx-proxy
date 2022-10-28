@@ -57,6 +57,7 @@ RUN apt-get update \
 
 # Configure Nginx
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
+   && echo "include /etc/nginx/toplevel.conf.d/*.conf;" >> /etc/nginx/nginx.conf \
    && sed -i 's/worker_processes  1/worker_processes  auto/' /etc/nginx/nginx.conf \
    && sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf \
    && mkdir -p '/etc/nginx/dhparam'
