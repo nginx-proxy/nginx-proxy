@@ -11,6 +11,7 @@
 - [HTTP/2 and HTTP/3](#http2-and-http3)
 - [Headers](#headers)
 - [Custom Nginx Configuration](#custom-nginx-configuration)
+- [TCP and UDP stream](#tcp-and-udp-stream)
 - [Unhashed vs SHA1 upstream names](#unhashed-vs-sha1-upstream-names)
 - [Separate Containers](#separate-containers)
 - [Docker Compose](#docker-compose)
@@ -696,6 +697,61 @@ location / {
 ### Per-VIRTUAL_HOST `server_tokens` configuration
 
 Per virtual-host `servers_tokens` directive can be configured by passing appropriate value to the `SERVER_TOKENS` environment variable. Please see the [nginx http_core module configuration](https://nginx.org/en/docs/http/ngx_http_core_module.html#server_tokens) for more details.
+
+⬆️ [back to table of contents](#table-of-contents)
+
+## TCP and UDP stream
+
+If you want to proxy non-HTTP traffic, you can use nginx's stream module. Write a configuration file and mount it inside `/etc/nginx/toplevel.conf.d`.
+
+```nginx
+# stream.conf
+stream {
+    upstream stream_backend {
+        server backend1.example.com:12345;
+        server backend2.example.com:12345;
+        server backend3.example.com:12346;
+        # ...
+    }
+    server {
+        listen     12345;
+        #TCP traffic will be forwarded to the "stream_backend" upstream group
+        proxy_pass stream_backend;
+    }
+
+    server {
+        listen     12346;
+        #TCP traffic will be forwarded to the specified server
+        proxy_pass backend.example.com:12346;
+    }
+
+    upstream dns_servers {
+        server 192.168.136.130:53;
+        server 192.168.136.131:53;
+        # ...
+    }
+    server {
+        listen     53 udp;
+        #UDP traffic will be forwarded to the "dns_servers" upstream group
+        proxy_pass dns_servers;
+    }
+    # ...
+}
+```
+
+```console
+docker run --detach \
+    --name nginx-proxy \
+    --publish 80:80 \
+    --publish 12345:12345 \
+    --publish 12346:12346 \
+    --publish 53:53:udp \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    --volume ./stream.conf:/etc/nginx/toplevel.conf.d/stream.conf:ro \
+    nginxproxy/nginx-proxy:1.5
+```
+
+Please note that TCP and UDP stream are not core features of nginx-proxy, so the above is provided as an example only, without any guarantee.
 
 ⬆️ [back to table of contents](#table-of-contents)
 
