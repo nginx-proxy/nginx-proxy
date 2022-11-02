@@ -92,7 +92,7 @@ docker run -d -p 80:80 -e ENABLE_IPV6=true -v /var/run/docker.sock:/tmp/docker.s
 
 #### Scoped IPv6 Resolvers
 
-NginX does not support scoped IPv6 resolvers. In [docker-entrypoint.sh](./docker-entrypoint.sh) the resolvers are parsed from resolv.conf, but any scoped IPv6 addreses will be removed. 
+NginX does not support scoped IPv6 resolvers. In [docker-entrypoint.sh](./docker-entrypoint.sh) the resolvers are parsed from resolv.conf, but any scoped IPv6 addreses will be removed.
 
 #### IPv6 NAT
 
@@ -213,9 +213,9 @@ If you would like the reverse proxy to connect to your backend using HTTPS inste
 If you would like to connect to uWSGI backend, set `VIRTUAL_PROTO=uwsgi` on the backend container. Your backend container should then listen on a port rather than a socket and expose that port.
 
 ### FastCGI Backends
- 
+
 If you would like to connect to FastCGI backend, set `VIRTUAL_PROTO=fastcgi` on the backend container. Your backend container should then listen on a port rather than a socket and expose that port.
- 
+
 ### FastCGI File Root Directory
 
 If you use fastcgi,you can set `VIRTUAL_ROOT=xxx`  for your root directory
@@ -342,7 +342,7 @@ Note that in the latter case, a browser may get an connection error as no certif
 
 To serve traffic in both SSL and non-SSL modes without redirecting to SSL, you can include the environment variable `HTTPS_METHOD=noredirect` (the default is `HTTPS_METHOD=redirect`). You can also disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`, or disable the HTTPS site with `HTTPS_METHOD=nohttps`. `HTTPS_METHOD` can be specified on each container for which you want to override the default behavior or on the proxy container to set it globally. If `HTTPS_METHOD=noredirect` is used, Strict Transport Security (HSTS) is disabled to prevent HTTPS users from being redirected by the client. If you cannot get to the HTTP site after changing this setting, your browser has probably cached the HSTS policy and is automatically redirecting you back to HTTPS. You will need to clear your browser's HSTS cache or use an incognito window / different browser.
 
-By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security)  is enabled with `max-age=31536000` for HTTPS sites. You can disable HSTS with the environment variable `HSTS=off` or use a custom HSTS configuration like `HSTS=max-age=31536000; includeSubDomains; preload`. 
+By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security)  is enabled with `max-age=31536000` for HTTPS sites. You can disable HSTS with the environment variable `HSTS=off` or use a custom HSTS configuration like `HSTS=max-age=31536000; includeSubDomains; preload`.
 
 *WARNING*: HSTS will force your users to visit the HTTPS version of your site for the `max-age` time - even if they type in `http://` manually.  The only way to get to an HTTP site after receiving an HSTS response is to clear your browser's HSTS cache.
 
@@ -465,6 +465,10 @@ Per virtual-host `servers_tokens` directive can be configured by passing appropr
 By default the nginx configuration `upstream` blocks will use this block's corresponding hostname as a predictable name. However, this can cause issues in some setups (see [this issue](https://github.com/nginx-proxy/nginx-proxy/issues/1162)). In those cases you might want to switch to SHA1 names for the `upstream` blocks by setting the `SHA1_UPSTREAM_NAME` environment variable to `true` on the nginx-proxy container.
 
 Please note that using regular expressions in `VIRTUAL_HOST` will always result in a corresponding `upstream` block with an SHA1 name.
+
+#### Further customization
+
+You can use the environment variables `${DOCKERGEN_ARGS}` and `${NGINX_ARGS}` to pass further commands to dockergen or nginx, e.g. for debugging.
 
 ### Troubleshooting
 
