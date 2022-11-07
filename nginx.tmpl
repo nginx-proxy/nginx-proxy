@@ -53,7 +53,7 @@
 {{ define "location" }}
 	location {{ .Path }} {
 	{{ if ne .NetworkTag "external" }}
-		# Only allow traffic from internal clients
+		# Allow traffic according of the given network config
 		include {{ (printf "/etc/nginx/networks/%s.conf" .NetworkTag) }};
 	{{ end }}
 
