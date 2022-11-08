@@ -65,7 +65,7 @@ RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
 COPY --from=forego /usr/local/bin/forego /usr/local/bin/forego
 COPY --from=dockergen /usr/local/bin/docker-gen /usr/local/bin/docker-gen
 
-COPY network_internal.conf /etc/nginx/networks/
+COPY network_internal.conf /etc/nginx/networks/internal.conf
 
 COPY app nginx.tmpl LICENSE /app/
 WORKDIR /app/
