@@ -1,6 +1,9 @@
 .git
+.github
+test
 .dockerignore
-circle.yml
+.gitignore
+*.yml
+Dockerfile*
 Makefile
 README.md
-test

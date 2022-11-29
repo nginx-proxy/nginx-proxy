@@ -1,6 +1,6 @@
 [![Test](https://github.com/nginx-proxy/nginx-proxy/actions/workflows/test.yml/badge.svg)](https://github.com/nginx-proxy/nginx-proxy/actions/workflows/test.yml)
 [![GitHub release](https://img.shields.io/github/v/release/nginx-proxy/nginx-proxy)](https://github.com/nginx-proxy/nginx-proxy/releases)
-![nginx 1.21.4](https://img.shields.io/badge/nginx-1.21.4-brightgreen.svg)
+![nginx 1.21.6](https://img.shields.io/badge/nginx-1.21.6-brightgreen.svg)
 [![Docker Image Size](https://img.shields.io/docker/image-size/nginxproxy/nginx-proxy?sort=semver)](https://hub.docker.com/r/nginxproxy/nginx-proxy "Click to view the image on Docker Hub")
 [![Docker stars](https://img.shields.io/docker/stars/nginxproxy/nginx-proxy.svg)](https://hub.docker.com/r/nginxproxy/nginx-proxy 'DockerHub')
 [![Docker pulls](https://img.shields.io/docker/pulls/nginxproxy/nginx-proxy.svg)](https://hub.docker.com/r/nginxproxy/nginx-proxy 'DockerHub')
@@ -115,7 +115,51 @@ For each host defined into `VIRTUAL_HOST`, the associated virtual port is retrie
 
 ### Wildcard Hosts
 
-You can also use wildcards at the beginning and the end of host name, like `*.bar.com` or `foo.bar.*`. Or even a regular expression, which can be very useful in conjunction with a wildcard DNS service like [xip.io](http://xip.io), using `~^foo\.bar\..*\.xip\.io` will match `foo.bar.127.0.0.1.xip.io`, `foo.bar.10.0.2.2.xip.io` and all other given IPs. More information about this topic can be found in the nginx documentation about [`server_names`](http://nginx.org/en/docs/http/server_names.html).
+You can also use wildcards at the beginning and the end of host name, like `*.bar.com` or `foo.bar.*`. Or even a regular expression, which can be very useful in conjunction with a wildcard DNS service like [nip.io](https://nip.io) or [sslip.io](https://sslip.io), using `~^foo\.bar\..*\.nip\.io` will match `foo.bar.127.0.0.1.nip.io`, `foo.bar.10.0.2.2.nip.io` and all other given IPs. More information about this topic can be found in the nginx documentation about [`server_names`](http://nginx.org/en/docs/http/server_names.html).
+
+### Path-based Routing
+
+You can have multiple containers proxied by the same `VIRTUAL_HOST` by adding a `VIRTUAL_PATH` environment variable containing the absolute path to where the container should be mounted. For example with `VIRTUAL_HOST=foo.example.com` and `VIRTUAL_PATH=/api/v2/service`, then requests to http://foo.example.com/api/v2/service will be routed to the container. If you wish to have a container serve the root while other containers serve other paths, give the root container a `VIRTUAL_PATH` of `/`.  Unmatched paths will be served by the container at `/` or will return the default nginx error page if no container has been assigned `/`.
+It is also possible to specify multiple paths with regex locations like `VIRTUAL_PATH=~^/(app1|alternative1)/`. For further details see the nginx documentation on location blocks. This is not compatible with `VIRTUAL_DEST`.
+
+The full request URI will be forwarded to the serving container in the `X-Forwarded-Path` header.
+
+**NOTE**: Your application needs to be able to generate links starting with `VIRTUAL_PATH`. This can be achieved by it being natively on this path or having an option to prepend this path. The application does not need to expect this path in the request.
+
+#### VIRTUAL_DEST
+
+This environment variable can be used to rewrite the `VIRTUAL_PATH` part of the requested URL to proxied application. The default value is empty (off).
+Make sure that your settings won't result in the slash missing or being doubled. Both these versions can cause troubles.
+
+If the application runs natively on this sub-path or has a setting to do so, `VIRTUAL_DEST` should not be set or empty.
+If the requests are expected to not contain a sub-path and the generated links contain the sub-path, `VIRTUAL_DEST=/` should be used.
+
+```console
+$ docker run -d -e VIRTUAL_HOST=example.tld -e VIRTUAL_PATH=/app1/ -e VIRTUAL_DEST=/ --name app1 app
+```
+
+In this example, the incoming request `http://example.tld/app1/foo` will be proxied as `http://app1/foo` instead of `http://app1/app1/foo`.
+
+#### Per-VIRTUAL_PATH location configuration
+
+The same options as from [Per-VIRTUAL_HOST location configuration](#Per-VIRTUAL_HOST-location-configuration) are available on a `VIRTUAL_PATH` basis.
+The only difference is that the filename gets an additional block `HASH=$(echo -n $VIRTUAL_PATH | sha1sum | awk '{ print $1 }')`. This is the sha1-hash of the `VIRTUAL_PATH` (no newline). This is done filename sanitization purposes.
+The used filename is `${VIRTUAL_HOST}_${HASH}_location`
+
+The filename of the previous example would be `example.tld_8610f6c344b4096614eab6e09d58885349f42faf_location`.
+
+#### DEFAULT_ROOT
+
+This environment variable of the nginx proxy container can be used to customize the return error page if no matching path is found. Furthermore it is possible to use anything which is compatible with the `return` statement of nginx.
+
+For example `DEFAUL_ROOT=418` will return a 418 error page instead of the normal 404 one.
+Another example is `DEFAULT_ROOT="301 https://github.com/nginx-proxy/nginx-proxy/blob/main/README.md"` which would redirect an invalid request to this documentation.
+Nginx variables such as $scheme, $host, and $request_uri can be used. However, care must be taken to make sure the $ signs are escaped properly.
+If you want to use `301 $scheme://$host/myapp1$request_uri` you should use:
+
+* Bash: `DEFAULT_ROOT='301 $scheme://$host/myapp1$request_uri'`
+* Docker Compose yaml: `- DEFAULT_ROOT: 301 $$scheme://$$host/myapp1$$request_uri`
+
 
 ### Virtual Host Aliases
 
@@ -218,7 +262,7 @@ docker run -d -e VIRTUAL_HOST=foo.bar.com nginx
 
 ### Separate Containers
 
-nginx-proxy can also be run as two separate containers using the [jwilder/docker-gen](https://hub.docker.com/r/jwilder/docker-gen) image and the official [nginx](https://registry.hub.docker.com/_/nginx/) image.
+nginx-proxy can also be run as two separate containers using the [nginxproxy/docker-gen](https://hub.docker.com/r/nginxproxy/docker-gen) image and the official [nginx](https://registry.hub.docker.com/_/nginx/) image.
 
 You may want to do this to prevent having the docker socket bound to a publicly exposed container service.
 
@@ -249,7 +293,7 @@ Then start the docker-gen container with the shared volume and template:
 docker run --volumes-from nginx \
     -v /var/run/docker.sock:/tmp/docker.sock:ro \
     -v $(pwd):/etc/docker-gen/templates \
-    -t jwilder/docker-gen -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    -t nginxproxy/docker-gen -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
 ```
 
 Finally, start your containers with `VIRTUAL_HOST` environment variables.
@@ -284,7 +328,7 @@ To use custom `dhparam.pem` files per-virtual-host, the files should be named af
 
 > COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 4096 bits for A+ security. Some older clients (like Java 6 and 7) do not support DH keys with over 1024 bits. In order to support these clients, you must provide your own `dhparam.pem`.
 
-In the separate container setup, no pre-generated key will be available and neither the [jwilder/docker-gen](https://hub.docker.com/r/jwilder/docker-gen) image, nor the offical [nginx](https://registry.hub.docker.com/_/nginx/) image will provide one. If you still want A+ security in a separate container setup, you should mount an RFC7919 DH key file to the nginx container at `/etc/nginx/dhparam/dhparam.pem`.
+In the separate container setup, no pre-generated key will be available and neither the [nginxproxy/docker-gen](https://hub.docker.com/r/nginxproxy/docker-gen) image, nor the offical [nginx](https://registry.hub.docker.com/_/nginx/) image will provide one. If you still want A+ security in a separate container setup, you should mount an RFC7919 DH key file to the nginx container at `/etc/nginx/dhparam/dhparam.pem`.
 
 Set `DHPARAM_SKIP` environment variable to `true` to disable using default Diffie-Hellman parameters. The default value is `false`.
 
@@ -362,6 +406,7 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 proxy_set_header X-Forwarded-Ssl $proxy_x_forwarded_ssl;
 proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
+proxy_set_header X-Forwarded-Path $request_uri;
 
 # Mitigate httpoxy attack (see README for details)
 proxy_set_header Proxy "";
@@ -448,10 +493,10 @@ Please note that using regular expressions in `VIRTUAL_HOST` will always result 
 
 ### Troubleshooting
 
-In case you can't access your VIRTUAL_HOST, set `DEBUG=true` in the client container's environment and have a look at the generated nginx configuration file `/etc/nginx/conf.d/default`:
+In case you can't access your VIRTUAL_HOST, set `DEBUG=true` in the client container's environment and have a look at the generated nginx configuration file `/etc/nginx/conf.d/default.conf`:
 
 ```console
-docker exec <nginx-proxy-instance> cat /etc/nginx/conf.d/default
+docker exec <nginx-proxy-instance> cat /etc/nginx/conf.d/default.conf
 ```
 Especially at `upstream` definition blocks which should look like:
 

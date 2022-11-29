@@ -18,8 +18,8 @@ docker build -t nginx-proxy-tester -f "${DIR}/requirements/Dockerfile-nginx-prox
 
 # run the nginx-proxy-tester container setting the correct value for the working dir in order for 
 # docker-compose to work properly when run from within that container.
-exec docker run --rm -it \
---volume /var/run/docker.sock:/var/run/docker.sock \
---volume "${DIR}:${DIR}" \
---workdir "${DIR}" \
-nginx-proxy-tester "${ARGS[@]}"
+exec docker run --rm -it --name "nginx-proxy-pytest" \
+  --volume "/var/run/docker.sock:/var/run/docker.sock" \
+  --volume "${DIR}:${DIR}" \
+  --workdir "${DIR}" \
+  nginx-proxy-tester "${ARGS[@]}"

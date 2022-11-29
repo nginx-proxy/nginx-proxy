@@ -1,5 +1,6 @@
 import re
 import subprocess
+import os
 
 import backoff
 import docker
@@ -80,12 +81,17 @@ def negotiate_cipher(sut_container, additional_params='', grep='Cipher is'):
         raise Exception("Failed to process CLI request:\n" + e.stderr) from None
 
 
-def can_negotiate_dhe_ciphersuite(sut_container):
-    r = negotiate_cipher(sut_container, "-cipher 'EDH'")
+# The default `dh_bits` can vary due to configuration.
+# `additional_params` allows for adjusting the request to a specific `VIRTUAL_HOST`,
+# where DH size can differ from the configured global default DH size.
+def can_negotiate_dhe_ciphersuite(sut_container, dh_bits=4096, additional_params=''):
+    openssl_params = f"-cipher 'EDH' {additional_params}"
+
+    r = negotiate_cipher(sut_container, openssl_params)
     assert "New, TLSv1.2, Cipher is DHE-RSA-AES256-GCM-SHA384\n" == r
 
-    r2 = negotiate_cipher(sut_container, "-cipher 'EDH'", "Server Temp Key")
-    assert "DH" in r2
+    r2 = negotiate_cipher(sut_container, openssl_params, "Server Temp Key")
+    assert f"Server Temp Key: DH, {dh_bits} bits" in r2
 
 
 def cannot_negotiate_dhe_ciphersuite(sut_container):
@@ -99,6 +105,29 @@ def cannot_negotiate_dhe_ciphersuite(sut_container):
 
     r3 = negotiate_cipher(sut_container, grep="Server Temp Key")
     assert "X25519" in r3
+
+
+# To verify self-signed certificates, the file path to their CA cert must be provided.
+# Use the `fqdn` arg to specify the `VIRTUAL_HOST` to request for verification for that cert.
+#
+# Resolves the following stderr warnings regarding self-signed cert verification and missing SNI:
+# `Can't use SSL_get_servername`
+# `verify error:num=20:unable to get local issuer certificate`
+# `verify error:num=21:unable to verify the first certificate`
+#
+# The stderr output is hidden due to running the openssl command with `stderr=subprocess.PIPE`.
+def can_verify_chain_of_trust(sut_container, ca_cert, fqdn):
+    openssl_params = f"-CAfile '{ca_cert}' -servername '{fqdn}'"
+
+    r = negotiate_cipher(sut_container, openssl_params, "Verify return code")
+    assert "Verify return code: 0 (ok)" in r
+
+
+def should_be_equivalent_content(sut_container, expected, actual):
+    expected_checksum = sut_container.exec_run(f"md5sum {expected}").output.split()[0]
+    actual_checksum = sut_container.exec_run(f"md5sum {actual}").output.split()[0]
+
+    assert expected_checksum == actual_checksum
 
 
 # Parse array of container ENV, splitting at the `=` and returning the value, otherwise `None`
@@ -125,14 +154,17 @@ def test_default_dhparam_is_ffdhe4096(docker_compose):
 
     assert_log_contains("Setting up DH Parameters..", container_name)
 
-    # Make sure the dhparam file used is the default ffdhe4096.pem:
-    default_checksum = sut_container.exec_run("md5sum /app/dhparam/ffdhe4096.pem").output.split()
-    current_checksum = sut_container.exec_run("md5sum /etc/nginx/dhparam/dhparam.pem").output.split()
-    assert default_checksum[0] == current_checksum[0]
+    # `dhparam.pem` contents should match the default (ffdhe4096.pem):
+    should_be_equivalent_content(
+        sut_container,
+        "/app/dhparam/ffdhe4096.pem",
+        "/etc/nginx/dhparam/dhparam.pem"
+    )
 
-    can_negotiate_dhe_ciphersuite(sut_container)
+    can_negotiate_dhe_ciphersuite(sut_container, 4096)
 
 
+# Overrides default DH group via ENV `DHPARAM_BITS=3072`:
 def test_can_change_dhparam_group(docker_compose):
     container_name="dh-env"
     sut_container = docker_client.containers.get(container_name)
@@ -140,12 +172,14 @@ def test_can_change_dhparam_group(docker_compose):
 
     assert_log_contains("Setting up DH Parameters..", container_name)
 
-    # Make sure the dhparam file used is ffdhe2048.pem, not the default (ffdhe4096.pem):
-    default_checksum = sut_container.exec_run("md5sum /app/dhparam/ffdhe2048.pem").output.split()
-    current_checksum = sut_container.exec_run("md5sum /etc/nginx/dhparam/dhparam.pem").output.split()
-    assert default_checksum[0] == current_checksum[0]
+    # `dhparam.pem` contents should not match the default (ffdhe4096.pem):
+    should_be_equivalent_content(
+        sut_container,
+        "/app/dhparam/ffdhe3072.pem",
+        "/etc/nginx/dhparam/dhparam.pem"
+    )
 
-    can_negotiate_dhe_ciphersuite(sut_container)
+    can_negotiate_dhe_ciphersuite(sut_container, 3072)
 
 
 def test_fail_if_dhparam_group_not_supported(docker_compose):
@@ -162,6 +196,7 @@ def test_fail_if_dhparam_group_not_supported(docker_compose):
     )
 
 
+# Overrides default DH group by providing a custom `/etc/nginx/dhparam/dhparam.pem`:
 def test_custom_dhparam_is_supported(docker_compose):
     container_name="dh-file"
     sut_container = docker_client.containers.get(container_name)
@@ -172,14 +207,49 @@ def test_custom_dhparam_is_supported(docker_compose):
         container_name
     )
 
-    # Make sure the dhparam file used is not the default (ffdhe4096.pem):
-    default_checksum = sut_container.exec_run("md5sum /app/dhparam/ffdhe4096.pem").output.split()
-    current_checksum = sut_container.exec_run("md5sum /etc/nginx/dhparam/dhparam.pem").output.split()
-    assert default_checksum[0] != current_checksum[0]
+    # `dhparam.pem` contents should not match the default (ffdhe4096.pem):
+    should_be_equivalent_content(
+        sut_container,
+        "/app/dhparam/ffdhe3072.pem",
+        "/etc/nginx/dhparam/dhparam.pem"
+    )
 
-    can_negotiate_dhe_ciphersuite(sut_container)
+    can_negotiate_dhe_ciphersuite(sut_container, 3072)
 
 
+# Only `web2` has a site-specific DH param file (which overrides all other DH config)
+# Other tests here use `web5` explicitly, or implicitly (via ENV `DEFAULT_HOST`, otherwise first HTTPS server)
+def test_custom_dhparam_is_supported_per_site(docker_compose):
+    container_name="dh-file"
+    sut_container = docker_client.containers.get(container_name)
+    assert sut_container.status == "running"
+
+    # A site specific `dhparam.pem` with DH group size of 2048-bit.
+    # DH group size should not match the:
+    # - 4096-bit default.
+    # - 3072-bit default, overriden by file.
+    should_be_equivalent_content(
+        sut_container,
+        "/app/dhparam/ffdhe2048.pem",
+        "/etc/nginx/certs/web2.nginx-proxy.tld.dhparam.pem"
+    )
+
+    # `-servername` required for nginx-proxy to respond with site-specific DH params used:
+    can_negotiate_dhe_ciphersuite(sut_container, 2048, '-servername web2.nginx-proxy.tld')
+
+    # --Unrelated to DH support--
+    # - `web5` is missing a certificate, but falls back to available `/etc/nginx/certs/nginx-proxy.tld.crt` via `nginx.tmpl` "closest" result.
+    # - `web2` has it's own cert provisioned at `/etc/nginx/certs/web2.nginx-proxy.tld.crt`.
+    can_verify_chain_of_trust(
+        sut_container,
+        ca_cert = f"{os.getcwd()}/certs/ca-root.crt",
+        fqdn    = 'web2.nginx-proxy.tld'
+    )
+
+
+# NOTE: These two tests will fail without the ENV `DEFAULT_HOST` to prevent
+# accidentally falling back to `web2` as the default server, which has explicit DH params configured.
+# Only copying DH params is skipped, not explicit usage via user providing custom files.
 def test_can_skip_dhparam(docker_compose):
     container_name="dh-skip"
     sut_container = docker_client.containers.get(container_name)
@@ -188,6 +258,7 @@ def test_can_skip_dhparam(docker_compose):
     assert_log_contains("Skipping Diffie-Hellman parameters setup.", container_name)
 
     cannot_negotiate_dhe_ciphersuite(sut_container)
+
 
 def test_can_skip_dhparam_backward_compatibility(docker_compose):
     container_name="dh-skip-backward"

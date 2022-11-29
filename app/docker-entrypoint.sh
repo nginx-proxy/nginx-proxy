@@ -29,6 +29,12 @@ function _parse_false() {
 	esac
 }
 
+function _print_version {
+    if [[ -n "${NGINX_PROXY_VERSION:-}" ]]; then
+        echo "Info: running nginx-proxy version ${NGINX_PROXY_VERSION}"
+    fi
+}
+
 function _check_unix_socket() {
 	# Warn if the DOCKER_HOST socket does not exist
 	if [[ ${DOCKER_HOST} == unix://* ]]; then
@@ -96,6 +102,8 @@ function _setup_dhparam() {
 
 # Run the init logic if the default CMD was provided
 if [[ $* == 'forego start -r' ]]; then
+	_print_version
+	
 	_check_unix_socket
 
 	_resolvers
