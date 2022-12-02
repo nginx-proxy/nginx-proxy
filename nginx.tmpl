@@ -249,6 +249,9 @@ server {
 	ssl_session_tickets off;
 	ssl_certificate /etc/nginx/certs/default.crt;
 	ssl_certificate_key /etc/nginx/certs/default.key;
+	{{ if (exists "/etc/nginx/certs/default.pw") }}
+	ssl_password_file /etc/nginx/certs/default.pw;
+	{{ end }}
 }
 {{ end }}
 
@@ -362,6 +365,10 @@ server {
 	ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $cert) }};
 	ssl_certificate_key /etc/nginx/certs/{{ (printf "%s.key" $cert) }};
 
+	{{ if (exists (printf "/etc/nginx/certs/%s.pw" $cert)) }}
+	ssl_password_file {{ printf "/etc/nginx/certs/%s.pw" $cert }};
+	{{ end }}
+
 	{{ if (exists (printf "/etc/nginx/certs/%s.dhparam.pem" $cert)) }}
 	ssl_dhparam {{ printf "/etc/nginx/certs/%s.dhparam.pem" $cert }};
 	{{ end }}
@@ -472,6 +479,9 @@ server {
 
 	ssl_certificate /etc/nginx/certs/default.crt;
 	ssl_certificate_key /etc/nginx/certs/default.key;
+	{{ if (exists "/etc/nginx/certs/default.pw") }}
+	ssl_password_file /etc/nginx/certs/default.pw;
+	{{ end }}
 }
 {{ end }}
 
