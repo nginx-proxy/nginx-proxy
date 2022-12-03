@@ -1,6 +1,5 @@
 version: 2
 updates:
-
   # Maintain dependencies for Docker
   - package-ecosystem: "docker"
     directory: "/"

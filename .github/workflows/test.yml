@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
   push:
     paths-ignore:
-    - 'LICENSE'
-    - '**.md'
+      - "LICENSE"
+      - "**.md"
   pull_request:
     paths-ignore:
-    - 'LICENSE'
-    - '**.md'
+      - "LICENSE"
+      - "**.md"
 
 jobs:
   unit:
