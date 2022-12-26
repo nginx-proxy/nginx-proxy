@@ -109,6 +109,13 @@ if [[ $* == 'forego start -r' ]]; then
 	_resolvers
 
 	_setup_dhparam
+
+	if [ -z "${TRUST_DOWNSTREAM_PROXY}" ]; then
+		cat >&2 <<-EOT
+			Warning: TRUST_DOWNSTREAM_PROXY is not set; defaulting to "true". For security, you should explicitly set TRUST_DOWNSTREAM_PROXY to "false" if there is not a trusted reverse proxy in front of this proxy.
+			Warning: The default value of TRUST_DOWNSTREAM_PROXY might change to "false" in a future version of nginx-proxy. If you require TRUST_DOWNSTREAM_PROXY to be enabled, explicitly set it to "true".
+		EOT
+	fi
 fi
 
 exec "$@"

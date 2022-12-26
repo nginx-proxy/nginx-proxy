@@ -122,7 +122,7 @@ You can also use wildcards at the beginning and the end of host name, like `*.ba
 You can have multiple containers proxied by the same `VIRTUAL_HOST` by adding a `VIRTUAL_PATH` environment variable containing the absolute path to where the container should be mounted. For example with `VIRTUAL_HOST=foo.example.com` and `VIRTUAL_PATH=/api/v2/service`, then requests to http://foo.example.com/api/v2/service will be routed to the container. If you wish to have a container serve the root while other containers serve other paths, give the root container a `VIRTUAL_PATH` of `/`.  Unmatched paths will be served by the container at `/` or will return the default nginx error page if no container has been assigned `/`.
 It is also possible to specify multiple paths with regex locations like `VIRTUAL_PATH=~^/(app1|alternative1)/`. For further details see the nginx documentation on location blocks. This is not compatible with `VIRTUAL_DEST`.
 
-The full request URI will be forwarded to the serving container in the `X-Forwarded-Path` header.
+The full request URI will be forwarded to the serving container in the `X-Original-URI` header.
 
 **NOTE**: Your application needs to be able to generate links starting with `VIRTUAL_PATH`. This can be achieved by it being natively on this path or having an option to prepend this path. The application does not need to expect this path in the request.
 
@@ -361,6 +361,28 @@ docker run -d -p 80:80 -p 443:443 \
 
 You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
 
+### Headers
+
+By default, `nginx-proxy` forwards all incoming request headers from the client to the backend server unmodified, with the following exceptions:
+
+  * `Connection`: Set to `upgrade` if the client sets the `Upgrade` header, otherwise set to `close`. (Keep-alive between `nginx-proxy` and the backend server is not supported.)
+  * `Proxy`: Always removed if present. This prevents attackers from using the so-called [httpoxy attack](http://httpoxy.org). There is no legitimate reason for a client to send this header, and there are many vulnerable languages / platforms (`CVE-2016-5385`, `CVE-2016-5386`, `CVE-2016-5387`, `CVE-2016-5388`, `CVE-2016-1000109`, `CVE-2016-1000110`, `CERT-VU#797896`).
+  * `X-Real-IP`: Set to the client's IP address.
+  * `X-Forwarded-For`: The client's IP address is appended to the value provided by the client. (If the client did not provide this header, it is set to the client's IP address.)
+  * `X-Forwarded-Proto`: If the client did not provide this header or if the `TRUST_DOWNSTREAM_PROXY` environment variable is set to `false` (see below), this is set to `http` for plain HTTP connections and `https` for TLS connections. Otherwise, the header is forwarded to the backend server unmodified.
+  * `X-Forwarded-Ssl`: Set to `on` if the `X-Forwarded-Proto` header sent to the backend server is `https`, otherwise set to `off`.
+  * `X-Forwarded-Port`: If the client did not provide this header or if the `TRUST_DOWNSTREAM_PROXY` environment variable is set to `false` (see below), this is set to the port of the server that accepted the client's request. Otherwise, the header is forwarded to the backend server unmodified.
+  * `X-Original-URI`: Set to the original request URI.
+
+#### Trusting Downstream Proxy Headers
+
+For legacy compatibility reasons, `nginx-proxy` forwards any client-supplied `X-Forwarded-Proto` (which affects the value of `X-Forwarded-Ssl`) and `X-Forwarded-Port` headers unchecked and unmodified. To prevent malicious clients from spoofing the protocol or port that is perceived by your backend server, you are encouraged to set the `TRUST_DOWNSTREAM_PROXY` value to `false` if:
+
+  * you do not operate a second reverse proxy downstream of `nginx-proxy`, or
+  * you do operate a second reverse proxy downstream of `nginx-proxy` but that proxy forwards those headers unchecked from untrusted clients.
+
+The default for `TRUST_DOWNSTREAM_PROXY` may change to `false` in a future version of `nginx-proxy`. If you require it to be enabled, you are encouraged to explicitly set it to `true` to avoid compatibility problems when upgrading.
+
 ### Custom Nginx Configuration
 
 If you need to configure Nginx beyond what is possible using environment variables, you can provide custom configuration files on either a proxy-wide or per-`VIRTUAL_HOST` basis.
@@ -381,15 +403,13 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 proxy_set_header X-Forwarded-Ssl $proxy_x_forwarded_ssl;
 proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
-proxy_set_header X-Forwarded-Path $request_uri;
+proxy_set_header X-Original-URI $request_uri;
 
 # Mitigate httpoxy attack (see README for details)
 proxy_set_header Proxy "";
 ```
 
 ***NOTE***: If you provide this file it will replace the defaults; you may want to check the .tmpl file to make sure you have all of the needed options.
-
-***NOTE***: The default configuration blocks the `Proxy` HTTP request header from being sent to downstream servers.  This prevents attackers from using the so-called [httpoxy attack](http://httpoxy.org).  There is no legitimate reason for a client to send this header, and there are many vulnerable languages / platforms (`CVE-2016-5385`, `CVE-2016-5386`, `CVE-2016-5387`, `CVE-2016-5388`, `CVE-2016-1000109`, `CVE-2016-1000110`, `CERT-VU#797896`).
 
 #### Proxy-wide
 
