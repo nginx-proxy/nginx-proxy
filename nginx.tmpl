@@ -53,9 +53,9 @@
 
 {{ define "location" }}
 	location {{ .Path }} {
-	{{ if eq .NetworkTag "internal" }}
-		# Only allow traffic from internal clients
-		include /etc/nginx/network_internal.conf;
+	{{ if ne .NetworkTag "external" }}
+		# Allow traffic according of the given network config
+		include {{ (printf "/etc/nginx/networks/%s.conf" .NetworkTag) }};
 	{{ end }}
 
 	{{ if eq .Proto "uwsgi" }}
