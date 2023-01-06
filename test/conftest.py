@@ -322,31 +322,28 @@ def wait_for_nginxproxy_to_be_ready():
             logging.debug("nginx-proxy ready")
             break
 
-def find_docker_compose_file(request):
-    """
-    helper for fixture functions to figure out the name of the docker-compose file to consider.
 
-    - if the test module provides a `docker_compose_file` variable, take that
-    - else, if a yaml file exists with the same name as the test module (but for the `.yml` extension), use that
-    - otherwise use `docker-compose.yml`.
+@pytest.fixture(scope="module")
+def docker_compose_file(request):
+    """Fixture naming the docker-compose file to consider.
+
+    If a YAML file exists with the same name as the test module (with the `.py` extension replaced
+    with `.yml` or `.yaml`), use that.  Otherwise, use `docker-compose.yml` in the same directory
+    as the test module.
+
+    Tests can override this fixture to specify a custom location.
     """
     test_module_dir = os.path.dirname(request.module.__file__)
     yml_file = os.path.join(test_module_dir, request.module.__name__ + '.yml')
     yaml_file = os.path.join(test_module_dir, request.module.__name__ + '.yaml')
     default_file = os.path.join(test_module_dir, 'docker-compose.yml')
 
-    docker_compose_file_module_variable = getattr(request.module, "docker_compose_file", None)
-    if docker_compose_file_module_variable is not None:
-        docker_compose_file = os.path.join( test_module_dir, docker_compose_file_module_variable)
-        if not os.path.isfile(docker_compose_file):
-            raise ValueError(f"docker compose file {docker_compose_file!r} could not be found. Check your test module `docker_compose_file` variable value.")
+    if os.path.isfile(yml_file):
+        docker_compose_file = yml_file
+    elif os.path.isfile(yaml_file):
+        docker_compose_file = yaml_file
     else:
-        if os.path.isfile(yml_file):
-            docker_compose_file = yml_file
-        elif os.path.isfile(yaml_file):
-            docker_compose_file = yaml_file
-        else:
-            docker_compose_file = default_file
+        docker_compose_file = default_file
 
     if not os.path.isfile(docker_compose_file):
         logging.error("Could not find any docker-compose file named either '{0}.yml', '{0}.yaml' or 'docker-compose.yml'".format(request.module.__name__))
@@ -432,16 +429,15 @@ def ca_root_certificate():
 
 
 @pytest.fixture(scope="module")
-def docker_compose(request):
-    """
-    pytest fixture providing containers described in a docker compose file. After the tests, remove the created containers
+def docker_compose(docker_compose_file):
+    """Ensures containers described in a docker compose file are started.
 
-    A custom docker compose file name can be defined in a variable named `docker_compose_file`.
+    A custom docker compose file name can be specified by overriding the `docker_compose_file`
+    fixture.
 
     Also, in the case where pytest is running from a docker container, this fixture makes sure
     our container will be attached to all the docker networks.
     """
-    docker_compose_file = find_docker_compose_file(request)
     original_dns_resolver = monkey_patch_urllib_dns_resolver()
     remove_all_containers()
     docker_compose_up(docker_compose_file)
