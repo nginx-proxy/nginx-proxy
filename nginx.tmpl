@@ -11,9 +11,15 @@
 {{- define "ssl_policy" }}
     {{- if eq .ssl_policy "Mozilla-Modern" }}
     ssl_protocols TLSv1.3;
-        {{- /* nginx currently lacks ability to choose ciphers in TLS 1.3 in configuration, see https://trac.nginx.org/nginx/ticket/1529 */}}
-        {{- /* a possible workaround can be modify /etc/ssl/openssl.cnf to change it globally (see https://trac.nginx.org/nginx/ticket/1529#comment:12 ) */}}
-        {{- /* explicitly set ngnix default value in order to allow single servers to override the global http value */}}
+        {{- /*
+             * nginx currently lacks ability to choose ciphers in TLS 1.3 in
+             * configuration; see https://trac.nginx.org/nginx/ticket/1529.  A
+             * possible workaround can be modify /etc/ssl/openssl.cnf to change
+             * it globally (see
+             * https://trac.nginx.org/nginx/ticket/1529#comment:12).  Explicitly
+             * set ngnix default value in order to allow single servers to
+             * override the global http value.
+             */}}
     ssl_ciphers HIGH:!aNULL:!MD5;
     ssl_prefer_server_ciphers off;
     {{- else if eq .ssl_policy "Mozilla-Intermediate" }}
@@ -110,12 +116,19 @@ upstream {{ .Upstream }} {
                 {{- if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
     ## Can be connected with "{{ $containerNetwork.Name }}" network
                     {{- if $address }}
-                        {{- /* If we got the containers from swarm and this container's port is published to host, use host IP:PORT */}}
+                        {{- /*
+                             * If we got the containers from swarm and this
+                             * container's port is published to host, use host
+                             * IP:PORT.
+                             */}}
                         {{- if and $container.Node.ID $address.HostPort }}
                             {{- $server_found = true }}
     # {{ $container.Node.Name }}/{{ $container.Name }}
     server {{ $container.Node.Address.IP }}:{{ $address.HostPort }};
-                            {{- /* If there is no swarm node or the port is not published on host, use container's IP:PORT */}}
+                            {{- /*
+                                 * If there is no swarm node or the port is not
+                                 * published on host, use container's IP:PORT.
+                                 */}}
                         {{- else if $containerNetwork }}
                             {{- $server_found = true }}
     # {{ $container.Name }}
@@ -197,7 +210,10 @@ log_format vhost '$host $remote_addr - $remote_user [$time_local] '
 
 access_log off;
 
-{{- /* Get the SSL_POLICY defined by this container, falling back to "Mozilla-Intermediate" */}}
+{{- /*
+     * Get the SSL_POLICY defined by this container, falling back to
+     * "Mozilla-Intermediate".
+     */}}
 {{- $ssl_policy := or ($.Env.SSL_POLICY) "Mozilla-Intermediate" }}
 {{- template "ssl_policy" (dict "ssl_policy" $ssl_policy) }}
 error_log /dev/stderr;
@@ -278,17 +294,29 @@ server {
     {{- $default_host := or ($.Env.DEFAULT_HOST) "" }}
     {{- $default_server := index (dict $host "" $default_host "default_server") $host }}
 
-    {{- /* Get the SERVER_TOKENS defined by containers w/ the same vhost, falling back to "" */}}
+    {{- /*
+         * Get the SERVER_TOKENS defined by containers w/ the same vhost,
+         * falling back to "".
+         */}}
     {{- $server_tokens := trim (or (first (groupByKeys $containers "Env.SERVER_TOKENS")) "") }}
 
 
-    {{- /* Get the HTTPS_METHOD defined by containers w/ the same vhost, falling back to "redirect" */}}
+    {{- /*
+         * Get the HTTPS_METHOD defined by containers w/ the same vhost, falling
+         * back to "redirect".
+         */}}
     {{- $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) (or $.Env.HTTPS_METHOD "redirect") }}
 
-    {{- /* Get the SSL_POLICY defined by containers w/ the same vhost, falling back to empty string (use default) */}}
+    {{- /*
+         * Get the SSL_POLICY defined by containers w/ the same vhost, falling
+         * back to empty string (use default).
+         */}}
     {{- $ssl_policy := or (first (groupByKeys $containers "Env.SSL_POLICY")) "" }}
 
-    {{- /* Get the HSTS defined by containers w/ the same vhost, falling back to "max-age=31536000" */}}
+    {{- /*
+         * Get the HSTS defined by containers w/ the same vhost, falling back to
+         * "max-age=31536000".
+         */}}
     {{- $hsts := or (first (groupByKeys $containers "Env.HSTS")) (or $.Env.HSTS "max-age=31536000") }}
 
     {{- /* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
@@ -301,11 +329,17 @@ server {
     {{- /* Get the best matching cert by name for the vhost. */}}
     {{- $vhostCert := (closest (dir "/etc/nginx/certs") (printf "%s.crt" $host))}}
 
-    {{- /* vhostCert is actually a filename so remove any suffixes since they are added later */}}
+    {{- /*
+         * vhostCert is actually a filename so remove any suffixes since they
+         * are added later.
+         */}}
     {{- $vhostCert := trimSuffix ".crt" $vhostCert }}
     {{- $vhostCert := trimSuffix ".key" $vhostCert }}
 
-    {{- /* Use the cert specified on the container or fallback to the best vhost match */}}
+    {{- /*
+         * Use the cert specified on the container or fallback to the best vhost
+         * match.
+         */}}
     {{- $cert := (coalesce $certName $vhostCert) }}
 
     {{- $is_https := (and (ne $https_method "nohttps") (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) }}
@@ -395,10 +429,16 @@ server {
     {{- end }}
 
     {{- range $path, $containers := $paths }}
-        {{- /* Get the VIRTUAL_PROTO defined by containers w/ the same vhost-vpath, falling back to "http" */}}
+        {{- /*
+             * Get the VIRTUAL_PROTO defined by containers w/ the same
+             * vhost-vpath, falling back to "http".
+             */}}
         {{- $proto := trim (or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http") }}
 
-        {{- /* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external" */}}
+        {{- /*
+             * Get the NETWORK_ACCESS defined by containers w/ the same vhost,
+             * falling back to "external".
+             */}}
         {{- $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
         {{- $upstream := $upstream_name }}
         {{- $dest := "" }}
