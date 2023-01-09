@@ -1,0 +1,31 @@
+version: "2"
+
+services:
+  web:
+    image: web
+    expose:
+      - "83"
+    environment:
+      WEB_PORTS: "83"
+      VIRTUAL_HOST: "web.nginx-proxy.tld,web1.nginx-proxy.tld"
+      VIRTUAL_PORT: "83"
+      VIRTUAL_PATH: "/which-port"
+      VIRTUAL_DEST: "/port"
+  
+  web1:
+    image: web
+    expose:
+      - "80"
+      - "81"
+    environment:
+      WEB_PORTS: "80 81"
+      VIRTUAL_HOST: "web1.nginx-proxy.tld"
+      VIRTUAL_PORT: "80:/80:/,81:/81:/"
+  
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./web.nginx-proxy.tld_022792f37cc2c58102bdf79316aebed215e0de21_location:/etc/nginx/vhost.d/web.nginx-proxy.tld_022792f37cc2c58102bdf79316aebed215e0de21_location
+    environment:
+      DEFAULT_ROOT: "405"

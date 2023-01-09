@@ -347,6 +347,7 @@ upstream {{ $vpath.upstream }} {
      *   - "Containers": List of container's RuntimeContainer struct.
      *   - "Upstream_name"
      *   - "Has_virtual_paths": boolean
+     *   - "Multiport_syntax": boolean
      *   - "Path"
      *
      * The return values will be added to the dot dict with keys:
@@ -373,12 +374,42 @@ upstream {{ $vpath.upstream }} {
         {{- $upstream = printf "%s-%s" $upstream $sum }}
         {{- $dest = or (first (groupByKeys $.Containers "Env.VIRTUAL_DEST")) "" }}
     {{- end }}
+    {{- if $.Multiport_syntax }}
+        {{- if (not (eq $.Path "/")) }}
+            {{- $sum := sha1 $.Path }}
+            {{- $upstream = printf "%s-%s" $upstream $sum }}
+        {{- end }}
+    {{- end }}
     {{- $_ := set $ "proto" $proto }}
     {{- $_ := set $ "network_tag" $network_tag }}
     {{- $_ := set $ "upstream" $upstream }}
     {{- $_ := set $ "dest" $dest }}
     {{- $_ := set $ "loadbalance" $loadbalance }}
     {{- $_ := set $ "keepalive" $keepalive }}
+{{- end }}
+
+{{- /*
+     * Template used as a function to parse a port specification from
+     * multiport syntax.
+     * The results (path, port, dest) are returned via the provided do dict.
+     */}}
+{{- define "parse_multiport_syntax_port_spec" }}
+    {{- $vp_data := split $.spec ":" }}
+    {{- $vp_port := index $vp_data 0 }}
+    {{- $vp_path := "/" }}
+    {{- $vp_dest := "" }}
+    {{- if (gt (len $vp_data) 1) }}
+        {{- $vp_path = index $vp_data 1 }}
+        {{- if (empty $vp_path) }}
+            {{- $vp_path = "/" }}
+        {{- end }}
+    {{- end }}
+    {{- if (gt (len $vp_data) 2) }}
+        {{- $vp_dest = index $vp_data 2 }}
+    {{- end }}
+    {{- $_ := set $ "path" $vp_path }}
+    {{- $_ := set $ "port" $vp_port }}
+    {{- $_ := set $ "dest" $vp_dest }}
 {{- end }}
 
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
@@ -535,27 +566,73 @@ proxy_set_header Proxy "";
     {{- /* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
     {{- $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
 
-
-    {{- $tmp_paths := groupBy $containers "Env.VIRTUAL_PATH" }}
-    {{- $has_virtual_paths := gt (len $tmp_paths) 0}}
-    {{- if not $has_virtual_paths }}
-        {{- $tmp_paths = dict "/" $containers }}
+    {{- $vhost_multiport_syntax := false }}
+    {{- range $vp_spec, $_ := groupBy $containers "Env.VIRTUAL_PORT" }}
+        {{- if (or (gt (len (split $vp_spec ":")) 1) (gt (len (split $vp_spec ",")) 1)) }}
+            {{- $vhost_multiport_syntax = true }}
+            {{- break }}
+        {{- end }}
     {{- end }}
 
     {{- $paths := dict }}
+    {{- if $vhost_multiport_syntax }}
+        {{- range $vp_spec, $containers := groupByMulti $containers "Env.VIRTUAL_PORT" "," }}
+            {{- $vp_spec = trim $vp_spec }}
+            {{- if not $vp_spec }}
+                {{- continue }}
+            {{- end }}
+            {{- $args := dict "spec" $vp_spec }}
+            {{- template "parse_multiport_syntax_port_spec" $args }}
+            {{- $vp_path := $args.path }}
+            {{- $vp_port := $args.port }}
+            {{- $vp_dest := $args.dest }}
 
-    {{- range $path, $containers := $tmp_paths }}
-        {{- $args := dict "Containers" $containers "Path" $path "Upstream_name" $upstream_name "Has_virtual_paths" $has_virtual_paths }}
-        {{- template "get_path_info" $args }}
-        {{- $_ := set $paths $path (dict
-            "ports" (dict "legacy" $containers)
-            "dest" $args.dest
-            "proto" $args.proto
-            "network_tag" $args.network_tag
-            "upstream" $args.upstream
-            "loadbalance" $args.loadbalance
-            "keepalive" $args.keepalive
-        ) }}
+            {{- $path_data := when (hasKey $paths $vp_path) (get $paths $vp_path) (dict) }}
+            {{- $path_ports := when (hasKey $path_data "ports") (get $path_data "ports") (dict) }}
+            {{- $path_port_containers := when (hasKey $path_ports $vp_port) (get $path_ports $vp_port) (list) }}
+            {{- $path_port_containers = concat $path_port_containers $containers }}
+
+            {{- $_ := set $path_ports $vp_port $path_port_containers }}
+            {{- $_ := set $path_data "ports" $path_ports }}
+            {{- if (not (hasKey $path_data "dest")) }}
+                {{- $_ := set $path_data "dest" $vp_dest }}
+            {{- end }}
+            {{- $_ := set $paths $vp_path $path_data }}
+        {{- end }}
+        {{- range $path, $path_data := $paths }}
+            {{- $path_containers := list }}
+            {{- range $port, $port_containers := $path_data.ports }}
+                {{ $path_containers = concat $path_containers $port_containers }}
+            {{- end }}
+            {{- $args := dict "Containers" $path_containers "Path" $path "Upstream_name" $upstream_name "Has_virtual_paths" false "Multiport_syntax" true }}
+            {{- template "get_path_info" $args }}
+            {{- $_ := set $path_data "proto" $args.proto }}
+            {{- $_ := set $path_data "network_tag" $args.network_tag }}
+            {{- $_ := set $path_data "upstream" $args.upstream }}
+            {{- $_ := set $path_data "loadbalance" $args.loadbalance }}
+            {{- $_ := set $path_data "keepalive" $args.keepalive }}
+            {{- $_ := set $paths $path $path_data }}
+        {{- end }}
+    {{- else }}
+        {{- $tmp_paths := groupBy $containers "Env.VIRTUAL_PATH" }}
+        {{- $has_virtual_paths := gt (len $tmp_paths) 0}}
+        {{- if not $has_virtual_paths }}
+            {{- $tmp_paths = dict "/" $containers }}
+        {{- end }}
+
+        {{- range $path, $containers := $tmp_paths }}
+            {{- $args := dict "Containers" $containers "Path" $path "Upstream_name" $upstream_name "Has_virtual_paths" $has_virtual_paths "Multiport_syntax" false }}
+            {{- template "get_path_info" $args }}
+            {{- $_ := set $paths $path (dict
+                "ports" (dict "legacy" $containers)
+                "dest" (or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "")
+                "proto" $args.proto
+                "network_tag" $args.network_tag
+                "upstream" $args.upstream
+                "loadbalance" $args.loadbalance
+                "keepalive" $args.keepalive
+            ) }}
+        {{- end }}
     {{- end }}
 
     {{- $_ := set $globals.vhosts $hostname (dict
