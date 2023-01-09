@@ -14,12 +14,13 @@
 {{- $_ := set $globals "default_cert_ok" (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 {{- $_ := set $globals "external_http_port" (coalesce $globals.Env.HTTP_PORT "80") }}
 {{- $_ := set $globals "external_https_port" (coalesce $globals.Env.HTTPS_PORT "443") }}
-{{- $_ := set $globals "sha1_upstream_name" (parseBool (coalesce $globals.Env.SHA1_UPSTREAM_NAME "false")) }}
 {{- $_ := set $globals "default_root_response" (coalesce $globals.Env.DEFAULT_ROOT "404") }}
 {{- $_ := set $globals "trust_downstream_proxy" (parseBool (coalesce $globals.Env.TRUST_DOWNSTREAM_PROXY "true")) }}
 {{- $_ := set $globals "access_log" (or (and (not $globals.Env.DISABLE_ACCESS_LOGS) "access_log /var/log/nginx/access.log vhost;") "") }}
 {{- $_ := set $globals "enable_ipv6" (parseBool (coalesce $globals.Env.ENABLE_IPV6 "false")) }}
 {{- $_ := set $globals "ssl_policy" (or ($globals.Env.SSL_POLICY) "Mozilla-Intermediate") }}
+{{- $_ := set $globals "upstream_name_style" (coalesce $globals.Env.UPSTREAM_NAME_STYLE (when (parseBool (coalesce $globals.Env.SHA1_UPSTREAM_NAME "false")) "virtual-host-sha1" "virtual-host")) }}
+{{- $_ := set $globals "upstream_names" (dict) }}
 {{- $_ := set $globals "vhosts" (dict) }}
 {{- $_ := set $globals "networks" (dict) }}
 # Networks available to the container running docker-gen (which are assumed to
@@ -119,6 +120,82 @@
     #                      access the container's server directly.
     {{- end }}
     {{- $_ := set $ "port" $port }}
+{{- end }}
+
+{{- /*
+     * Template used as a function to compute an upstream name.  This template
+     * outputs the name of the upstream, so this template should be used with
+     * `eval`.
+     *
+     * The dot dict is expected to have the following entries:
+     *   - "globals": Global values.
+     *   - "containers": An array or slice of RuntimeContainer structs.
+     *   - "host": The virtual hostname the upstream will be served from.
+     *   - "path": The virtual path the upstream will be served from, or unset
+     *     if the VIRTUAL_PATH environment variable is not used in any of the
+     *     containers.
+     */}}
+{{- define "upstream_name" }}
+    {{- $style := $.globals.upstream_name_style }}
+    {{- if and (eq $style "virtual-host") (hasPrefix "~" $.host) }}
+        {{- $style = "virtual-host-sha1" }}
+    {{- end }}
+    {{- $name := "" }}
+    {{- if eq $style "container-name" }}
+        {{- /*
+             * Create the upstream name by joining the sorted container names.
+             *
+             * The container names are sorted to avoid redundant upstreams and
+             * for consistency in case the user provides a `*_location_override`
+             * file or similar.
+             *
+             * A tilde ("~") character is inserted after each container name to
+             * avoid name collisions.  Apparently nginx supports a wide range of
+             * characters in an upstream name (see
+             * <https://stackoverflow.com/q/36485834>), but as far as I can
+             * tell, the exact set of allowed characters is not officially
+             * specified in any of nginx's documentation.  To be safe, the tilde
+             * character is used because it is in the URI unreserved character
+             * set (percent-encoding is never required), and it is not permitted
+             * in Docker container names (according to
+             * <https://github.com/moby/moby/blob/v20.10.14/daemon/names/names.go>).
+             * Thus, joining multiple container names with "~" should yield a
+             * name that is both a valid nginx upstream name and a name that can
+             * never collide with another upstream name.  Futhermore, the name
+             * is unlikely to collide with a DNS hostname.  (Characters in the
+             * <sub-delims> character set of RFC 3986 (see
+             * <https://www.rfc-editor.org/rfc/rfc3986.html#section-2.2>) would
+             * probably also work without any problems.  Those characters are
+             * permitted in the <userinfo> and <host> parts of a URL without
+             * percent-encoding, and they are not permitted to be in Docker
+             * container names.)
+             *
+             * nginx-proxy currently does not support more than one upstream
+             * server per container, so the set of container names are
+             * sufficient to completely identify an upstream.  If support for
+             * multiple proxied servers in a single container is added,
+             * additional disambiguating information such as protocol name and
+             * port number will need to be included in the generated upstream
+             * name.  (To remain backwards compatible with the current scheme,
+             * the additional information must not be included if nginx-proxy
+             * is only proxying one of the container's servers.)
+             */}}
+        {{- range sortAlpha (groupByKeys $.containers "Name") }}
+            {{- $name = printf "%s%s~" $name . }}
+        {{- end }}
+    {{- else }}
+        {{- if eq $style "virtual-host" }}
+            {{- $name = $.host }}
+        {{- else if eq $style "virtual-host-sha1" }}
+            {{- $name = sha1 $.host }}
+        {{- else }}
+            {{- fail (printf "unknown or unsupported UPSTREAM_NAME_STYLE: %s" $style) }}
+        {{- end }}
+        {{- if $.path }}
+            {{- $name = printf "%s-%s" $name (sha1 $.path) }}
+        {{- end }}
+    {{- end }}
+    {{- $name }}
 {{- end }}
 
 {{- define "ssl_policy" }}
@@ -453,9 +530,6 @@ server {
     {{- $default_server := when $vhost.default "default_server" "" }}
     {{- $https_method := $vhost.https_method }}
 
-    {{- $is_regexp := hasPrefix "~" $host }}
-    {{- $upstream_name := when (or $is_regexp $globals.sha1_upstream_name) (sha1 $host) $host }}
-
     {{- $paths := groupBy $containers "Env.VIRTUAL_PATH" }}
     {{- $nPaths := len $paths }}
     {{- if eq $nPaths 0 }}
@@ -463,13 +537,13 @@ server {
     {{- end }}
 
     {{- range $path, $containers := $paths }}
-        {{- $upstream := $upstream_name }}
-        {{- if gt $nPaths 0 }}
-            {{- $sum := sha1 $path }}
-            {{- $upstream = printf "%s-%s" $upstream $sum }}
+        {{- $args := dict "globals" $globals "containers" $containers "host" $host }}
+        {{- if gt $nPaths 0 }}{{- $_ := set $args "path" $path }}{{- end }}
+        {{- $upstream := eval "upstream_name" $args }}
+        {{- if not (index $globals.upstream_names $upstream) }}
+            {{- template "upstream" (dict "globals" $globals "Upstream" $upstream "Containers" $containers) }}
+            {{- $_ := set $globals.upstream_names $upstream true }}
         {{- end }}
-# {{ $host }}{{ $path }}
-{{ template "upstream" (dict "globals" $globals "Upstream" $upstream "Containers" $containers) }}
     {{- end }}
 
     {{- /*
@@ -618,11 +692,13 @@ server {
              * falling back to "external".
              */}}
         {{- $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
-        {{- $upstream := $upstream_name }}
+
+        {{- $args := dict "globals" $globals "containers" $containers "host" $host }}
+        {{- if gt $nPaths 0 }}{{- $_ := set $args "path" $path }}{{- end }}
+        {{- $upstream := eval "upstream_name" $args }}
+
         {{- $dest := "" }}
         {{- if gt $nPaths 0 }}
-            {{- $sum := sha1 $path }}
-            {{- $upstream = printf "%s-%s" $upstream $sum }}
             {{- $dest = (or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "") }}
         {{- end }}
         {{- template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "VhostRoot" $vhost_root "Dest" $dest "NetworkTag" $network_tag "Containers" $containers) }}

@@ -587,11 +587,73 @@ location / {
 #### Per-VIRTUAL_HOST `server_tokens` configuration
 Per virtual-host `servers_tokens` directive can be configured by passing appropriate value to the `SERVER_TOKENS` environment variable. Please see the [nginx http_core module configuration](https://nginx.org/en/docs/http/ngx_http_core_module.html#server_tokens) for more details.
 
-### Unhashed vs SHA1 upstream names
+### Upstream name style
 
-By default the nginx configuration `upstream` blocks will use this block's corresponding hostname as a predictable name. However, this can cause issues in some setups (see [this issue](https://github.com/nginx-proxy/nginx-proxy/issues/1162)). In those cases you might want to switch to SHA1 names for the `upstream` blocks by setting the `SHA1_UPSTREAM_NAME` environment variable to `true` on the nginx-proxy container.
+The generated nginx config will have one or more `upstream` blocks, each of which defines a [server group](https://nginx.org/en/docs/http/ngx_http_upstream_module.html) for the applicable containers. The name of the upstream is computed in one of three different ways (or "styles"), described below. The desired style is selected by setting the `UPSTREAM_NAME_STYLE` environment variable on the nginx-proxy container.
 
-Please note that using regular expressions in `VIRTUAL_HOST` will always result in a corresponding `upstream` block with an SHA1 name.
+#### `UPSTREAM_NAME_STYLE: container-name`
+
+> **Warning**
+> This feature is experimental.  The behavior may change (or the feature may be removed entirely) without warning in a future release, even if the release is not a new major version.  If you use this feature, or if you would like to use this feature but you require changes to it first, please provide feedback.  Once we have collected enough feedback we will promote this feature to officially supported.
+
+This is the recommended style, but it is not the default for legacy compatibility reasons.
+
+When this style is selected, the upstream name is computed by sorting the names of the applicable Docker containers, appending each one with a tilde character (`~`), and concatenating the results. For example, if containers named `foo` and `bar` are used for the upstream, the upstream name is `bar~foo~`.
+
+#### `UPSTREAM_NAME_STYLE: virtual-host`
+
+This style is deprecated; you are encouraged to use `container-name` instead. This is the default style for legacy compatibility reasons.
+
+When this style is selected, the upstream name is the name of the virtual host. If a container is used in multiple virtual hosts (e.g., `VIRTUAL_HOST: foo.example,bar.example`) then multiple identical upstreams are defined for the same container.
+
+If `VIRTUAL_PATH` is used for the virtual host, the virtual path in effect is hashed via SHA1 and appended to the upstream name.
+
+If the virtual host name is a regular expression (begins with `~`), the style is automatically switched to `virtual-host-sha1`.
+
+#### `UPSTREAM_NAME_STYLE: virtual-host-sha1`
+
+This style is deprecated; you are encouraged to use `container-name` instead.
+
+This style can also be selected by leaving `UPSTREAM_NAME_STYLE` unset and setting `SHA1_UPSTREAM_NAME` to `true`.
+
+This style is identical to `virtual-host`, except the hostname is first hashed via SHA1.
+
+#### Upstream name style example
+
+```yaml
+version: "3.8"
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    environment:
+      UPSTREAM_NAME_STYLE: container-name
+  whoami1:
+    container_name: whoami1
+    image: jwilder/whoami
+    environment:
+      VIRTUAL_HOST: whoami.example.net,whoami.example.com
+      VIRTUAL_PATH: /whoami
+      VIRTUAL_DEST: /
+  whoami2:
+    container_name: whoami2
+    image: jwilder/whoami
+    environment:
+      VIRTUAL_HOST: whoami.example.net,whoami.example.com
+      VIRTUAL_PATH: /whoami
+      VIRTUAL_DEST: /
+```
+
+With `UPSTREAM_NAME_STYLE` set to `container-name` as shown in the example above, one upstream is defined named `whoami1~whoami2~` for serving both `whoami.example.net/whoami` and `whoami.example.com/whoami`.
+
+With `UPSTREAM_NAME_STYLE` set to `virtual-host`, two upstreams are defined:
+  * An upstream named `whoami.example.net-e36977100088be78b338862f2a84ebc1ce959fef` that is used for serving `whoami.example.net/whoami`.
+  * An upstream named `whoami.example.com-e36977100088be78b338862f2a84ebc1ce959fef` that is used for serving `whoami.example.com/whoami`. (This upstream is identical to the other upstream.)
+
+With `UPSTREAM_NAME_STYLE` set to `virtual-host-sha1` two upstreams are defined:
+  * An upstream named `41d3ec6bf8437c9bb49fd0a1fe07275a6d1d714c-e36977100088be78b338862f2a84ebc1ce959fef` that is used for serving `whoami.example.net/whoami`.
+  * An upstream named `19cc2f29cfd8c0c5fda00d8312f24aad3c729c61-e36977100088be78b338862f2a84ebc1ce959fef` that is used for serving `whoami.example.com/whoami`. (This upstream is identical to the other upstream.)
 
 ### Troubleshooting
 

@@ -116,6 +116,11 @@ if [[ $* == 'forego start -r' ]]; then
 			Warning: The default value of TRUST_DOWNSTREAM_PROXY might change to "false" in a future version of nginx-proxy. If you require TRUST_DOWNSTREAM_PROXY to be enabled, explicitly set it to "true".
 		EOT
 	fi
+	if [ "${UPSTREAM_NAME_STYLE}" != "container-name" ]; then
+		cat >&2 <<-EOT
+			Warning: UPSTREAM_NAME_STYLE values other than container-name are deprecated.
+		EOT
+	fi
 fi
 
 exec "$@"
