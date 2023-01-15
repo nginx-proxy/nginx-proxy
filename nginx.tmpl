@@ -1,12 +1,24 @@
-{{- $CurrentContainer := where $ "ID" .Docker.CurrentContainerID | first }}
-
-{{- $nginx_proxy_version := coalesce $.Env.NGINX_PROXY_VERSION "" }}
-{{- $external_http_port := coalesce $.Env.HTTP_PORT "80" }}
-{{- $external_https_port := coalesce $.Env.HTTPS_PORT "443" }}
-{{- $debug_all := $.Env.DEBUG }}
-{{- $sha1_upstream_name := parseBool (coalesce $.Env.SHA1_UPSTREAM_NAME "false") }}
-{{- $default_root_response := coalesce $.Env.DEFAULT_ROOT "404" }}
-{{- $trust_downstream_proxy := parseBool (coalesce $.Env.TRUST_DOWNSTREAM_PROXY "true") }}
+{{- /*
+     * Global values.  Values are stored in this map rather than in individual
+     * global variables so that the values can be easily passed to embedded
+     * templates.  (Go templates cannot access variables outside of their own
+     * scope.)
+     */}}
+{{- $globals := dict }}
+{{- $_ := set $globals "containers" $ }}
+{{- $_ := set $globals "Env" $.Env }}
+{{- $_ := set $globals "Docker" $.Docker }}
+{{- $_ := set $globals "CurrentContainer" (where $globals.containers "ID" $globals.Docker.CurrentContainerID | first) }}
+{{- $_ := set $globals "nginx_proxy_version" (coalesce $globals.Env.NGINX_PROXY_VERSION "") }}
+{{- $_ := set $globals "external_http_port" (coalesce $globals.Env.HTTP_PORT "80") }}
+{{- $_ := set $globals "external_https_port" (coalesce $globals.Env.HTTPS_PORT "443") }}
+{{- $_ := set $globals "debug_all" $globals.Env.DEBUG }}
+{{- $_ := set $globals "sha1_upstream_name" (parseBool (coalesce $globals.Env.SHA1_UPSTREAM_NAME "false")) }}
+{{- $_ := set $globals "default_root_response" (coalesce $globals.Env.DEFAULT_ROOT "404") }}
+{{- $_ := set $globals "trust_downstream_proxy" (parseBool (coalesce $globals.Env.TRUST_DOWNSTREAM_PROXY "true")) }}
+{{- $_ := set $globals "access_log" (or (and (not $globals.Env.DISABLE_ACCESS_LOGS) "access_log /var/log/nginx/access.log vhost;") "") }}
+{{- $_ := set $globals "enable_ipv6" (parseBool (coalesce $globals.Env.ENABLE_IPV6 "false")) }}
+{{- $_ := set $globals "ssl_policy" (or ($globals.Env.SSL_POLICY) "Mozilla-Intermediate") }}
 
 {{- define "ssl_policy" }}
     {{- if eq .ssl_policy "Mozilla-Modern" }}
@@ -157,26 +169,26 @@ upstream {{ .Upstream }} {
 }
 {{- end }}
 
-{{- if ne $nginx_proxy_version "" }}
-# nginx-proxy version : {{ $nginx_proxy_version }}
+{{- if ne $globals.nginx_proxy_version "" }}
+# nginx-proxy version : {{ $globals.nginx_proxy_version }}
 {{- end }}
 
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
 map $http_x_forwarded_proto $proxy_x_forwarded_proto {
-    default {{ if $trust_downstream_proxy }}$http_x_forwarded_proto{{ else }}$scheme{{ end }};
+    default {{ if $globals.trust_downstream_proxy }}$http_x_forwarded_proto{{ else }}$scheme{{ end }};
     '' $scheme;
 }
 
 map $http_x_forwarded_host $proxy_x_forwarded_host {
-    default {{ if $trust_downstream_proxy }}$http_x_forwarded_host{{ else }}$http_host{{ end }};
+    default {{ if $globals.trust_downstream_proxy }}$http_x_forwarded_host{{ else }}$http_host{{ end }};
     '' $http_host;
 }
 
 # If we receive X-Forwarded-Port, pass it through; otherwise, pass along the
 # server port the client connected to
 map $http_x_forwarded_port $proxy_x_forwarded_port {
-    default {{ if $trust_downstream_proxy }}$http_x_forwarded_port{{ else }}$server_port{{ end }};
+    default {{ if $globals.trust_downstream_proxy }}$http_x_forwarded_port{{ else }}$server_port{{ end }};
     '' $server_port;
 }
 
@@ -210,16 +222,11 @@ log_format vhost '$host $remote_addr - $remote_user [$time_local] '
 
 access_log off;
 
-{{- /*
-     * Get the SSL_POLICY defined by this container, falling back to
-     * "Mozilla-Intermediate".
-     */}}
-{{- $ssl_policy := or ($.Env.SSL_POLICY) "Mozilla-Intermediate" }}
-{{- template "ssl_policy" (dict "ssl_policy" $ssl_policy) }}
+{{- template "ssl_policy" (dict "ssl_policy" $globals.ssl_policy) }}
 error_log /dev/stderr;
 
-{{- if $.Env.RESOLVERS }}
-resolver {{ $.Env.RESOLVERS }};
+{{- if $globals.Env.RESOLVERS }}
+resolver {{ $globals.Env.RESOLVERS }};
 {{- end }}
 
 {{- if (exists "/etc/nginx/proxy.conf") }}
@@ -243,23 +250,20 @@ proxy_set_header X-Original-URI $request_uri;
 proxy_set_header Proxy "";
 {{- end }}
 
-{{- $access_log := (or (and (not $.Env.DISABLE_ACCESS_LOGS) "access_log /var/log/nginx/access.log vhost;") "") }}
-
-{{- $enable_ipv6 := parseBool (coalesce $.Env.ENABLE_IPV6 "false") }}
 server {
     server_name _; # This is just an invalid value which will never trigger on a real hostname.
     server_tokens off;
-    listen {{ $external_http_port }};
-{{- if $enable_ipv6 }}
-    listen [::]:{{ $external_http_port }};
+    listen {{ $globals.external_http_port }};
+{{- if $globals.enable_ipv6 }}
+    listen [::]:{{ $globals.external_http_port }};
 {{- end }}
-    {{ $access_log }}
+    {{ $globals.access_log }}
     return 503;
 
 {{- if (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
-    listen {{ $external_https_port }} ssl http2;
-    {{- if $enable_ipv6 }}
-    listen [::]:{{ $external_https_port }} ssl http2;
+    listen {{ $globals.external_https_port }} ssl http2;
+    {{- if $globals.enable_ipv6 }}
+    listen [::]:{{ $globals.external_https_port }} ssl http2;
     {{- end }}
 
     ssl_session_cache shared:SSL:50m;
@@ -269,11 +273,11 @@ server {
 {{- end }}
 }
 
-{{- range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
+{{- range $host, $containers := groupByMulti $globals.containers "Env.VIRTUAL_HOST" "," }}
 
     {{- $host := trim $host }}
     {{- $is_regexp := hasPrefix "~" $host }}
-    {{- $upstream_name := when (or $is_regexp $sha1_upstream_name) (sha1 $host) $host }}
+    {{- $upstream_name := when (or $is_regexp $globals.sha1_upstream_name) (sha1 $host) $host }}
 
     {{- $paths := groupBy $containers "Env.VIRTUAL_PATH" }}
     {{- $nPaths := len $paths }}
@@ -288,10 +292,10 @@ server {
             {{- $upstream = printf "%s-%s" $upstream $sum }}
         {{- end }}
 # {{ $host }}{{ $path }}
-{{ template "upstream" (dict "Upstream" $upstream "Containers" $containers "Networks" $CurrentContainer.Networks "Debug" $debug_all) }}
+{{ template "upstream" (dict "Upstream" $upstream "Containers" $containers "Networks" $globals.CurrentContainer.Networks "Debug" $globals.debug_all) }}
     {{- end }}
 
-    {{- $default_host := or ($.Env.DEFAULT_HOST) "" }}
+    {{- $default_host := or ($globals.Env.DEFAULT_HOST) "" }}
     {{- $default_server := index (dict $host "" $default_host "default_server") $host }}
 
     {{- /*
@@ -305,7 +309,7 @@ server {
          * Get the HTTPS_METHOD defined by containers w/ the same vhost, falling
          * back to "redirect".
          */}}
-    {{- $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) (or $.Env.HTTPS_METHOD "redirect") }}
+    {{- $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) (or $globals.Env.HTTPS_METHOD "redirect") }}
 
     {{- /*
          * Get the SSL_POLICY defined by containers w/ the same vhost, falling
@@ -317,7 +321,7 @@ server {
          * Get the HSTS defined by containers w/ the same vhost, falling back to
          * "max-age=31536000".
          */}}
-    {{- $hsts := or (first (groupByKeys $containers "Env.HSTS")) (or $.Env.HSTS "max-age=31536000") }}
+    {{- $hsts := or (first (groupByKeys $containers "Env.HSTS")) (or $globals.Env.HSTS "max-age=31536000") }}
 
     {{- /* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
     {{- $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
@@ -350,11 +354,11 @@ server {
         {{- if $server_tokens }}
     server_tokens {{ $server_tokens }};
         {{- end }}
-    listen {{ $external_http_port }} {{ $default_server }};
-        {{- if $enable_ipv6 }}
-    listen [::]:{{ $external_http_port }} {{ $default_server }};
+    listen {{ $globals.external_http_port }} {{ $default_server }};
+        {{- if $globals.enable_ipv6 }}
+    listen [::]:{{ $globals.external_http_port }} {{ $default_server }};
         {{- end }}
-    {{ $access_log }}
+    {{ $globals.access_log }}
 
     # Do not HTTPS redirect Let's Encrypt ACME challenge
     location ^~ /.well-known/acme-challenge/ {
@@ -367,10 +371,10 @@ server {
     }
 
     location / {
-        {{- if eq $external_https_port "443" }}
+        {{- if eq $globals.external_https_port "443" }}
         return 301 https://$host$request_uri;
         {{- else }}
-        return 301 https://$host:{{ $external_https_port }}$request_uri;
+        return 301 https://$host:{{ $globals.external_https_port }}$request_uri;
         {{- end }}
     }
 }
@@ -381,17 +385,17 @@ server {
     {{- if $server_tokens }}
     server_tokens {{ $server_tokens }};
     {{- end }}
-    {{ $access_log }}
+    {{ $globals.access_log }}
     {{- if or (not $is_https) (eq $https_method "noredirect") }}
-    listen {{ $external_http_port }} {{ $default_server }};
-        {{- if $enable_ipv6 }}
-    listen [::]:{{ $external_http_port }} {{ $default_server }};
+    listen {{ $globals.external_http_port }} {{ $default_server }};
+        {{- if $globals.enable_ipv6 }}
+    listen [::]:{{ $globals.external_http_port }} {{ $default_server }};
         {{- end }}
     {{- end }}
     {{- if $is_https }}
-    listen {{ $external_https_port }} ssl http2 {{ $default_server }};
-        {{- if $enable_ipv6 }}
-    listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};
+    listen {{ $globals.external_https_port }} ssl http2 {{ $default_server }};
+        {{- if $globals.enable_ipv6 }}
+    listen [::]:{{ $globals.external_https_port }} ssl http2 {{ $default_server }};
         {{- end }}
 
         {{- template "ssl_policy" (dict "ssl_policy" $ssl_policy) }}
@@ -451,7 +455,7 @@ server {
     {{- end }}
     {{- if (not (contains $paths "/")) }}
     location / {
-        return {{ $default_root_response }};
+        return {{ $globals.default_root_response }};
     }
     {{- end }}
 }
@@ -462,11 +466,11 @@ server {
         {{- if $server_tokens }}
     server_tokens {{ $server_tokens }};
         {{- end }}
-    listen {{ $external_https_port }} ssl http2 {{ $default_server }};
-        {{- if $enable_ipv6 }}
-    listen [::]:{{ $external_https_port }} ssl http2 {{ $default_server }};
+    listen {{ $globals.external_https_port }} ssl http2 {{ $default_server }};
+        {{- if $globals.enable_ipv6 }}
+    listen [::]:{{ $globals.external_https_port }} ssl http2 {{ $default_server }};
         {{- end }}
-    {{ $access_log }}
+    {{ $globals.access_log }}
     return 500;
 
     ssl_certificate /etc/nginx/certs/default.crt;
