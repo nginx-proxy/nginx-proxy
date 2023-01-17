@@ -9,11 +9,14 @@
 ###############################################################################
 
 # Returns the absolute directory path to this script
-DIR=$(cd "${0%/*}" && pwd)
+DIR=$(cd "${0%/*}" && pwd) || exit 1
 
 # check requirements
 echo "> Building nginx-proxy-tester image..."
-docker build -t nginx-proxy-tester -f "${DIR}/requirements/Dockerfile-nginx-proxy-tester" "${DIR}/requirements"
+docker build -t nginx-proxy-tester \
+  -f "${DIR}/requirements/Dockerfile-nginx-proxy-tester" \
+  "${DIR}/requirements" \
+  || exit 1
 
 # run the nginx-proxy-tester container setting the correct value for the working dir in order for
 # docker-compose to work properly when run from within that container.
