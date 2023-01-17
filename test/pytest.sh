@@ -9,13 +9,14 @@
 ###############################################################################
 
 # Returns the absolute directory path to this script
-DIR=$(cd "${0%/*}" && pwd) || exit 1
+TESTDIR=$(cd "${0%/*}" && pwd) || exit 1
+DIR=$(cd "${TESTDIR}/.." && pwd) || exit 1
 
 # check requirements
 echo "> Building nginx-proxy-tester image..."
 docker build -t nginx-proxy-tester \
-  -f "${DIR}/requirements/Dockerfile-nginx-proxy-tester" \
-  "${DIR}/requirements" \
+  -f "${TESTDIR}/requirements/Dockerfile-nginx-proxy-tester" \
+  "${TESTDIR}/requirements" \
   || exit 1
 
 # run the nginx-proxy-tester container setting the correct value for the working dir in order for
@@ -23,5 +24,5 @@ docker build -t nginx-proxy-tester \
 exec docker run --rm -it --name "nginx-proxy-pytest" \
   --volume "/var/run/docker.sock:/var/run/docker.sock" \
   --volume "${DIR}:${DIR}" \
-  --workdir "${DIR}" \
+  --workdir "${TESTDIR}" \
   nginx-proxy-tester "$@"
