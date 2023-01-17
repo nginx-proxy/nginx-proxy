@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 ###############################################################################
 #                                                                             #
 # This script is meant to run the test suite from a Docker container.         #
@@ -9,8 +9,7 @@
 ###############################################################################
 
 # Returns the absolute directory path to this script
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ARGS=("$@")
+DIR=$(cd "${0%/*}" && pwd)
 
 # check requirements
 echo "> Building nginx-proxy-tester image..."
@@ -22,4 +21,4 @@ exec docker run --rm -it --name "nginx-proxy-pytest" \
   --volume "/var/run/docker.sock:/var/run/docker.sock" \
   --volume "${DIR}:${DIR}" \
   --workdir "${DIR}" \
-  nginx-proxy-tester "${ARGS[@]}"
+  nginx-proxy-tester "$@"
