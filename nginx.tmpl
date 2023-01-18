@@ -448,7 +448,7 @@ server {
         {{- end }}
         {{- template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "VhostRoot" $vhost_root "Dest" $dest "NetworkTag" $network_tag) }}
     {{- end }}
-    {{- if (not (contains $paths "/")) }}
+    {{- if and (not (contains $paths "/")) (ne $globals.default_root_response "none")}}
     location / {
         return {{ $globals.default_root_response }};
     }
