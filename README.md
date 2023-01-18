@@ -152,10 +152,17 @@ The filename of the previous example would be `example.tld_8610f6c344b4096614eab
 
 This environment variable of the nginx proxy container can be used to customize the return error page if no matching path is found. Furthermore it is possible to use anything which is compatible with the `return` statement of nginx.
 
-For example `DEFAULT_ROOT=418` will return a 418 error page instead of the normal 404 one.
-Another example is `DEFAULT_ROOT="301 https://github.com/nginx-proxy/nginx-proxy/blob/main/README.md"` which would redirect an invalid request to this documentation.
-Nginx variables such as $scheme, $host, and $request_uri can be used. However, care must be taken to make sure the $ signs are escaped properly.
-If you want to use `301 $scheme://$host/myapp1$request_uri` you should use:
+Exception:  If this is set to the string `none`, no default `location /` directive will be generated.  This makes it possible for you to provide your own `location /` directive in your [`/etc/nginx/vhost.d/VIRTUAL_HOST`](#per-virtual_host) or [`/etc/nginx/vhost.d/default`](#per-virtual_host-default-configuration) files.
+
+If unspecified, `DEFAULT_ROOT` defaults to `404`.
+
+Examples (YAML syntax):
+
+  * `DEFAULT_ROOT: "none"` prevents `nginx-proxy` from generating a default `location /` directive.
+  * `DEFAULT_ROOT: "418"` returns a 418 error page instead of the normal 404 one.
+  * `DEFAULT_ROOT: "301 https://github.com/nginx-proxy/nginx-proxy/blob/main/README.md"` redirects the client to this documentation.
+
+Nginx variables such as `$scheme`, `$host`, and `$request_uri` can be used.  However, care must be taken to make sure the `$` signs are escaped properly.  For example, if you want to use `301 $scheme://$host/myapp1$request_uri` you should use:
 
 * Bash: `DEFAULT_ROOT='301 $scheme://$host/myapp1$request_uri'`
 * Docker Compose yaml: `- DEFAULT_ROOT: 301 $$scheme://$$host/myapp1$$request_uri`
