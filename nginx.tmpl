@@ -271,6 +271,10 @@ server {
 {{- range $host, $containers := groupByMulti $globals.containers "Env.VIRTUAL_HOST" "," }}
 
     {{- $host := trim $host }}
+    {{- if not $host }}
+        {{- /* Ignore containers with VIRTUAL_HOST set to the empty string. */}}
+        {{- continue }}
+    {{- end }}
     {{- $is_regexp := hasPrefix "~" $host }}
     {{- $upstream_name := when (or $is_regexp $globals.sha1_upstream_name) (sha1 $host) $host }}
 
