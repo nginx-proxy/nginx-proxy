@@ -12,7 +12,6 @@
 {{- $_ := set $globals "nginx_proxy_version" (coalesce $globals.Env.NGINX_PROXY_VERSION "") }}
 {{- $_ := set $globals "external_http_port" (coalesce $globals.Env.HTTP_PORT "80") }}
 {{- $_ := set $globals "external_https_port" (coalesce $globals.Env.HTTPS_PORT "443") }}
-{{- $_ := set $globals "debug_all" $globals.Env.DEBUG }}
 {{- $_ := set $globals "sha1_upstream_name" (parseBool (coalesce $globals.Env.SHA1_UPSTREAM_NAME "false")) }}
 {{- $_ := set $globals "default_root_response" (coalesce $globals.Env.DEFAULT_ROOT "404") }}
 {{- $_ := set $globals "trust_downstream_proxy" (parseBool (coalesce $globals.Env.TRUST_DOWNSTREAM_PROXY "true")) }}
@@ -106,22 +105,18 @@
 
 {{- define "upstream" }}
     {{- $networks := .Networks }}
-    {{- $debug_all := .Debug }}
 upstream {{ .Upstream }} {
     {{- $server_found := false }}
     {{- range $container := .Containers }}
-        {{- $debug := parseBool (coalesce $container.Env.DEBUG $debug_all "false") }}
         {{- /* If only 1 port exposed, use that as a default, else 80 */}}
         {{- $defaultPort := (when (eq (len $container.Addresses) 1) (first $container.Addresses) (dict "Port" "80")).Port }}
         {{- $port := (coalesce $container.Env.VIRTUAL_PORT $defaultPort) }}
         {{- $address := where $container.Addresses "Port" $port | first }}
-        {{- if $debug }}
     # Exposed ports: {{ $container.Addresses }}
     # Default virtual port: {{ $defaultPort }}
     # VIRTUAL_PORT: {{ $container.Env.VIRTUAL_PORT }}
-            {{- if not $address }}
+        {{- if not $address }}
     # /!\ Virtual port not exposed
-            {{- end }}
         {{- end }}
         {{- range $knownNetwork := $networks }}
             {{- range $containerNetwork := sortObjectsByKeysAsc $container.Networks "Name" }}
@@ -292,7 +287,7 @@ server {
             {{- $upstream = printf "%s-%s" $upstream $sum }}
         {{- end }}
 # {{ $host }}{{ $path }}
-{{ template "upstream" (dict "Upstream" $upstream "Containers" $containers "Networks" $globals.CurrentContainer.Networks "Debug" $globals.debug_all) }}
+{{ template "upstream" (dict "Upstream" $upstream "Containers" $containers "Networks" $globals.CurrentContainer.Networks) }}
     {{- end }}
 
     {{- $default_host := or ($globals.Env.DEFAULT_HOST) "" }}

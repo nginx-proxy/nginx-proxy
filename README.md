@@ -490,12 +490,13 @@ Please note that using regular expressions in `VIRTUAL_HOST` will always result 
 
 ### Troubleshooting
 
-In case you can't access your VIRTUAL_HOST, set `DEBUG=true` in the client container's environment and have a look at the generated nginx configuration file `/etc/nginx/conf.d/default.conf`:
+If you can't access your `VIRTUAL_HOST`, inspect the generated nginx configuration:
 
 ```console
-docker exec <nginx-proxy-instance> cat /etc/nginx/conf.d/default.conf
+docker exec <nginx-proxy-instance> nginx -T
 ```
-Especially at `upstream` definition blocks which should look like:
+
+Pay attention to the `upstream` definition blocks, which should look like this:
 
 ```Nginx
 # foo.example.com

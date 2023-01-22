@@ -10,8 +10,6 @@ web:
 reverseproxy:
   image: nginxproxy/nginx-proxy:test
   container_name: reverseproxy
-  environment:
-    DEBUG: "true"
   volumes:
   - /var/run/docker.sock:/tmp/docker.sock:ro
   - ./tmp_certs:/etc/nginx/certs:ro
