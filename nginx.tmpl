@@ -1,3 +1,5 @@
+# nginx-proxy{{ if $.Env.NGINX_PROXY_VERSION }} version : {{ $.Env.NGINX_PROXY_VERSION }}{{ end }}
+
 {{- /*
      * Global values.  Values are stored in this map rather than in individual
      * global variables so that the values can be easily passed to embedded
@@ -9,7 +11,6 @@
 {{- $_ := set $globals "Env" $.Env }}
 {{- $_ := set $globals "Docker" $.Docker }}
 {{- $_ := set $globals "CurrentContainer" (where $globals.containers "ID" $globals.Docker.CurrentContainerID | first) }}
-{{- $_ := set $globals "nginx_proxy_version" (coalesce $globals.Env.NGINX_PROXY_VERSION "") }}
 {{- $_ := set $globals "external_http_port" (coalesce $globals.Env.HTTP_PORT "80") }}
 {{- $_ := set $globals "external_https_port" (coalesce $globals.Env.HTTPS_PORT "443") }}
 {{- $_ := set $globals "sha1_upstream_name" (parseBool (coalesce $globals.Env.SHA1_UPSTREAM_NAME "false")) }}
@@ -162,10 +163,6 @@ upstream {{ .Upstream }} {
     server 127.0.0.1 down;
     {{- end }}
 }
-{{- end }}
-
-{{- if ne $globals.nginx_proxy_version "" }}
-# nginx-proxy version : {{ $globals.nginx_proxy_version }}
 {{- end }}
 
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
