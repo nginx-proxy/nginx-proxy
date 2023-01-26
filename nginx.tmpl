@@ -117,6 +117,11 @@ upstream {{ .Upstream }} {
     #     Exposed ports:{{ range $container.Addresses }} {{ .Port }}/{{ .Proto }}{{ else }} (none){{ end }}
     #     Default virtual port: {{ $defaultPort }}
     #     VIRTUAL_PORT: {{ $container.Env.VIRTUAL_PORT }}
+        {{- if and $address $address.HostPort }}
+    #     /!\ WARNING: Virtual port published on host.  Clients might be able to
+    #                  bypass nginx-proxy and access the container's server
+    #                  directly.
+        {{- end }}
         {{- if $container.Node.ID }}
     #     Swarm node name: {{ $container.Node.Name }}
         {{- end }}
