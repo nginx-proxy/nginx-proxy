@@ -1,0 +1,17 @@
+# GIVEN a webserver with VIRTUAL_HOST set to web1.tld
+web1:
+  image: web
+  expose:
+    - "81"
+  environment:
+    WEB_PORTS: 81
+    VIRTUAL_HOST: nginx-proxy.test
+
+# WHEN nginx-proxy runs with DEFAULT_HOST set to web1.tld
+sut:
+  container_name: sut
+  image: nginxproxy/nginx-proxy:test
+  volumes:
+    - /var/run/docker.sock:/tmp/docker.sock:ro
+  environment:
+    LOG_FORMAT: "$$remote_addr - $$remote_user [$$time_local] \"$$request\" $$status $$body_bytes_sent \"$$http_referer\" \"$$http_user_agent\" request_time=$$request_time $$upstream_response_time"
