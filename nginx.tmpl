@@ -109,17 +109,26 @@
 upstream {{ .Upstream }} {
     {{- $server_found := false }}
     {{- range $container := .Containers }}
+    # Container: {{ $container.Name }}
         {{- /* If only 1 port exposed, use that as a default, else 80 */}}
         {{- $defaultPort := (when (eq (len $container.Addresses) 1) (first $container.Addresses) (dict "Port" "80")).Port }}
         {{- $port := (coalesce $container.Env.VIRTUAL_PORT $defaultPort) }}
         {{- $address := where $container.Addresses "Port" $port | first }}
-    # Exposed ports: {{ $container.Addresses }}
-    # Default virtual port: {{ $defaultPort }}
-    # VIRTUAL_PORT: {{ $container.Env.VIRTUAL_PORT }}
+    #     Exposed ports:{{ range $container.Addresses }} {{ .Port }}/{{ .Proto }}{{ else }} (none){{ end }}
+    #     Default virtual port: {{ $defaultPort }}
+    #     VIRTUAL_PORT: {{ $container.Env.VIRTUAL_PORT }}
+        {{- if $container.Node.ID }}
+    #     Swarm node name: {{ $container.Node.Name }}
+        {{- end }}
         {{- range $knownNetwork := $networks }}
+    #     Container network reachability from {{ $knownNetwork.Name }}:
             {{- range $containerNetwork := sortObjectsByKeysAsc $container.Networks "Name" }}
-                {{- if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
-    ## Can be connected with "{{ $containerNetwork.Name }}" network
+                {{- if eq $containerNetwork.Name "ingress" }}
+    #         {{ $containerNetwork.Name }} (ignored)
+                {{- else if and (ne $knownNetwork.Name $containerNetwork.Name) (ne $knownNetwork.Name "host") }}
+    #         {{ $containerNetwork.Name }} (unreachable)
+                {{- else }}
+    #         {{ $containerNetwork.Name }} (reachable)
                     {{- if $address }}
                         {{- /*
                              * If we got the containers from swarm and this
@@ -128,7 +137,6 @@ upstream {{ .Upstream }} {
                              */}}
                         {{- if and $container.Node.ID $address.HostPort }}
                             {{- $server_found = true }}
-    # {{ $container.Node.Name }}/{{ $container.Name }}
     server {{ $container.Node.Address.IP }}:{{ $address.HostPort }};
                             {{- /*
                                  * If there is no swarm node or the port is not
@@ -136,21 +144,19 @@ upstream {{ .Upstream }} {
                                  */}}
                         {{- else if $containerNetwork }}
                             {{- $server_found = true }}
-    # {{ $container.Name }}
     server {{ $containerNetwork.IP }}:{{ $address.Port }};
                         {{- end }}
                     {{- else if $containerNetwork }}
-    # {{ $container.Name }}
                         {{- if $containerNetwork.IP }}
                             {{- $server_found = true }}
     server {{ $containerNetwork.IP }}:{{ $port }};
                         {{- else }}
-    # /!\ No IP for this network!
+    #             /!\ No IP for this network!
                         {{- end }}
                     {{- end }}
-                {{- else }}
-    # Cannot connect to network '{{ $containerNetwork.Name }}' of this container
                 {{- end }}
+            {{- else }}
+    #         (none)
             {{- end }}
         {{- end }}
     {{- end }}
