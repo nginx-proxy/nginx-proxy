@@ -116,9 +116,6 @@ upstream {{ .Upstream }} {
     # Exposed ports: {{ $container.Addresses }}
     # Default virtual port: {{ $defaultPort }}
     # VIRTUAL_PORT: {{ $container.Env.VIRTUAL_PORT }}
-        {{- if not $address }}
-    # /!\ Virtual port not exposed
-        {{- end }}
         {{- range $knownNetwork := $networks }}
             {{- range $containerNetwork := sortObjectsByKeysAsc $container.Networks "Name" }}
                 {{- if (and (ne $containerNetwork.Name "ingress") (or (eq $knownNetwork.Name $containerNetwork.Name) (eq $knownNetwork.Name "host"))) }}
