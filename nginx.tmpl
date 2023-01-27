@@ -129,15 +129,8 @@ upstream {{ .Upstream }} {
     #                  bypass nginx-proxy and access the container's server
     #                  directly.
         {{- end }}
-        {{- if $container.Node.ID }}
-    #     Swarm node name: {{ $container.Node.Name }}
-        {{- end }}
     #     Container networks:
         {{- range $containerNetwork := sortObjectsByKeysAsc $container.Networks "Name" }}
-            {{- if eq $containerNetwork.Name "ingress" }}
-    #         {{ $containerNetwork.Name }} (ignored)
-                {{- continue }}
-            {{- end }}
             {{- if and (not (index $networks $containerNetwork.Name)) (not $networks.host) }}
     #         {{ $containerNetwork.Name }} (unreachable)
                 {{- continue }}
@@ -154,14 +147,7 @@ upstream {{ .Upstream }} {
                 {{- continue }}
             {{- end }}
     #         {{ $containerNetwork.Name }} (reachable)
-            {{- /*
-                 * If we got the containers from swarm and this container's
-                 * port is published to host, use host IP:PORT.
-                 */}}
-            {{- if and $container.Node.ID $addr_obj $addr_obj.HostPort }}
-                {{- $ip = $container.Node.Address.IP }}
-                {{- $port = $addr_obj.HostPort }}
-            {{- else if and $containerNetwork $containerNetwork.IP }}
+            {{- if and $containerNetwork $containerNetwork.IP }}
                 {{- $ip = $containerNetwork.IP }}
             {{- else }}
     #             /!\ No IP for this network!
