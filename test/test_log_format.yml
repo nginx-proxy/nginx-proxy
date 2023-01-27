@@ -6,7 +6,6 @@ web1:
     WEB_PORTS: 81
     VIRTUAL_HOST: nginx-proxy.test
 
-# WHEN nginx-proxy runs with DEFAULT_HOST set to web1.tld
 sut:
   container_name: sut
   image: nginxproxy/nginx-proxy:test
