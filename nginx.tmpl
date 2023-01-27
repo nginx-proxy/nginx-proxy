@@ -19,6 +19,12 @@
 {{- $_ := set $globals "access_log" (or (and (not $globals.Env.DISABLE_ACCESS_LOGS) "access_log /var/log/nginx/access.log vhost;") "") }}
 {{- $_ := set $globals "enable_ipv6" (parseBool (coalesce $globals.Env.ENABLE_IPV6 "false")) }}
 {{- $_ := set $globals "ssl_policy" (or ($globals.Env.SSL_POLICY) "Mozilla-Intermediate") }}
+{{- $_ := set $globals "networks" (dict) }}
+# networks available to nginx-proxy:
+{{- range $globals.CurrentContainer.Networks }}
+    {{- $_ := set $globals.networks .Name . }}
+#     {{ .Name }}
+{{- end }}
 
 {{- define "ssl_policy" }}
     {{- if eq .ssl_policy "Mozilla-Modern" }}
@@ -113,11 +119,11 @@ upstream {{ .Upstream }} {
         {{- /* If only 1 port exposed, use that as a default, else 80 */}}
         {{- $defaultPort := (when (eq (len $container.Addresses) 1) (first $container.Addresses) (dict "Port" "80")).Port }}
         {{- $port := (coalesce $container.Env.VIRTUAL_PORT $defaultPort) }}
-        {{- $address := where $container.Addresses "Port" $port | first }}
+        {{- $addr_obj := where $container.Addresses "Port" $port | first }}
     #     Exposed ports:{{ range $container.Addresses }} {{ .Port }}/{{ .Proto }}{{ else }} (none){{ end }}
     #     Default virtual port: {{ $defaultPort }}
     #     VIRTUAL_PORT: {{ $container.Env.VIRTUAL_PORT }}
-        {{- if and $address $address.HostPort }}
+        {{- if and $addr_obj $addr_obj.HostPort }}
     #     /!\ WARNING: Virtual port published on host.  Clients might be able to
     #                  bypass nginx-proxy and access the container's server
     #                  directly.
@@ -125,44 +131,32 @@ upstream {{ .Upstream }} {
         {{- if $container.Node.ID }}
     #     Swarm node name: {{ $container.Node.Name }}
         {{- end }}
-        {{- range $knownNetwork := $networks }}
-    #     Container network reachability from {{ $knownNetwork.Name }}:
-            {{- range $containerNetwork := sortObjectsByKeysAsc $container.Networks "Name" }}
-                {{- if eq $containerNetwork.Name "ingress" }}
+    #     Container networks:
+        {{- range $containerNetwork := sortObjectsByKeysAsc $container.Networks "Name" }}
+            {{- if eq $containerNetwork.Name "ingress" }}
     #         {{ $containerNetwork.Name }} (ignored)
-                {{- else if and (ne $knownNetwork.Name $containerNetwork.Name) (ne $knownNetwork.Name "host") }}
-    #         {{ $containerNetwork.Name }} (unreachable)
-                {{- else }}
-    #         {{ $containerNetwork.Name }} (reachable)
-                    {{- if $address }}
-                        {{- /*
-                             * If we got the containers from swarm and this
-                             * container's port is published to host, use host
-                             * IP:PORT.
-                             */}}
-                        {{- if and $container.Node.ID $address.HostPort }}
-                            {{- $server_found = true }}
-    server {{ $container.Node.Address.IP }}:{{ $address.HostPort }};
-                            {{- /*
-                                 * If there is no swarm node or the port is not
-                                 * published on host, use container's IP:PORT.
-                                 */}}
-                        {{- else if $containerNetwork }}
-                            {{- $server_found = true }}
-    server {{ $containerNetwork.IP }}:{{ $address.Port }};
-                        {{- end }}
-                    {{- else if $containerNetwork }}
-                        {{- if $containerNetwork.IP }}
-                            {{- $server_found = true }}
-    server {{ $containerNetwork.IP }}:{{ $port }};
-                        {{- else }}
-    #             /!\ No IP for this network!
-                        {{- end }}
-                    {{- end }}
-                {{- end }}
-            {{- else }}
-    #         (none)
+                {{- continue }}
             {{- end }}
+            {{- if and (not (index $networks $containerNetwork.Name)) (not $networks.host) }}
+    #         {{ $containerNetwork.Name }} (unreachable)
+                {{- continue }}
+            {{- end }}
+    #         {{ $containerNetwork.Name }} (reachable)
+            {{- /*
+                 * If we got the containers from swarm and this container's
+                 * port is published to host, use host IP:PORT.
+                 */}}
+            {{- if and $container.Node.ID $addr_obj $addr_obj.HostPort }}
+                {{- $server_found = true }}
+    server {{ $container.Node.Address.IP }}:{{ $addr_obj.HostPort }};
+            {{- else if and $containerNetwork $containerNetwork.IP }}
+                {{- $server_found = true }}
+    server {{ $containerNetwork.IP }}:{{ $port }};
+            {{- else }}
+    #             /!\ No IP for this network!
+            {{- end }}
+        {{- else }}
+    #         (none)
         {{- end }}
     {{- end }}
     {{- /* nginx-proxy/nginx-proxy#1105 */}}
@@ -293,7 +287,7 @@ server {
             {{- $upstream = printf "%s-%s" $upstream $sum }}
         {{- end }}
 # {{ $host }}{{ $path }}
-{{ template "upstream" (dict "Upstream" $upstream "Containers" $containers "Networks" $globals.CurrentContainer.Networks) }}
+{{ template "upstream" (dict "Upstream" $upstream "Containers" $containers "Networks" $globals.networks) }}
     {{- end }}
 
     {{- $default_host := or ($globals.Env.DEFAULT_HOST) "" }}
