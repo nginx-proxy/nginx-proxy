@@ -118,6 +118,7 @@ upstream {{ .Upstream }} {
     # Container: {{ $container.Name }}
         {{- /* If only 1 port exposed, use that as a default, else 80 */}}
         {{- $defaultPort := (when (eq (len $container.Addresses) 1) (first $container.Addresses) (dict "Port" "80")).Port }}
+        {{- $ip := "" }}
         {{- $port := (coalesce $container.Env.VIRTUAL_PORT $defaultPort) }}
         {{- $addr_obj := where $container.Addresses "Port" $port | first }}
     #     Exposed ports:{{ range $container.Addresses }} {{ .Port }}/{{ .Proto }}{{ else }} (none){{ end }}
@@ -141,22 +142,36 @@ upstream {{ .Upstream }} {
     #         {{ $containerNetwork.Name }} (unreachable)
                 {{- continue }}
             {{- end }}
+            {{- /*
+                 * Do not emit multiple `server` directives for this container
+                 * if it is reachable over multiple networks.  This avoids
+                 * accidentally inflating the effective round-robin weight of
+                 * this container due to the redundant upstreams that nginx sees
+                 * as belonging to distinct servers.
+                 */}}
+            {{- if $ip }}
+    #         {{ $containerNetwork.Name }} (ignored; reachable but redundant)
+                {{- continue }}
+            {{- end }}
     #         {{ $containerNetwork.Name }} (reachable)
             {{- /*
                  * If we got the containers from swarm and this container's
                  * port is published to host, use host IP:PORT.
                  */}}
             {{- if and $container.Node.ID $addr_obj $addr_obj.HostPort }}
-                {{- $server_found = true }}
-    server {{ $container.Node.Address.IP }}:{{ $addr_obj.HostPort }};
+                {{- $ip = $container.Node.Address.IP }}
+                {{- $port = $addr_obj.HostPort }}
             {{- else if and $containerNetwork $containerNetwork.IP }}
-                {{- $server_found = true }}
-    server {{ $containerNetwork.IP }}:{{ $port }};
+                {{- $ip = $containerNetwork.IP }}
             {{- else }}
     #             /!\ No IP for this network!
             {{- end }}
         {{- else }}
     #         (none)
+        {{- end }}
+        {{- if $ip }}
+            {{- $server_found = true }}
+    server {{ $ip }}:{{ $port }};
         {{- end }}
     {{- end }}
     {{- /* nginx-proxy/nginx-proxy#1105 */}}
