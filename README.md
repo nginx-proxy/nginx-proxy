@@ -227,6 +227,11 @@ If you would like to connect to FastCGI backend, set `VIRTUAL_PROTO=fastcgi` on 
 
 If you use fastcgi,you can set `VIRTUAL_ROOT=xxx`  for your root directory
 
+### Custom log format
+
+If you want to use a custom log format, you can set `LOG_FORMAT=xxx` on the proxy container. 
+
+With docker compose take care to escape the `$` character with `$$` to avoid variable interpolation. Example: `$remote_addr` becomes `$$remote_addr`.
 
 ### Default Host
 
