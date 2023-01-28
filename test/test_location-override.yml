@@ -1,0 +1,44 @@
+services:
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./test_location-override.vhost.d:/etc/nginx/vhost.d:ro
+
+  explicit-root:
+    image: web
+    expose:
+      - "81"
+    environment:
+      WEB_PORTS: "81"
+      VIRTUAL_HOST: >-
+        explicit-root-nohash.nginx-proxy.test,
+        explicit-root-hash.nginx-proxy.test,
+        explicit-root-hash-and-nohash.nginx-proxy.test,
+        explicit-nonroot.nginx-proxy.test
+      VIRTUAL_PATH: /
+  explicit-foo:
+    image: web
+    expose:
+      - "82"
+    environment:
+      WEB_PORTS: "82"
+      VIRTUAL_HOST: >-
+        explicit-root-nohash.nginx-proxy.test,
+        explicit-root-hash.nginx-proxy.test,
+        explicit-root-hash-and-nohash.nginx-proxy.test,
+        explicit-nonroot.nginx-proxy.test
+      VIRTUAL_PATH: /foo/
+      VIRTUAL_DEST: /
+
+  # Same as explicit-root except VIRTUAL_PATH is left unset.
+  implicit-root:
+    image: web
+    expose:
+      - "83"
+    environment:
+      WEB_PORTS: "83"
+      VIRTUAL_HOST: >-
+        implicit-root-nohash.nginx-proxy.test,
+        implicit-root-hash.nginx-proxy.test,
+        implicit-root-hash-and-nohash.nginx-proxy.test,
