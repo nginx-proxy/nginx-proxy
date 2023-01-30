@@ -14,7 +14,7 @@ DIR=$(cd "${TESTDIR}/.." && pwd) || exit 1
 
 # check requirements
 echo "> Building nginx-proxy-tester image..."
-docker build -t nginx-proxy-tester \
+docker build --pull -t nginx-proxy-tester \
   -f "${TESTDIR}/requirements/Dockerfile-nginx-proxy-tester" \
   "${TESTDIR}/requirements" \
   || exit 1
