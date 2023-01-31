@@ -26,6 +26,75 @@
 #     {{ .Name }}
 {{- end }}
 
+{{- /*
+     * Template used as a function to get a container's IP address.  This
+     * template only outputs debug comments; the IP address is "returned" by
+     * storing the value in the provided dot dict.
+     *
+     * The provided dot dict is expected to have the following entries:
+     *   - "globals": Global values.
+     *   - "container": The container's RuntimeContainer struct.
+     *
+     * The return value will be added to the dot dict with key "ip".
+     */}}
+{{- define "container_ip" }}
+    {{- $ip := "" }}
+    #     networks:
+    {{- range sortObjectsByKeysAsc $.container.Networks "Name" }}
+        {{- if and (not (index $.globals.networks .Name)) (not $.globals.networks.host) }}
+    #         {{ .Name }} (unreachable)
+            {{- continue }}
+        {{- end }}
+        {{- /*
+             * Do not emit multiple `server` directives for this container if it
+             * is reachable over multiple networks.  This avoids accidentally
+             * inflating the effective round-robin weight of a server due to the
+             * redundant upstream addresses that nginx sees as belonging to
+             * distinct servers.
+             */}}
+        {{- if $ip }}
+    #         {{ .Name }} (ignored; reachable but redundant)
+            {{- continue }}
+        {{- end }}
+    #         {{ .Name }} (reachable)
+        {{- if and . .IP }}
+            {{- $ip = .IP }}
+        {{- else }}
+    #             /!\ No IP for this network!
+        {{- end }}
+    {{- else }}
+    #         (none)
+    {{- end }}
+    #     IP address: {{ if $ip }}{{ $ip }}{{ else }}(none usable){{ end }}
+    {{- $_ := set $ "ip" $ip }}
+{{- end }}
+
+{{- /*
+     * Template used as a function to get the port of the server in the given
+     * container.  This template only outputs debug comments; the port is
+     * "returned" by storing the value in the provided dot dict.
+     *
+     * The provided dot dict is expected to have the following entries:
+     *   - "container": The container's RuntimeContainer struct.
+     *
+     * The return value will be added to the dot dict with key "port".
+     */}}
+{{- define "container_port" }}
+    {{- /* If only 1 port exposed, use that as a default, else 80. */}}
+    #     exposed ports:{{ range $.container.Addresses }} {{ .Port }}/{{ .Proto }}{{ else }} (none){{ end }}
+    {{- $default_port := when (eq (len $.container.Addresses) 1) (first $.container.Addresses).Port "80" }}
+    #     default port: {{ $default_port }}
+    {{- $port := or $.container.Env.VIRTUAL_PORT $default_port }}
+    #     using port: {{ $port }}
+    {{- $addr_obj := where $.container.Addresses "Port" $port | first }}
+    {{- if and $addr_obj $addr_obj.HostPort }}
+    #         /!\ WARNING: Virtual port published on host.  Clients
+    #                      might be able to bypass nginx-proxy and
+    #                      access the container's server directly.
+    {{- end }}
+    {{- $_ := set $ "port" $port }}
+{{- end }}
+
 {{- define "ssl_policy" }}
     {{- if eq .ssl_policy "Mozilla-Modern" }}
     ssl_protocols TLSv1.3;
@@ -119,50 +188,16 @@
 {{- end }}
 
 {{- define "upstream" }}
-    {{- $networks := .Networks }}
 upstream {{ .Upstream }} {
     {{- $server_found := false }}
     {{- range $container := .Containers }}
     # Container: {{ $container.Name }}
-        {{- /* If only 1 port exposed, use that as a default, else 80 */}}
-        {{- $defaultPort := (when (eq (len $container.Addresses) 1) (first $container.Addresses) (dict "Port" "80")).Port }}
-        {{- $ip := "" }}
-        {{- $port := (coalesce $container.Env.VIRTUAL_PORT $defaultPort) }}
-        {{- $addr_obj := where $container.Addresses "Port" $port | first }}
-    #     Exposed ports:{{ range $container.Addresses }} {{ .Port }}/{{ .Proto }}{{ else }} (none){{ end }}
-    #     Default virtual port: {{ $defaultPort }}
-    #     VIRTUAL_PORT: {{ $container.Env.VIRTUAL_PORT }}
-        {{- if and $addr_obj $addr_obj.HostPort }}
-    #     /!\ WARNING: Virtual port published on host.  Clients might be able to
-    #                  bypass nginx-proxy and access the container's server
-    #                  directly.
-        {{- end }}
-    #     Container networks:
-        {{- range $containerNetwork := sortObjectsByKeysAsc $container.Networks "Name" }}
-            {{- if and (not (index $networks $containerNetwork.Name)) (not $networks.host) }}
-    #         {{ $containerNetwork.Name }} (unreachable)
-                {{- continue }}
-            {{- end }}
-            {{- /*
-                 * Do not emit multiple `server` directives for this container
-                 * if it is reachable over multiple networks.  This avoids
-                 * accidentally inflating the effective round-robin weight of
-                 * this container due to the redundant upstreams that nginx sees
-                 * as belonging to distinct servers.
-                 */}}
-            {{- if $ip }}
-    #         {{ $containerNetwork.Name }} (ignored; reachable but redundant)
-                {{- continue }}
-            {{- end }}
-    #         {{ $containerNetwork.Name }} (reachable)
-            {{- if and $containerNetwork $containerNetwork.IP }}
-                {{- $ip = $containerNetwork.IP }}
-            {{- else }}
-    #             /!\ No IP for this network!
-            {{- end }}
-        {{- else }}
-    #         (none)
-        {{- end }}
+        {{- $args := dict "globals" $.globals "container" $container }}
+        {{- template "container_ip" $args }}
+        {{- $ip := $args.ip }}
+        {{- $args := dict "container" $container }}
+        {{- template "container_port" $args }}
+        {{- $port := $args.port }}
         {{- if $ip }}
             {{- $server_found = true }}
     server {{ $ip }}:{{ $port }};
@@ -296,7 +331,7 @@ server {
             {{- $upstream = printf "%s-%s" $upstream $sum }}
         {{- end }}
 # {{ $host }}{{ $path }}
-{{ template "upstream" (dict "Upstream" $upstream "Containers" $containers "Networks" $globals.networks) }}
+{{ template "upstream" (dict "globals" $globals "Upstream" $upstream "Containers" $containers) }}
     {{- end }}
 
     {{- $default_host := or ($globals.Env.DEFAULT_HOST) "" }}
