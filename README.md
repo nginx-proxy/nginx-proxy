@@ -491,6 +491,32 @@ ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
 
 If you want most of your virtual hosts to use a default single `location` block configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default_location` file. This file will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}_location` file associated with it.
 
+#### Overriding `location` blocks
+
+The `${VIRTUAL_HOST}_${PATH_HASH}_location`, `${VIRTUAL_HOST}_location`, and `default_location` files documented above make it possible to *augment* the generated [`location` block(s)](https://nginx.org/en/docs/http/ngx_http_core_module.html#location) in a virtual host.  In some circumstances, you may need to *completely override* the `location` block for a particular combination of virtual host and path.  To do this, create a file whose name follows this pattern:
+
+```
+/etc/nginx/vhost.d/${VIRTUAL_HOST}_${PATH_HASH}_location_override
+```
+
+where `${VIRTUAL_HOST}` is the name of the virtual host (the `VIRTUAL_HOST` environment variable) and `${PATH_HASH}` is the SHA-1 hash of the path, as [described above](#per-virtual_path-location-configuration).
+
+For convenience, the `_${PATH_HASH}` part can be omitted if the path is `/`:
+
+```
+/etc/nginx/vhost.d/${VIRTUAL_HOST}_location_override
+```
+
+When an override file exists, the `location` block that is normally created by `nginx-proxy` is not generated.  Instead, the override file is included via the [nginx `include` directive](https://nginx.org/en/docs/ngx_core_module.html#include).
+
+You are responsible for providing a suitable `location` block in your override file as required for your service.  By default, `nginx-proxy` uses the `VIRTUAL_HOST` name as the upstream name for your application's Docker container; see [here](#unhashed-vs-sha1-upstream-names) for details.  As an example, if your container has a `VIRTUAL_HOST` value of `app.example.com`, then to override the location block for `/` you would create a file named `/etc/nginx/vhost.d/app.example.com_location_override` that contains something like this:
+
+```
+location / {
+    proxy_pass http://app.example.com;
+}
+```
+
 #### Per-VIRTUAL_HOST `server_tokens` configuration
 Per virtual-host `servers_tokens` directive can be configured by passing appropriate value to the `SERVER_TOKENS` environment variable. Please see the [nginx http_core module configuration](https://nginx.org/en/docs/http/ngx_http_core_module.html#server_tokens) for more details.
 
