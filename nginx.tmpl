@@ -444,10 +444,9 @@ server {
          * match.
          */}}
     {{- $cert := (coalesce $certName $vhostCert) }}
+    {{- $cert_ok := and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)) }}
 
-    {{- $is_https := (and (ne $https_method "nohttps") (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) }}
-
-    {{- if and $is_https (eq $https_method "redirect") }}
+    {{- if and $cert_ok (eq $https_method "redirect") }}
 server {
     server_name {{ $host }};
         {{- if $server_tokens }}
@@ -485,13 +484,13 @@ server {
     server_tokens {{ $server_tokens }};
     {{- end }}
     {{ $globals.access_log }}
-    {{- if or (not $is_https) (eq $https_method "noredirect") }}
+    {{- if or (eq $https_method "nohttps") (not $cert_ok) (eq $https_method "noredirect") }}
     listen {{ $globals.external_http_port }} {{ $default_server }};
         {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_http_port }} {{ $default_server }};
         {{- end }}
     {{- end }}
-    {{- if $is_https }}
+    {{- if and (ne $https_method "nohttps") $cert_ok }}
     listen {{ $globals.external_https_port }} ssl http2 {{ $default_server }};
         {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_https_port }} ssl http2 {{ $default_server }};
@@ -559,7 +558,7 @@ server {
     {{- end }}
 }
 
-    {{- if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
+    {{- if and (or (eq $https_method "nohttps") (not $cert_ok)) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key") }}
 server {
     server_name {{ $host }};
         {{- if $server_tokens }}
