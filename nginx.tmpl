@@ -559,7 +559,7 @@ server {
     {{- end }}
 }
 
-    {{- if and (or (eq $https_method "nohttps") (not $cert_ok)) $globals.default_cert_ok }}
+    {{- if and (ne $https_method "nohttps") (not $cert_ok) $globals.default_cert_ok }}
 server {
     server_name {{ $host }};
         {{- if $server_tokens }}
