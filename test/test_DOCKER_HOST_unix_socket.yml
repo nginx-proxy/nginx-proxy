@@ -21,3 +21,4 @@ sut:
     - /var/run/docker.sock:/f00.sock:ro
   environment:
     DOCKER_HOST: unix:///f00.sock
+    HTTPS_METHOD: nohttps

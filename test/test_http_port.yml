@@ -12,3 +12,4 @@ sut:
     - /var/run/docker.sock:/tmp/docker.sock:ro
   environment:
     HTTP_PORT: 8080
+    HTTPS_METHOD: nohttps

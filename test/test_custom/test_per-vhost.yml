@@ -5,6 +5,8 @@ services:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./my_custom_proxy_settings.conf:/etc/nginx/vhost.d/web1.nginx-proxy.local:ro
+    environment:
+      HTTPS_METHOD: nohttps
 
   web1:
     image: web

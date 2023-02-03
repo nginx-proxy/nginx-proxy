@@ -5,6 +5,7 @@ services:
       - /var/run/docker.sock:/tmp/docker.sock:ro
     environment:
       DEFAULT_ROOT: none
+      HTTPS_METHOD: nohttps
   web:
     image: web
     expose:

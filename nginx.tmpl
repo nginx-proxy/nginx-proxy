@@ -349,8 +349,8 @@ proxy_set_header Proxy "";
 
 {{- /*
      * Precompute some information about each vhost.  This is done early because
-     * the creation of fallback servers depends on DEFAULT_HOST, HTTPS_METHOD,
-     * and whether there are any missing certs.
+     * the creation of fallback servers depends on DEFAULT_HOST and
+     * HTTPS_METHOD.
      */}}
 {{- range $vhost, $containers := groupByMulti $globals.containers "Env.VIRTUAL_HOST" "," }}
     {{- $vhost := trim $vhost }}
@@ -389,7 +389,7 @@ proxy_set_header Proxy "";
     {{- $default_http_exists := false }}
     {{- $default_https_exists := false }}
     {{- range $vhost := $globals.vhosts }}
-        {{- $http := or (ne $vhost.https_method "nohttp") (not $vhost.cert_ok) }}
+        {{- $http := ne $vhost.https_method "nohttp" }}
         {{- $https := ne $vhost.https_method "nohttps" }}
         {{- $http_exists = or $http_exists $http }}
         {{- $https_exists = or $https_exists $https }}
@@ -493,7 +493,7 @@ server {
     {{- /* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
     {{- $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
 
-    {{- if and $cert_ok (eq $https_method "redirect") }}
+    {{- if eq $https_method "redirect" }}
 server {
     server_name {{ $host }};
         {{- if $server_tokens }}
@@ -531,7 +531,7 @@ server {
     server_tokens {{ $server_tokens }};
     {{- end }}
     {{ $globals.access_log }}
-    {{- if or (eq $https_method "nohttps") (not $cert_ok) (eq $https_method "noredirect") }}
+    {{- if or (eq $https_method "nohttps") (eq $https_method "noredirect") }}
     listen {{ $globals.external_http_port }} {{ $default_server }};
         {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_http_port }} {{ $default_server }};

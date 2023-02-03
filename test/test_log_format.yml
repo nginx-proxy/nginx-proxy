@@ -12,4 +12,5 @@ sut:
   volumes:
     - /var/run/docker.sock:/tmp/docker.sock:ro
   environment:
+    HTTPS_METHOD: nohttps
     LOG_FORMAT: "$$remote_addr - $$remote_user [$$time_local] \"$$request\" $$status $$body_bytes_sent \"$$http_referer\" \"$$http_user_agent\" request_time=$$request_time $$upstream_response_time"

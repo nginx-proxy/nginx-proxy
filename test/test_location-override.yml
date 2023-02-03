@@ -4,6 +4,8 @@ services:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./test_location-override.vhost.d:/etc/nginx/vhost.d:ro
+    environment:
+      HTTPS_METHOD: nohttps
 
   explicit-root:
     image: web

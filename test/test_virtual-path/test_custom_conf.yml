@@ -40,6 +40,7 @@ sut:
   image: nginxproxy/nginx-proxy:test
   environment:
     DEFAULT_ROOT: 418
+    HTTPS_METHOD: nohttps
   volumes:
     - /var/run/docker.sock:/tmp/docker.sock:ro
     - ./foo.conf:/etc/nginx/vhost.d/foo.nginx-proxy.test:ro

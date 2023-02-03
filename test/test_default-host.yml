@@ -15,3 +15,4 @@ sut:
     - /var/run/docker.sock:/tmp/docker.sock:ro
   environment:
     DEFAULT_HOST: web1.tld
+    HTTPS_METHOD: nohttps

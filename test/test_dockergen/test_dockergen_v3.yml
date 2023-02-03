@@ -13,6 +13,8 @@ services:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ../../nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl
       - nginx_conf:/etc/nginx/conf.d
+    environment:
+      HTTPS_METHOD: nohttps
 
   web:
     image: web

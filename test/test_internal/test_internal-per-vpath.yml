@@ -24,4 +24,5 @@ sut:
   volumes:
     - /var/run/docker.sock:/tmp/docker.sock:ro
     - ./network_internal.conf:/etc/nginx/network_internal.conf:ro
-
+  environment:
+    HTTPS_METHOD: nohttps

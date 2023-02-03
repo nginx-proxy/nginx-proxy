@@ -35,3 +35,5 @@ sut:
     - ./default.conf:/etc/nginx/vhost.d/default_location:ro
     - ./host.conf:/etc/nginx/vhost.d/bar.nginx-proxy.test_location:ro
     - ./path.conf:/etc/nginx/vhost.d/bar.nginx-proxy.test_99f2db0ed8aa95dbb5b87fca79c7eff2ff6bb8bd_location:ro
+  environment:
+    HTTPS_METHOD: nohttps

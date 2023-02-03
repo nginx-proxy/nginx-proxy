@@ -12,6 +12,6 @@ sut:
   image: nginxproxy/nginx-proxy:test
   volumes:
     - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ./certs:/etc/nginx/certs:ro
   environment:
-    - DEFAULT_ROOT=301 http://$$host/web1$$request_uri
+    DEFAULT_ROOT: 301 http://$$host/web1$$request_uri
+    HTTPS_METHOD: nohttps

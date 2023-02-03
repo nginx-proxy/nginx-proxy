@@ -12,6 +12,8 @@ services:
     image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+    environment:
+      HTTPS_METHOD: nohttps
 
   webA:
     networks:

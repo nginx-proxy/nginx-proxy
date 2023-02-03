@@ -16,6 +16,8 @@ services:
       - net2
       - net3a
       - net3b
+    environment:
+      HTTPS_METHOD: nohttps
 
   web1:
     image: web

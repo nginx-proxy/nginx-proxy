@@ -35,3 +35,5 @@ services:
       - /var/run/docker.sock:/tmp/docker.sock:ro
     networks:
       - net1
+    environment:
+      HTTPS_METHOD: nohttps
