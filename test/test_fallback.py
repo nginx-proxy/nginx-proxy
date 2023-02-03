@@ -1,4 +1,5 @@
 import os.path
+import re
 
 import backoff
 import pytest
@@ -31,6 +32,9 @@ def get(docker_compose, nginxproxy, want_err_re):
     return _get
 
 
+INTERNAL_ERR_RE = re.compile("TLSV1_ALERT_INTERNAL_ERROR")
+
+
 @pytest.mark.parametrize("compose_file,url,want_code,want_err_re", [
     # Has default.crt.
     ("withdefault.yml", "http://https-and-http.nginx-proxy.test/", 301, None),
@@ -43,6 +47,17 @@ def get(docker_compose, nginxproxy, want_err_re):
     ("withdefault.yml", "https://missing-cert.nginx-proxy.test/", 500, None),
     ("withdefault.yml", "http://unknown.nginx-proxy.test/", 503, None),
     ("withdefault.yml", "https://unknown.nginx-proxy.test/", 503, None),
+    # Same as withdefault.yml, except there is no default.crt.
+    ("nodefault.yml", "http://https-and-http.nginx-proxy.test/", 301, None),
+    ("nodefault.yml", "https://https-and-http.nginx-proxy.test/", 200, None),
+    ("nodefault.yml", "http://https-only.nginx-proxy.test/", 503, None),
+    ("nodefault.yml", "https://https-only.nginx-proxy.test/", 200, None),
+    ("nodefault.yml", "http://http-only.nginx-proxy.test/", 200, None),
+    ("nodefault.yml", "https://http-only.nginx-proxy.test/", None, INTERNAL_ERR_RE),
+    ("nodefault.yml", "http://missing-cert.nginx-proxy.test/", 200, None),
+    ("nodefault.yml", "https://missing-cert.nginx-proxy.test/", None, INTERNAL_ERR_RE),
+    ("nodefault.yml", "http://unknown.nginx-proxy.test/", 503, None),
+    ("nodefault.yml", "https://unknown.nginx-proxy.test/", None, INTERNAL_ERR_RE),
 ])
 def test_fallback(get, url, want_code, want_err_re):
     if want_err_re is None:

@@ -350,23 +350,30 @@ server {
     server_name _; # This is just an invalid value which will never trigger on a real hostname.
     server_tokens off;
     listen {{ $globals.external_http_port }};
+    listen {{ $globals.external_https_port }} ssl http2;
 {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_http_port }};
+    listen [::]:{{ $globals.external_https_port }} ssl http2;
 {{- end }}
     {{ $globals.access_log }}
-    return 503;
-
 {{- if $globals.default_cert_ok }}
-    listen {{ $globals.external_https_port }} ssl http2;
-    {{- if $globals.enable_ipv6 }}
-    listen [::]:{{ $globals.external_https_port }} ssl http2;
-    {{- end }}
-
     ssl_session_cache shared:SSL:50m;
     ssl_session_tickets off;
     ssl_certificate /etc/nginx/certs/default.crt;
     ssl_certificate_key /etc/nginx/certs/default.key;
+{{- else }}
+    # No default.crt certificate found for this vhost, so force nginx to emit a
+    # TLS error if the client connects via https.
+    {{- /* See the comment in the main `server` directive for rationale. */}}
+    ssl_ciphers aNULL;
+    set $empty "";
+    ssl_certificate data:$empty;
+    ssl_certificate_key data:$empty;
+    if ($https) {
+        return 444;
+    }
 {{- end }}
+    return 503;
 }
 
 {{- range $host, $containers := groupByMulti $globals.containers "Env.VIRTUAL_HOST" "," }}
@@ -491,13 +498,14 @@ server {
     listen [::]:{{ $globals.external_http_port }} {{ $default_server }};
         {{- end }}
     {{- end }}
-    {{- if and (ne $https_method "nohttps") $cert_ok }}
+    {{- if ne $https_method "nohttps" }}
     listen {{ $globals.external_https_port }} ssl http2 {{ $default_server }};
         {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_https_port }} ssl http2 {{ $default_server }};
         {{- end }}
 
-        {{- template "ssl_policy" (dict "ssl_policy" $ssl_policy) }}
+        {{- if $cert_ok }}
+            {{- template "ssl_policy" (dict "ssl_policy" $ssl_policy) }}
 
     ssl_session_timeout 5m;
     ssl_session_cache shared:SSL:50m;
@@ -506,22 +514,50 @@ server {
     ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $cert) }};
     ssl_certificate_key /etc/nginx/certs/{{ (printf "%s.key" $cert) }};
 
-        {{- if (exists (printf "/etc/nginx/certs/%s.dhparam.pem" $cert)) }}
+            {{- if (exists (printf "/etc/nginx/certs/%s.dhparam.pem" $cert)) }}
     ssl_dhparam {{ printf "/etc/nginx/certs/%s.dhparam.pem" $cert }};
-        {{- end }}
+            {{- end }}
 
-        {{- if (exists (printf "/etc/nginx/certs/%s.chain.pem" $cert)) }}
+            {{- if (exists (printf "/etc/nginx/certs/%s.chain.pem" $cert)) }}
     ssl_stapling on;
     ssl_stapling_verify on;
     ssl_trusted_certificate {{ printf "/etc/nginx/certs/%s.chain.pem" $cert }};
-        {{- end }}
+            {{- end }}
 
-        {{- if (not (or (eq $https_method "noredirect") (eq $hsts "off"))) }}
+            {{- if (not (or (eq $https_method "noredirect") (eq $hsts "off"))) }}
     set $sts_header "";
     if ($https) {
         set $sts_header "{{ trim $hsts }}";
     }
     add_header Strict-Transport-Security $sts_header always;
+            {{- end }}
+        {{- else if $globals.default_cert_ok }}
+    # No certificate found for this vhost, so use the default certificate and
+    # return an error code if the user connects via https.
+    ssl_certificate /etc/nginx/certs/default.crt;
+    ssl_certificate_key /etc/nginx/certs/default.key;
+    if ($https) {
+        return 500;
+    }
+        {{- else }}
+    # No certificate found for this vhost, so force nginx to emit a TLS error if
+    # the client connects via https.
+            {{- /*
+                 * The alternative is to not provide an https server for this
+                 * vhost, which would either cause the user to see the wrong
+                 * vhost (if there is another vhost with a certificate) or a
+                 * connection refused error (if there is no other vhost with a
+                 * certificate).  A TLS error is easier to troubleshoot, and is
+                 * safer than serving the wrong vhost.  Also see
+                 * <https://serverfault.com/a/1044022>.
+                 */}}
+    ssl_ciphers aNULL;
+    set $empty "";
+    ssl_certificate data:$empty;
+    ssl_certificate_key data:$empty;
+    if ($https) {
+        return 444;
+    }
         {{- end }}
     {{- end }}
 
@@ -558,23 +594,4 @@ server {
     }
     {{- end }}
 }
-
-    {{- if and (ne $https_method "nohttps") (not $cert_ok) $globals.default_cert_ok }}
-server {
-    server_name {{ $host }};
-        {{- if $server_tokens }}
-    server_tokens {{ $server_tokens }};
-        {{- end }}
-    listen {{ $globals.external_https_port }} ssl http2 {{ $default_server }};
-        {{- if $globals.enable_ipv6 }}
-    listen [::]:{{ $globals.external_https_port }} ssl http2 {{ $default_server }};
-        {{- end }}
-    {{ $globals.access_log }}
-    return 500;
-
-    ssl_certificate /etc/nginx/certs/default.crt;
-    ssl_certificate_key /etc/nginx/certs/default.key;
-}
-    {{- end }}
-
 {{- end }}
