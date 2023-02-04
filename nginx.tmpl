@@ -20,6 +20,7 @@
 {{- $_ := set $globals "access_log" (or (and (not $globals.Env.DISABLE_ACCESS_LOGS) "access_log /var/log/nginx/access.log vhost;") "") }}
 {{- $_ := set $globals "enable_ipv6" (parseBool (coalesce $globals.Env.ENABLE_IPV6 "false")) }}
 {{- $_ := set $globals "ssl_policy" (or ($globals.Env.SSL_POLICY) "Mozilla-Intermediate") }}
+{{- $_ := set $globals "vhosts" (dict) }}
 {{- $_ := set $globals "networks" (dict) }}
 # Networks available to the container running docker-gen (which are assumed to
 # match the networks available to the container running nginx):
@@ -346,22 +347,80 @@ proxy_set_header X-Original-URI $request_uri;
 proxy_set_header Proxy "";
 {{- end }}
 
+{{- /*
+     * Precompute some information about each vhost.  This is done early because
+     * the creation of fallback servers depends on DEFAULT_HOST, HTTPS_METHOD,
+     * and whether there are any missing certs.
+     */}}
+{{- range $vhost, $containers := groupByMulti $globals.containers "Env.VIRTUAL_HOST" "," }}
+    {{- $vhost := trim $vhost }}
+    {{- if not $vhost }}
+        {{- /* Ignore containers with VIRTUAL_HOST set to the empty string. */}}
+        {{- continue }}
+    {{- end }}
+    {{- $certName := first (groupByKeys $containers "Env.CERT_NAME") }}
+    {{- $vhostCert := closest (dir "/etc/nginx/certs") (printf "%s.crt" $vhost) }}
+    {{- $vhostCert = trimSuffix ".crt" $vhostCert }}
+    {{- $vhostCert = trimSuffix ".key" $vhostCert }}
+    {{- $cert := or $certName $vhostCert }}
+    {{- $cert_ok := and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)) }}
+    {{- $default := eq $globals.Env.DEFAULT_HOST $vhost }}
+    {{- $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) $globals.Env.HTTPS_METHOD "redirect" }}
+    {{- $_ := set $globals.vhosts $vhost (dict "cert" $cert "cert_ok" $cert_ok "containers" $containers "default" $default "https_method" $https_method) }}
+{{- end }}
+
+{{- /*
+     * If needed, create a catch-all fallback server to send an error code to
+     * clients that request something from an unknown vhost.
+     */}}
+{{- block "fallback_server" $globals }}
+    {{- $globals := . }}
+    {{- $http_exists := false }}
+    {{- $https_exists := false }}
+    {{- $default_http_exists := false }}
+    {{- $default_https_exists := false }}
+    {{- range $vhost := $globals.vhosts }}
+        {{- $http := or (ne $vhost.https_method "nohttp") (not $vhost.cert_ok) }}
+        {{- $https := ne $vhost.https_method "nohttps" }}
+        {{- $http_exists = or $http_exists $http }}
+        {{- $https_exists = or $https_exists $https }}
+        {{- $default_http_exists = or $default_http_exists (and $http $vhost.default) }}
+        {{- $default_https_exists = or $default_https_exists (and $https $vhost.default) }}
+    {{- end }}
+    {{- $fallback_http := and $http_exists (not $default_http_exists) }}
+    {{- $fallback_https := and $https_exists (not $default_https_exists) }}
+    {{- /*
+         * If there are no vhosts at all, create fallbacks for both plain http
+         * and https so that clients get something more useful than a connection
+         * refused error.
+         */}}
+    {{- if and (not $http_exists) (not $https_exists) }}
+        {{- $fallback_http = true }}
+        {{- $fallback_https = true }}
+    {{- end }}
+    {{- if or $fallback_http $fallback_https }}
 server {
     server_name _; # This is just an invalid value which will never trigger on a real hostname.
     server_tokens off;
-    listen {{ $globals.external_http_port }};
-    listen {{ $globals.external_https_port }} ssl http2;
-{{- if $globals.enable_ipv6 }}
-    listen [::]:{{ $globals.external_http_port }};
-    listen [::]:{{ $globals.external_https_port }} ssl http2;
-{{- end }}
+        {{- if $fallback_http }}
+    listen {{ $globals.external_http_port }} default_server;
+                {{- if $globals.enable_ipv6 }}
+    listen [::]:{{ $globals.external_http_port }} default_server;
+                {{- end }}
+        {{- end }}
+        {{- if $fallback_https }}
+    listen {{ $globals.external_https_port }} ssl http2 default_server;
+            {{- if $globals.enable_ipv6 }}
+    listen [::]:{{ $globals.external_https_port }} ssl http2 default_server;
+            {{- end }}
+        {{- end }}
     {{ $globals.access_log }}
-{{- if $globals.default_cert_ok }}
+        {{- if $globals.default_cert_ok }}
     ssl_session_cache shared:SSL:50m;
     ssl_session_tickets off;
     ssl_certificate /etc/nginx/certs/default.crt;
     ssl_certificate_key /etc/nginx/certs/default.key;
-{{- else }}
+        {{- else }}
     # No default.crt certificate found for this vhost, so force nginx to emit a
     # TLS error if the client connects via https.
     {{- /* See the comment in the main `server` directive for rationale. */}}
@@ -372,17 +431,19 @@ server {
     if ($https) {
         return 444;
     }
-{{- end }}
+        {{- end }}
     return 503;
 }
-
-{{- range $host, $containers := groupByMulti $globals.containers "Env.VIRTUAL_HOST" "," }}
-
-    {{- $host := trim $host }}
-    {{- if not $host }}
-        {{- /* Ignore containers with VIRTUAL_HOST set to the empty string. */}}
-        {{- continue }}
     {{- end }}
+{{- end }}
+
+{{- range $host, $vhost := $globals.vhosts }}
+    {{- $cert := $vhost.cert }}
+    {{- $cert_ok := $vhost.cert_ok }}
+    {{- $containers := $vhost.containers }}
+    {{- $default_server := when $vhost.default "default_server" "" }}
+    {{- $https_method := $vhost.https_method }}
+
     {{- $is_regexp := hasPrefix "~" $host }}
     {{- $upstream_name := when (or $is_regexp $globals.sha1_upstream_name) (sha1 $host) $host }}
 
@@ -402,21 +463,11 @@ server {
 {{ template "upstream" (dict "globals" $globals "Upstream" $upstream "Containers" $containers) }}
     {{- end }}
 
-    {{- $default_host := or ($globals.Env.DEFAULT_HOST) "" }}
-    {{- $default_server := index (dict $host "" $default_host "default_server") $host }}
-
     {{- /*
          * Get the SERVER_TOKENS defined by containers w/ the same vhost,
          * falling back to "".
          */}}
     {{- $server_tokens := trim (or (first (groupByKeys $containers "Env.SERVER_TOKENS")) "") }}
-
-
-    {{- /*
-         * Get the HTTPS_METHOD defined by containers w/ the same vhost, falling
-         * back to "redirect".
-         */}}
-    {{- $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) (or $globals.Env.HTTPS_METHOD "redirect") }}
 
     {{- /*
          * Get the SSL_POLICY defined by containers w/ the same vhost, falling
@@ -432,27 +483,6 @@ server {
 
     {{- /* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
     {{- $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
-
-
-    {{- /* Get the first cert name defined by containers w/ the same vhost */}}
-    {{- $certName := (first (groupByKeys $containers "Env.CERT_NAME")) }}
-
-    {{- /* Get the best matching cert by name for the vhost. */}}
-    {{- $vhostCert := (closest (dir "/etc/nginx/certs") (printf "%s.crt" $host))}}
-
-    {{- /*
-         * vhostCert is actually a filename so remove any suffixes since they
-         * are added later.
-         */}}
-    {{- $vhostCert := trimSuffix ".crt" $vhostCert }}
-    {{- $vhostCert := trimSuffix ".key" $vhostCert }}
-
-    {{- /*
-         * Use the cert specified on the container or fallback to the best vhost
-         * match.
-         */}}
-    {{- $cert := (coalesce $certName $vhostCert) }}
-    {{- $cert_ok := and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)) }}
 
     {{- if and $cert_ok (eq $https_method "redirect") }}
 server {

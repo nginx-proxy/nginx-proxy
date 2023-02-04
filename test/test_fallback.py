@@ -33,6 +33,7 @@ def get(docker_compose, nginxproxy, want_err_re):
 
 
 INTERNAL_ERR_RE = re.compile("TLSV1_ALERT_INTERNAL_ERROR")
+CONNECTION_REFUSED_RE = re.compile("Connection refused")
 
 
 @pytest.mark.parametrize("compose_file,url,want_code,want_err_re", [
@@ -58,6 +59,36 @@ INTERNAL_ERR_RE = re.compile("TLSV1_ALERT_INTERNAL_ERROR")
     ("nodefault.yml", "https://missing-cert.nginx-proxy.test/", None, INTERNAL_ERR_RE),
     ("nodefault.yml", "http://unknown.nginx-proxy.test/", 503, None),
     ("nodefault.yml", "https://unknown.nginx-proxy.test/", None, INTERNAL_ERR_RE),
+    # HTTPS_METHOD=nohttp on nginx-proxy, HTTPS_METHOD unset on the app container.
+    ("nohttp.yml", "http://https-only.nginx-proxy.test/", None, CONNECTION_REFUSED_RE),
+    ("nohttp.yml", "https://https-only.nginx-proxy.test/", 200, None),
+    ("nohttp.yml", "http://unknown.nginx-proxy.test/", None, CONNECTION_REFUSED_RE),
+    ("nohttp.yml", "https://unknown.nginx-proxy.test/", 503, None),
+    # HTTPS_METHOD=redirect on nginx-proxy, HTTPS_METHOD=nohttp on the app container.
+    ("nohttp-on-app.yml", "http://https-only.nginx-proxy.test/", None, CONNECTION_REFUSED_RE),
+    ("nohttp-on-app.yml", "https://https-only.nginx-proxy.test/", 200, None),
+    ("nohttp-on-app.yml", "http://unknown.nginx-proxy.test/", None, CONNECTION_REFUSED_RE),
+    ("nohttp-on-app.yml", "https://unknown.nginx-proxy.test/", 503, None),
+    # Same as nohttp.yml, except there is a vhost with a missing cert.  This causes its
+    # HTTPS_METHOD=nohttp setting to effectively become HTTPS_METHOD=noredirect.  This means that
+    # there will be a plain http server solely to support that vhost, so http requests to other
+    # vhosts get a 503, not a connection refused error.
+    ("nohttp-with-missing-cert.yml", "http://https-only.nginx-proxy.test/", 503, None),
+    ("nohttp-with-missing-cert.yml", "https://https-only.nginx-proxy.test/", 200, None),
+    ("nohttp-with-missing-cert.yml", "http://missing-cert.nginx-proxy.test/", 200, None),
+    ("nohttp-with-missing-cert.yml", "https://missing-cert.nginx-proxy.test/", 500, None),
+    ("nohttp-with-missing-cert.yml", "http://unknown.nginx-proxy.test/", 503, None),
+    ("nohttp-with-missing-cert.yml", "https://unknown.nginx-proxy.test/", 503, None),
+    # HTTPS_METHOD=nohttps on nginx-proxy, HTTPS_METHOD unset on the app container.
+    ("nohttps.yml", "http://http-only.nginx-proxy.test/", 200, None),
+    ("nohttps.yml", "https://http-only.nginx-proxy.test/", None, CONNECTION_REFUSED_RE),
+    ("nohttps.yml", "http://unknown.nginx-proxy.test/", 503, None),
+    ("nohttps.yml", "https://unknown.nginx-proxy.test/", None, CONNECTION_REFUSED_RE),
+    # HTTPS_METHOD=redirect on nginx-proxy, HTTPS_METHOD=nohttps on the app container.
+    ("nohttps-on-app.yml", "http://http-only.nginx-proxy.test/", 200, None),
+    ("nohttps-on-app.yml", "https://http-only.nginx-proxy.test/", None, CONNECTION_REFUSED_RE),
+    ("nohttps-on-app.yml", "http://unknown.nginx-proxy.test/", 503, None),
+    ("nohttps-on-app.yml", "https://unknown.nginx-proxy.test/", None, CONNECTION_REFUSED_RE),
 ])
 def test_fallback(get, url, want_code, want_err_re):
     if want_err_re is None:
