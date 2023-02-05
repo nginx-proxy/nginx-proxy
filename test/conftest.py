@@ -425,6 +425,12 @@ def connect_to_all_networks():
 #
 ###############################################################################
 
+
+@pytest.fixture
+def ca_root_certificate():
+    return CA_ROOT_CERTIFICATE
+
+
 @pytest.fixture(scope="module")
 def docker_compose(request):
     """
