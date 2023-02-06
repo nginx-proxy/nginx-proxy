@@ -429,7 +429,14 @@ def ca_root_certificate():
 
 
 @pytest.fixture(scope="module")
-def docker_compose(docker_compose_file):
+def monkey_patched_dns():
+    original_dns_resolver = monkey_patch_urllib_dns_resolver()
+    yield
+    restore_urllib_dns_resolver(original_dns_resolver)
+
+
+@pytest.fixture(scope="module")
+def docker_compose(monkey_patched_dns, docker_compose_file):
     """Ensures containers described in a docker compose file are started.
 
     A custom docker compose file name can be specified by overriding the `docker_compose_file`
@@ -438,7 +445,6 @@ def docker_compose(docker_compose_file):
     Also, in the case where pytest is running from a docker container, this fixture makes sure
     our container will be attached to all the docker networks.
     """
-    original_dns_resolver = monkey_patch_urllib_dns_resolver()
     remove_all_containers()
     docker_compose_up(docker_compose_file)
     networks = connect_to_all_networks()
@@ -448,7 +454,6 @@ def docker_compose(docker_compose_file):
     for network in networks:
         disconnect_from_network(network)
     docker_compose_down(docker_compose_file)
-    restore_urllib_dns_resolver(original_dns_resolver)
 
 
 @pytest.fixture()
