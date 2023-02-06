@@ -416,11 +416,46 @@ def connect_to_all_networks():
         return [connect_to_network(network) for network in networks]
 
 
+class DockerComposer(contextlib.AbstractContextManager):
+    def __init__(self):
+        self._docker_compose_file = None
+
+    def __exit__(self, *exc_info):
+        self._down()
+
+    def _down(self):
+        if self._docker_compose_file is None:
+            return
+        for network in self._networks:
+            disconnect_from_network(network)
+        docker_compose_down(self._docker_compose_file)
+        self._docker_compose_file = None
+
+    def compose(self, docker_compose_file):
+        if docker_compose_file == self._docker_compose_file:
+            return
+        self._down()
+        if docker_compose_file is None:
+            return
+        remove_all_containers()
+        docker_compose_up(docker_compose_file)
+        self._networks = connect_to_all_networks()
+        wait_for_nginxproxy_to_be_ready()
+        time.sleep(3)  # give time to containers to be ready
+        self._docker_compose_file = docker_compose_file
+
+
 ###############################################################################
 #
 # Py.test fixtures
 #
 ###############################################################################
+
+
+@pytest.fixture(scope="module")
+def docker_composer():
+    with DockerComposer() as d:
+        yield d
 
 
 @pytest.fixture
@@ -436,7 +471,7 @@ def monkey_patched_dns():
 
 
 @pytest.fixture(scope="module")
-def docker_compose(monkey_patched_dns, docker_compose_file):
+def docker_compose(monkey_patched_dns, docker_composer, docker_compose_file):
     """Ensures containers described in a docker compose file are started.
 
     A custom docker compose file name can be specified by overriding the `docker_compose_file`
@@ -445,15 +480,8 @@ def docker_compose(monkey_patched_dns, docker_compose_file):
     Also, in the case where pytest is running from a docker container, this fixture makes sure
     our container will be attached to all the docker networks.
     """
-    remove_all_containers()
-    docker_compose_up(docker_compose_file)
-    networks = connect_to_all_networks()
-    wait_for_nginxproxy_to_be_ready()
-    time.sleep(3)  # give time to containers to be ready
+    docker_composer.compose(docker_compose_file)
     yield docker_client
-    for network in networks:
-        disconnect_from_network(network)
-    docker_compose_down(docker_compose_file)
 
 
 @pytest.fixture()
