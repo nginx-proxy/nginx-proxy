@@ -323,7 +323,7 @@ def wait_for_nginxproxy_to_be_ready():
             break
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def docker_compose_file(request):
     """Fixture naming the docker-compose file to consider.
 
@@ -463,14 +463,14 @@ def ca_root_certificate():
     return CA_ROOT_CERTIFICATE
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def monkey_patched_dns():
     original_dns_resolver = monkey_patch_urllib_dns_resolver()
     yield
     restore_urllib_dns_resolver(original_dns_resolver)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def docker_compose(monkey_patched_dns, docker_composer, docker_compose_file):
     """Ensures containers described in a docker compose file are started.
 
