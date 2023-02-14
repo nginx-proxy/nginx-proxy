@@ -1,0 +1,27 @@
+services:
+  loadbalance-hash:
+    image: web
+    expose:
+      - "81"
+    environment:
+      WEB_PORTS: 81
+      VIRTUAL_HOST: loadbalance-enabled.nginx-proxy.tld
+    labels:
+      com.github.nginx-proxy.nginx-proxy.loadbalance: "hash $$remote_addr;"
+    deploy:
+      replicas: 2
+
+  loadbalance-roundrobin:
+    image: web
+    expose:
+      - "82"
+    environment:
+      WEB_PORTS: 82
+      VIRTUAL_HOST: loadbalance-disabled.nginx-proxy.tld
+    deploy:
+      replicas: 2
+
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro

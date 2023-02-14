@@ -214,6 +214,11 @@
 {{- define "upstream" }}
 upstream {{ .Upstream }} {
     {{- $server_found := false }}
+    {{- $loadbalance := first (keys (groupByLabel .Containers "com.github.nginx-proxy.nginx-proxy.loadbalance")) }}
+    {{- if $loadbalance }}
+    # From the container's loadbalance label:
+    {{ $loadbalance }}
+    {{- end }}
     {{- range $container := .Containers }}
     # Container: {{ $container.Name }}
         {{- $args := dict "globals" $.globals "container" $container }}
