@@ -41,6 +41,14 @@
     {{- $ip := "" }}
     #     networks:
     {{- range sortObjectsByKeysAsc $.container.Networks "Name" }}
+        {{- /*
+             * TODO: Only ignore the "ingress" network for Swarm tasks (in case
+             * the user is not using Swarm mode and names a network "ingress").
+             */}}
+        {{- if eq .Name "ingress" }}
+    #         {{ .Name }} (ignored)
+            {{- continue }}
+        {{- end }}
         {{- if and (not (index $.globals.networks .Name)) (not $.globals.networks.host) }}
     #         {{ .Name }} (unreachable)
             {{- continue }}
