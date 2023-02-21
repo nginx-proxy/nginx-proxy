@@ -21,7 +21,7 @@
 {{- $_ := set $globals "ssl_policy" (or ($globals.Env.SSL_POLICY) "Mozilla-Intermediate") }}
 {{- $_ := set $globals "networks" (dict) }}
 # networks available to nginx-proxy:
-{{- range $globals.CurrentContainer.Networks }}
+{{- range sortObjectsByKeysAsc $globals.CurrentContainer.Networks "Name" }}
     {{- $_ := set $globals.networks .Name . }}
 #     {{ .Name }}
 {{- end }}
@@ -81,7 +81,7 @@
      */}}
 {{- define "container_port" }}
     {{- /* If only 1 port exposed, use that as a default, else 80. */}}
-    #     exposed ports:{{ range $.container.Addresses }} {{ .Port }}/{{ .Proto }}{{ else }} (none){{ end }}
+    #     exposed ports:{{ range sortObjectsByKeysAsc $.container.Addresses "Port" }} {{ .Port }}/{{ .Proto }}{{ else }} (none){{ end }}
     {{- $default_port := when (eq (len $.container.Addresses) 1) (first $.container.Addresses).Port "80" }}
     #     default port: {{ $default_port }}
     {{- $port := or $.container.Env.VIRTUAL_PORT $default_port }}
