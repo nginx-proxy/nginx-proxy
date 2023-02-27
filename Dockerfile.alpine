@@ -3,7 +3,7 @@ ARG DOCKER_GEN_VERSION=0.9.0
 ARG FOREGO_VERSION=v0.17.0
 
 # Use a specific version of golang to build both binaries
-FROM golang:1.18.1-alpine as gobuilder
+FROM golang:1.20.1-alpine as gobuilder
 RUN apk add --no-cache git musl-dev
 
 # Build docker-gen from scratch
