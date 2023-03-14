@@ -20,10 +20,26 @@
 {{- $_ := set $globals "enable_ipv6" (parseBool (coalesce $globals.Env.ENABLE_IPV6 "false")) }}
 {{- $_ := set $globals "ssl_policy" (or ($globals.Env.SSL_POLICY) "Mozilla-Intermediate") }}
 {{- $_ := set $globals "networks" (dict) }}
-# networks available to nginx-proxy:
-{{- range sortObjectsByKeysAsc $globals.CurrentContainer.Networks "Name" }}
-    {{- $_ := set $globals.networks .Name . }}
+# Networks available to the container running docker-gen (which are assumed to
+# match the networks available to the container running nginx):
+{{- /*
+     * Note: $globals.CurrentContainer may be nil in some circumstances due to
+     * <https://github.com/nginx-proxy/docker-gen/issues/458>.  For more context
+     * see <https://github.com/nginx-proxy/nginx-proxy/issues/2189>.
+     */}}
+{{- if $globals.CurrentContainer }}
+    {{- range sortObjectsByKeysAsc $globals.CurrentContainer.Networks "Name" }}
+        {{- $_ := set $globals.networks .Name . }}
 #     {{ .Name }}
+    {{- else }}
+#     (none)
+    {{- end }}
+{{- else }}
+# /!\ WARNING: Failed to find the Docker container running docker-gen.  All
+#              upstream (backend) application containers will appear to be
+#              unreachable.  Try removing the -only-exposed and -only-published
+#              arguments to docker-gen if you pass either of those.  See
+#              <https://github.com/nginx-proxy/docker-gen/issues/458>.
 {{- end }}
 
 {{- /*
