@@ -1,0 +1,15 @@
+web1:
+  image: web
+  expose:
+    - "81"
+  environment:
+    WEB_PORTS: 81
+    VIRTUAL_HOST: nginx-proxy.test
+
+sut:
+  container_name: sut
+  image: nginxproxy/nginx-proxy:test
+  volumes:
+    - /var/run/docker.sock:/tmp/docker.sock:ro
+  environment:
+    LOG_FORMAT: '{"time_local":"$$time_iso8601","remote_addr":"$$remote_addr","request":"$$request","upstream_addr":"$$upstream_addr"}'
