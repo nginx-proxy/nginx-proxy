@@ -176,6 +176,7 @@
     {{- if exists $override }}
     include {{ $override }};
     {{- else }}
+        {{- $keepalive := first (keys (groupByLabel .Containers "com.github.nginx-proxy.nginx-proxy.keepalive")) }}
     location {{ .Path }} {
         {{- if eq .NetworkTag "internal" }}
         # Only allow traffic from internal clients
@@ -189,10 +190,14 @@
         root {{ trim .VhostRoot }};
         include fastcgi_params;
         fastcgi_pass {{ trim .Upstream }};
+            {{- if $keepalive }}
+        fastcgi_keep_conn on;
+            {{- end }}
         {{- else if eq .Proto "grpc" }}
         grpc_pass {{ trim .Proto }}://{{ trim .Upstream }};
         {{- else }}
         proxy_pass {{ trim .Proto }}://{{ trim .Upstream }}{{ trim .Dest }};
+        set $upstream_keepalive {{ if $keepalive }}true{{ else }}false{{ end }};
         {{- end }}
 
         {{- if (exists (printf "/etc/nginx/htpasswd/%s" .Host)) }}
@@ -237,6 +242,10 @@ upstream {{ .Upstream }} {
     # Fallback entry
     server 127.0.0.1 down;
     {{- end }}
+    {{- $keepalive := first (keys (groupByLabel .Containers "com.github.nginx-proxy.nginx-proxy.keepalive")) }}
+    {{- if $keepalive }}
+    keepalive {{ $keepalive }};
+    {{- end }}
 }
 {{- end }}
 
@@ -259,11 +268,33 @@ map $http_x_forwarded_port $proxy_x_forwarded_port {
     '' $server_port;
 }
 
-# If we receive Upgrade, set Connection to "upgrade"; otherwise, preserve
-# NGINX's default behavior ("Connection: close").
+# If the request from the downstream client has an "Upgrade:" header (set to any
+# non-empty value), pass "Connection: upgrade" to the upstream (backend) server.
+# Otherwise, the value for the "Connection" header depends on whether the user
+# has enabled keepalive to the upstream server.
 map $http_upgrade $proxy_connection {
     default upgrade;
-    '' close;
+    '' $proxy_connection_noupgrade;
+}
+map $upstream_keepalive $proxy_connection_noupgrade {
+    # Preserve nginx's default behavior (send "Connection: close").
+    default close;
+    # Use an empty string to cancel nginx's default behavior.
+    true '';
+}
+# Abuse the map directive (see <https://stackoverflow.com/q/14433309>) to ensure
+# that $upstream_keepalive is always defined.  This is necessary because:
+#   - The $proxy_connection variable is indirectly derived from
+#     $upstream_keepalive, so $upstream_keepalive must be defined whenever
+#     $proxy_connection is resolved.
+#   - The $proxy_connection variable is used in a proxy_set_header directive in
+#     the http block, so it is always fully resolved for every request -- even
+#     those where proxy_pass is not used (e.g., unknown virtual host).
+map "" $upstream_keepalive {
+    # The value here should not matter because it should always be overridden in
+    # a location block (see the "location" template) for all requests where the
+    # value actually matters.
+    default false;
 }
 
 # Apply fix for very long server names
@@ -519,7 +550,7 @@ server {
             {{- $upstream = printf "%s-%s" $upstream $sum }}
             {{- $dest = (or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "") }}
         {{- end }}
-        {{- template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "VhostRoot" $vhost_root "Dest" $dest "NetworkTag" $network_tag) }}
+        {{- template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "VhostRoot" $vhost_root "Dest" $dest "NetworkTag" $network_tag "Containers" $containers) }}
     {{- end }}
     {{- if and (not (contains $paths "/")) (ne $globals.default_root_response "none")}}
     location / {
