@@ -373,6 +373,13 @@ docker run -d -p 80:80 -p 443:443 \
 
 You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
 
+### Upstream (Backend) Server HTTP Keep-Alive Support
+
+> **Warning**
+> This feature is experimental.  The behavior may change (or the feature may be removed entirely) without warning in a future release, even if the release is not a new major version.  If you use this feature, or if you would like to use this feature but you require changes to it first, please [provide feedback in #2194](https://github.com/nginx-proxy/nginx-proxy/discussions/2194).  Once we have collected enough feedback we will promote this feature to officially supported.
+
+To enable HTTP keep-alive between `nginx-proxy` and a backend server, set the `com.github.nginx-proxy.nginx-proxy.keepalive` label on the server's container to the desired maximum number of idle connections. See the [nginx keepalive documentation](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#keepalive) and the [Docker label documentation](https://docs.docker.com/config/labels-custom-metadata/) for details.
+
 ### Headers
 
 By default, `nginx-proxy` forwards all incoming request headers from the client to the backend server unmodified, with the following exceptions:
