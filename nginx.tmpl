@@ -372,6 +372,15 @@ proxy_set_header Proxy "";
 {{- /*
      * If needed, create a catch-all fallback server to send an error code to
      * clients that request something from an unknown vhost.
+     *
+     * This server must appear first in the generated config because nginx uses
+     * the first `server` directive to handle requests that don't match any of
+     * the other `server` directives.  An alternative approach would be to add
+     * the `default_server` option to the `listen` directives inside this
+     * `server`, but some users inject a custom `server` directive that uses
+     * `default_server`.  Using `default_server` here would cause nginx to fail
+     * to start for those users.  See
+     * <https://github.com/nginx-proxy/nginx-proxy/issues/2212>.
      */}}
 {{- block "fallback_server" $globals }}
     {{- $globals := . }}
@@ -403,15 +412,15 @@ server {
     server_name _; # This is just an invalid value which will never trigger on a real hostname.
     server_tokens off;
         {{- if $fallback_http }}
-    listen {{ $globals.external_http_port }} default_server;
+    listen {{ $globals.external_http_port }}; {{- /* Do not add `default_server` (see comment above). */}}
                 {{- if $globals.enable_ipv6 }}
-    listen [::]:{{ $globals.external_http_port }} default_server;
+    listen [::]:{{ $globals.external_http_port }}; {{- /* Do not add `default_server` (see comment above). */}}
                 {{- end }}
         {{- end }}
         {{- if $fallback_https }}
-    listen {{ $globals.external_https_port }} ssl http2 default_server;
+    listen {{ $globals.external_https_port }} ssl http2; {{- /* Do not add `default_server` (see comment above). */}}
             {{- if $globals.enable_ipv6 }}
-    listen [::]:{{ $globals.external_https_port }} ssl http2 default_server;
+    listen [::]:{{ $globals.external_https_port }} ssl http2; {{- /* Do not add `default_server` (see comment above). */}}
             {{- end }}
         {{- end }}
     {{ $globals.access_log }}
