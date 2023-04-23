@@ -67,6 +67,11 @@
     #         {{ .Name }} (ignored)
             {{- continue }}
         {{- end }}
+        {{- if eq .Name "host" }}
+    #         {{ .Name }} (host network; using {{ (index $.globals.CurrentContainer.Networks 0).Name }} gateway)
+            {{- $ip = (index $.globals.CurrentContainer.Networks 0).Gateway }}
+            {{- continue }}
+        {{- end }}
         {{- if and (not (index $.globals.networks .Name)) (not $.globals.networks.host) }}
     #         {{ .Name }} (unreachable)
             {{- continue }}
