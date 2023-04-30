@@ -15,7 +15,7 @@ updates:
   - package-ecosystem: "pip"
     directory: "/test/requirements"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     commit-message:
       prefix: "ci"
     labels:
