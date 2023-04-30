@@ -1,4 +1,4 @@
-name: DockerHub
+name: Build and publish Docker images
 
 on:
   workflow_dispatch:
@@ -20,6 +20,7 @@ on:
 
 jobs:
   multiarch-build-debian:
+    name: Build and publish Debian image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -81,6 +82,7 @@ jobs:
         run: echo ${{ steps.docker_build_debian.outputs.digest }}
 
   multiarch-build-alpine:
+    name: Build and publish Alpine image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
