@@ -66,13 +66,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Retrieve docker-gen version
+        run: echo "DOCKER_GEN_VERSION=$(grep -o -E 'nginxproxy/docker-gen:([0-9x\.]+)' Dockerfile | cut -d ':' -f2)" >> $GITHUB_ENV
+
       - name: Build and push the Debian based image
         id: docker_build_debian
         uses: docker/build-push-action@v4
         with:
           context: .
           file: Dockerfile
-          build-args: NGINX_PROXY_VERSION=${{ env.GIT_DESCRIBE }}
+          build-args: |
+            NGINX_PROXY_VERSION=${{ env.GIT_DESCRIBE }}
+            DOCKER_GEN_VERSION=${{ env.DOCKER_GEN_VERSION }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
           tags: ${{ steps.docker_meta_debian.outputs.tags }}
@@ -129,13 +134,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Retrieve docker-gen version
+        run: echo "DOCKER_GEN_VERSION=$(grep -o -E 'nginxproxy/docker-gen:([0-9x\.]+)' Dockerfile | cut -d ':' -f2)" >> $GITHUB_ENV
+
       - name: Build and push the Alpine based image
         id: docker_build_alpine
         uses: docker/build-push-action@v4
         with:
           context: .
           file: Dockerfile.alpine
-          build-args: NGINX_PROXY_VERSION=${{ env.GIT_DESCRIBE }}
+          build-args: |
+            NGINX_PROXY_VERSION=${{ env.GIT_DESCRIBE }}
+            DOCKER_GEN_VERSION=${{ env.DOCKER_GEN_VERSION }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
           tags: ${{ steps.docker_meta_alpine.outputs.tags }}
