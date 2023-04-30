@@ -29,11 +29,9 @@ ENV NGINX_PROXY_VERSION=${NGINX_PROXY_VERSION} \
    DOCKER_GEN_VERSION=${DOCKER_GEN_VERSION} \
    DOCKER_HOST=unix:///tmp/docker.sock
 
-# Install wget and install/updates certificates
+# Install/update certificates
 RUN apt-get update \
-   && apt-get install -y -q --no-install-recommends \
-   ca-certificates \
-   wget \
+   && apt-get install -y -q --no-install-recommends ca-certificates \
    && apt-get clean \
    && rm -r /var/lib/apt/lists/*
 
