@@ -20,3 +20,13 @@ updates:
       prefix: "ci"
     labels:
       - "type/ci"
+
+  # Maintain GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "type/ci"
