@@ -28,8 +28,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Retrieve version
-        run: echo "GIT_DESCRIBE=$(git describe --tags)" >> $GITHUB_ENV
+      - name: Retrieve nginx-proxy version
+        id: nginx-proxy_version
+        run: echo "VERSION=$(git describe --tags)" >> "$GITHUB_OUTPUT"
 
       - name: Get Docker tags for Debian based image
         id: docker_meta_debian
@@ -66,13 +67,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Retrieve docker-gen version
+        id: docker-gen_version
+        run: sed -n -e 's;^FROM nginxproxy/docker-gen:\([0-9.]*\).*;VERSION=\1;p' Dockerfile >> "$GITHUB_OUTPUT"
+
       - name: Build and push the Debian based image
         id: docker_build_debian
         uses: docker/build-push-action@v4
         with:
           context: .
           file: Dockerfile
-          build-args: NGINX_PROXY_VERSION=${{ env.GIT_DESCRIBE }}
+          build-args: |
+            NGINX_PROXY_VERSION=${{ steps.nginx-proxy_version.outputs.VERSION }}
+            DOCKER_GEN_VERSION=${{ steps.docker-gen_version.outputs.VERSION }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
           tags: ${{ steps.docker_meta_debian.outputs.tags }}
@@ -90,8 +97,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Retrieve version
-        run: echo "GIT_DESCRIBE=$(git describe --tags)" >> $GITHUB_ENV
+      - name: Retrieve nginx-proxy version
+        id: nginx-proxy_version
+        run: echo "VERSION=$(git describe --tags)" >> "$GITHUB_OUTPUT"
 
       - name: Get Docker tags for Alpine based image
         id: docker_meta_alpine
@@ -129,13 +137,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Retrieve docker-gen version
+        id: docker-gen_version
+        run: sed -n -e 's;^FROM nginxproxy/docker-gen:\([0-9.]*\).*;VERSION=\1;p' Dockerfile >> "$GITHUB_OUTPUT"
+
       - name: Build and push the Alpine based image
         id: docker_build_alpine
         uses: docker/build-push-action@v4
         with:
           context: .
           file: Dockerfile.alpine
-          build-args: NGINX_PROXY_VERSION=${{ env.GIT_DESCRIBE }}
+          build-args: |
+            NGINX_PROXY_VERSION=${{ steps.nginx-proxy_version.outputs.VERSION }}
+            DOCKER_GEN_VERSION=${{ steps.docker-gen_version.outputs.VERSION }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
           tags: ${{ steps.docker_meta_alpine.outputs.tags }}
