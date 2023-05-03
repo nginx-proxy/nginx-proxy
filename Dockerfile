@@ -4,7 +4,7 @@ ARG FOREGO_VERSION=v0.17.0
 FROM nginxproxy/docker-gen:0.10.4-debian AS docker-gen
 
 # Build forego from scratch
-FROM golang:1.20.3 as forego
+FROM golang:1.20.4 as forego
 
 ARG FOREGO_VERSION
 
