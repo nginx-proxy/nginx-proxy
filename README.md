@@ -397,6 +397,38 @@ docker run -d -p 80:80 -p 443:443 \
 
 You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
 
+### Custom Upstream (Backend) Server Support
+
+When you need to proxy to a different host (e.g. on your LAN network) or to a container with the host mode networking, a dummy container with `VIRTUAL_IP` and `VIRTUAL_PORT` environment variables.
+
+> **Warning**
+> Running a container with the host mode networking can expose its application on external interface(s) bypassing Nginx proxy.
+
+Docker Compose example for a backend running on `10.20.30.40:1234`:
+
+```yaml
+version: '2'
+
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+
+  custom-upstream:
+    image: busybox
+    entrypoint: tail -f /dev/null # will wait forever
+    restart: always # keep it running after a reboot
+    environment:
+      - VIRTUAL_HOST=foo.bar.com
+      - VIRTUAL_IP=10.20.30.40
+      - VIRTUAL_PORT=1234
+```
+
+
+
 ### Upstream (Backend) Server HTTP Load Balancing Support
 
 > **Warning**

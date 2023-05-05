@@ -91,6 +91,10 @@
     {{- else }}
     #         (none)
     {{- end }}
+    {{- if .container.Env.VIRTUAL_IP }}
+        {{- $ip = .container.Env.VIRTUAL_IP }}
+    #     Using VIRTUAL_IP: {{ $ip }}
+    {{- end }}
     #     IP address: {{ if $ip }}{{ $ip }}{{ else }}(none usable){{ end }}
     {{- $_ := set $ "ip" $ip }}
 {{- end }}
