@@ -68,9 +68,16 @@
             {{- continue }}
         {{- end }}
         {{- if eq .Name "host" }}
-    #         {{ .Name }} (host network; using {{ (index $.globals.CurrentContainer.Networks 0).Name }} gateway)
-            {{- $ip = (index $.globals.CurrentContainer.Networks 0).Gateway }}
-            {{- continue }}
+            {{- range sortObjectsByKeysAsc $.globals.CurrentContainer.Networks "Name" }}
+                {{- if and . .Gateway }}
+    #         container is in host network mode, using {{ .Name }} gateway IP
+                    {{- $ip = .Gateway }}
+                    {{- break }}
+                {{- end }}
+            {{- end }}
+            {{- if $ip }}
+                {{- continue }}
+            {{- end }}
         {{- end }}
         {{- if and (not (index $.globals.networks .Name)) (not $.globals.networks.host) }}
     #         {{ .Name }} (unreachable)

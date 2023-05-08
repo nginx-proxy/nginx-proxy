@@ -2,6 +2,8 @@ version: "2"
 
 networks:
   net1:
+    internal: true
+  net2:
 
 services:
   bridge-network:
@@ -10,7 +12,7 @@ services:
       WEB_PORTS: "80"
       VIRTUAL_HOST: "bridge-network.nginx-proxy.tld"
     networks:
-      - net1
+      - net2
 
   host-network:
     image: web
@@ -26,3 +28,4 @@ services:
       - /var/run/docker.sock:/tmp/docker.sock:ro
     networks:
       - net1
+      - net2
