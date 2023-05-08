@@ -46,7 +46,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
           labels: |
             org.opencontainers.image.authors=Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag), Jason Wilder
-            org.opencontainers.image.version=${{ env.GIT_DESCRIBE }}
+            org.opencontainers.image.version=${{ steps.nginx-proxy_version.outputs.VERSION }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -115,7 +115,7 @@ jobs:
             type=raw,value=alpine,enable={{is_default_branch}}
           labels: |
             org.opencontainers.image.authors=Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag), Jason Wilder
-            org.opencontainers.image.version=${{ env.GIT_DESCRIBE }}
+            org.opencontainers.image.version=${{ steps.nginx-proxy_version.outputs.VERSION }}
           flavor: latest=false
 
       - name: Set up QEMU
