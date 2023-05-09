@@ -68,6 +68,12 @@
             {{- continue }}
         {{- end }}
         {{- if eq .Name "host" }}
+            {{- /* Handle containers in host nework mode */}}
+            {{- if (index $.globals.networks "host") }}
+    #         both container and proxy are in host network mode, using localhost IP
+                {{- $ip = "127.0.0.1" }}
+                {{- continue }}
+            {{- end }}
             {{- range sortObjectsByKeysAsc $.globals.CurrentContainer.Networks "Name" }}
                 {{- if and . .Gateway }}
     #         container is in host network mode, using {{ .Name }} gateway IP

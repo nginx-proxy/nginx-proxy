@@ -160,6 +160,10 @@ def container_ip(container: Container):
         net_info = container.attrs["NetworkSettings"]["Networks"]
         if "bridge" in net_info:
             return net_info["bridge"]["IPAddress"]
+        
+        # container is running in host network mode
+        if "host" in net_info:
+            return "127.0.0.1"
 
         # not default bridge network, fallback on first network defined
         network_name = list(net_info.keys())[0]
@@ -173,6 +177,10 @@ def container_ipv6(container):
     net_info = container.attrs["NetworkSettings"]["Networks"]
     if "bridge" in net_info:
         return net_info["bridge"]["GlobalIPv6Address"]
+    
+    # container is running in host network mode
+    if "host" in net_info:
+        return "::1"
 
     # not default bridge network, fallback on first network defined
     network_name = list(net_info.keys())[0]
