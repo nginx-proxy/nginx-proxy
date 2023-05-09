@@ -182,6 +182,12 @@ docker network connect my-other-network my-nginx-proxy
 
 In this example, the `my-nginx-proxy` container will be connected to `my-network` and `my-other-network` and will be able to proxy to other containers attached to those networks.
 
+### Host networking
+
+`nginx-proxy` is compatible with containers using Docker's [host networking](https://docs.docker.com/network/host/), both with the proxy connected to one or more [bridge network](https://docs.docker.com/network/bridge/) (default or user created) or running in host network mode itself.
+
+Proxyed containers running in host network mode **must** use the [`VIRTUAL_PORT](#virtual-ports) environment variable, as this is the only way for `nginx-proxy` to get the correct port (or a port at all) for those containers running.
+
 ### Custom external HTTP/HTTPS ports
 
 If you want to use `nginx-proxy` with different external ports that the default ones of `80` for `HTTP` traffic and `443` for `HTTPS` traffic, you'll have to use the environment variable(s) `HTTP_PORT` and/or `HTTPS_PORT` in addition to the changes to the Docker port mapping. If you change the `HTTPS` port, the redirect for `HTTPS` traffic will also be configured to redirect to the custom port. Typical usage, here with the custom ports `1080` and `10443`:
