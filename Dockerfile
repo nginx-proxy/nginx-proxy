@@ -1,22 +1,6 @@
-# setup build arguments for version of dependencies to use
-ARG FOREGO_VERSION=v0.17.0
-
 FROM nginxproxy/docker-gen:0.10.4-debian AS docker-gen
 
-# Build forego from scratch
-FROM golang:1.20.4 as forego
-
-ARG FOREGO_VERSION
-
-RUN git clone https://github.com/nginx-proxy/forego/ \
-   && cd /go/forego \
-   && git -c advice.detachedHead=false checkout $FOREGO_VERSION \
-   && go mod download \
-   && CGO_ENABLED=0 GOOS=linux go build -o forego . \
-   && go clean -cache \
-   && mv forego /usr/local/bin/ \
-   && cd - \
-   && rm -rf /go/forego
+FROM nginxproxy/forego:0.17.1-debian AS forego
 
 # Build the final image
 FROM nginx:1.23.4
@@ -34,7 +18,6 @@ RUN apt-get update \
    && apt-get install -y -q --no-install-recommends ca-certificates \
    && apt-get clean \
    && rm -r /var/lib/apt/lists/*
-
 
 # Configure Nginx
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
