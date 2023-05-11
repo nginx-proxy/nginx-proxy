@@ -422,11 +422,11 @@ server {
             {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_https_port }} ssl http2; {{- /* Do not add `default_server` (see comment above). */}}
             {{- end }}
+    ssl_session_cache shared:SSL:50m;
+    ssl_session_tickets off;
         {{- end }}
     {{ $globals.access_log }}
         {{- if $globals.default_cert_ok }}
-    ssl_session_cache shared:SSL:50m;
-    ssl_session_tickets off;
     ssl_certificate /etc/nginx/certs/default.crt;
     ssl_certificate_key /etc/nginx/certs/default.key;
         {{- else }}
