@@ -19,8 +19,11 @@ on:
       - "*.md"
 
 jobs:
-  multiarch-build-debian:
-    name: Build and publish Debian image
+  multiarch-build:
+    name: Build and publish image
+    strategy:
+      matrix:
+        base: [alpine, debian]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -32,8 +35,12 @@ jobs:
         id: nginx-proxy_version
         run: echo "VERSION=$(git describe --tags)" >> "$GITHUB_OUTPUT"
 
-      - name: Get Docker tags for Debian based image
-        id: docker_meta_debian
+      - name: Retrieve docker-gen version
+        id: docker-gen_version
+        run: sed -n -e 's;^FROM nginxproxy/docker-gen:\([0-9.]*\).*;VERSION=\1;p' Dockerfile.${{ matrix.base }} >> "$GITHUB_OUTPUT"
+
+      - name: Get Docker tags
+        id: docker_meta
         uses: docker/metadata-action@v5
         with:
           images: |
@@ -41,12 +48,17 @@ jobs:
             nginxproxy/nginx-proxy
             jwilder/nginx-proxy
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}},enable=${{ matrix.base == 'debian' }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ matrix.base == 'debian' }}
+            type=semver,suffix=-alpine,pattern={{version}},enable=${{ matrix.base == 'alpine' }}
+            type=semver,suffix=-alpine,pattern={{major}}.{{minor}},enable=${{ matrix.base == 'alpine' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' && matrix.base == 'debian' }}
+            type=raw,value=alpine,enable=${{ github.ref == 'refs/heads/main' && matrix.base == 'alpine' }}
           labels: |
             org.opencontainers.image.authors=Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag), Jason Wilder
             org.opencontainers.image.version=${{ steps.nginx-proxy_version.outputs.VERSION }}
+          flavor: |
+            latest=false
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -67,93 +79,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Retrieve docker-gen version
-        id: docker-gen_version
-        run: sed -n -e 's;^FROM nginxproxy/docker-gen:\([0-9.]*\).*;VERSION=\1;p' Dockerfile >> "$GITHUB_OUTPUT"
-
-      - name: Build and push the Debian based image
-        id: docker_build_debian
+      - name: Build and push the image
+        id: docker_build
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile
+          file: Dockerfile.${{ matrix.base }}
           build-args: |
             NGINX_PROXY_VERSION=${{ steps.nginx-proxy_version.outputs.VERSION }}
             DOCKER_GEN_VERSION=${{ steps.docker-gen_version.outputs.VERSION }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
-          tags: ${{ steps.docker_meta_debian.outputs.tags }}
-          labels: ${{ steps.docker_meta_debian.outputs.labels }}
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
 
       - name: Images digests
-        run: echo ${{ steps.docker_build_debian.outputs.digest }}
-
-  multiarch-build-alpine:
-    name: Build and publish Alpine image
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Retrieve nginx-proxy version
-        id: nginx-proxy_version
-        run: echo "VERSION=$(git describe --tags)" >> "$GITHUB_OUTPUT"
-
-      - name: Get Docker tags for Alpine based image
-        id: docker_meta_alpine
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ghcr.io/nginx-proxy/nginx-proxy
-            nginxproxy/nginx-proxy
-            jwilder/nginx-proxy
-          tags: |
-            type=semver,suffix=-alpine,pattern={{version}}
-            type=semver,suffix=-alpine,pattern={{major}}.{{minor}}
-            type=raw,value=alpine,enable={{is_default_branch}}
-          labels: |
-            org.opencontainers.image.authors=Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag), Jason Wilder
-            org.opencontainers.image.version=${{ steps.nginx-proxy_version.outputs.VERSION }}
-          flavor: latest=false
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Retrieve docker-gen version
-        id: docker-gen_version
-        run: sed -n -e 's;^FROM nginxproxy/docker-gen:\([0-9.]*\).*;VERSION=\1;p' Dockerfile >> "$GITHUB_OUTPUT"
-
-      - name: Build and push the Alpine based image
-        id: docker_build_alpine
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: Dockerfile.alpine
-          build-args: |
-            NGINX_PROXY_VERSION=${{ steps.nginx-proxy_version.outputs.VERSION }}
-            DOCKER_GEN_VERSION=${{ steps.docker-gen_version.outputs.VERSION }}
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
-          push: true
-          tags: ${{ steps.docker_meta_alpine.outputs.tags }}
-          labels: ${{ steps.docker_meta_alpine.outputs.labels }}
-
-      - name: Images digests
-        run: echo ${{ steps.docker_build_alpine.outputs.digest }}
+        run: echo ${{ steps.docker_build.outputs.digest }}
