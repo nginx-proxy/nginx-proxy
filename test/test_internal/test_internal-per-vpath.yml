@@ -4,7 +4,7 @@ web1:
     - "81"
   environment:
     WEB_PORTS: 81
-    VIRTUAL_HOST: nginx-proxy.local
+    VIRTUAL_HOST: nginx-proxy.example
     VIRTUAL_PATH: /web1/
     VIRTUAL_DEST: /
     NETWORK_ACCESS: internal
@@ -15,7 +15,7 @@ web2:
     - "82"
   environment:
     WEB_PORTS: 82
-    VIRTUAL_HOST: nginx-proxy.local
+    VIRTUAL_HOST: nginx-proxy.example
     VIRTUAL_PATH: /web2/
     VIRTUAL_DEST: /
 

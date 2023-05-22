@@ -3,7 +3,7 @@ nginx-proxy:
   volumes:
     - /var/run/docker.sock:/tmp/docker.sock:ro
     - ./my_custom_proxy_settings.conf:/etc/nginx/vhost.d/default_location:ro
-    - ./my_custom_proxy_settings_bar.conf:/etc/nginx/vhost.d/web3.nginx-proxy.local_location:ro
+    - ./my_custom_proxy_settings_bar.conf:/etc/nginx/vhost.d/web3.nginx-proxy.example_location:ro
 
 web1:
   image: web
@@ -11,7 +11,7 @@ web1:
     - "81"
   environment:
     WEB_PORTS: 81
-    VIRTUAL_HOST: web1.nginx-proxy.local
+    VIRTUAL_HOST: web1.nginx-proxy.example
 
 web2:
   image: web
@@ -19,7 +19,7 @@ web2:
     - "82"
   environment:
     WEB_PORTS: 82
-    VIRTUAL_HOST: web2.nginx-proxy.local
+    VIRTUAL_HOST: web2.nginx-proxy.example
 
 web3:
   image: web
@@ -27,4 +27,4 @@ web3:
     - "83"
   environment:
     WEB_PORTS: 83
-    VIRTUAL_HOST: web3.nginx-proxy.local
+    VIRTUAL_HOST: web3.nginx-proxy.example

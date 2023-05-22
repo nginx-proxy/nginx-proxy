@@ -68,13 +68,13 @@ services:
     expose:
       - "8000"
     environment:
-      - VIRTUAL_HOST=whoami.local
+      - VIRTUAL_HOST=whoami.example
       - VIRTUAL_PORT=8000
 ```
 
 ```console
 docker-compose up
-curl -H "Host: whoami.local" localhost
+curl -H "Host: whoami.example" localhost
 ```
 
 Example output:
@@ -257,7 +257,7 @@ You can demo this pattern with docker-compose:
 
 ```console
 docker-compose --file docker-compose-separate-containers.yml up
-curl -H "Host: whoami.local" localhost
+curl -H "Host: whoami.example" localhost
 ```
 
 Example output:

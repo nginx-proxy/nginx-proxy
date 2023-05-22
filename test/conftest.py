@@ -45,10 +45,10 @@ def ipv6(force_ipv6=True):
     Meant to be used as a context manager to force IPv6 sockets:
 
         with ipv6():
-            nginxproxy.get("http://something.nginx-proxy.local")  # force use of IPv6
+            nginxproxy.get("http://something.nginx-proxy.example")  # force use of IPv6
 
         with ipv6(False):
-            nginxproxy.get("http://something.nginx-proxy.local")  # legacy behavior
+            nginxproxy.get("http://something.nginx-proxy.example")  # legacy behavior
 
 
     """

@@ -4,7 +4,7 @@ services:
     image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./my_custom_proxy_settings.conf:/etc/nginx/vhost.d/web1.nginx-proxy.local:ro
+      - ./my_custom_proxy_settings.conf:/etc/nginx/vhost.d/web1.nginx-proxy.example:ro
 
   web1:
     image: web
@@ -12,7 +12,7 @@ services:
       - "81"
     environment:
       WEB_PORTS: 81
-      VIRTUAL_HOST: web1.nginx-proxy.local
+      VIRTUAL_HOST: web1.nginx-proxy.example
 
   web2:
     image: web
@@ -20,4 +20,4 @@ services:
       - "82"
     environment:
       WEB_PORTS: 82
-      VIRTUAL_HOST: web2.nginx-proxy.local
+      VIRTUAL_HOST: web2.nginx-proxy.example
