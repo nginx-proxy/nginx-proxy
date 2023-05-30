@@ -4,7 +4,7 @@ web1:
     - "81"
   environment:
     WEB_PORTS: 81
-    VIRTUAL_HOST: web1.nginx-proxy.local
+    VIRTUAL_HOST: web1.nginx-proxy.example
     NETWORK_ACCESS: internal
 
 web2:
@@ -13,7 +13,7 @@ web2:
     - "82"
   environment:
     WEB_PORTS: 82
-    VIRTUAL_HOST: web2.nginx-proxy.local
+    VIRTUAL_HOST: web2.nginx-proxy.example
 
 sut:
   image: nginxproxy/nginx-proxy:test
