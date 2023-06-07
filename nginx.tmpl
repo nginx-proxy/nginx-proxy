@@ -67,6 +67,24 @@
     #         {{ .Name }} (ignored)
             {{- continue }}
         {{- end }}
+        {{- if eq .Name "host" }}
+            {{- /* Handle containers in host nework mode */}}
+            {{- if (index $.globals.networks "host") }}
+    #         both container and proxy are in host network mode, using localhost IP
+                {{- $ip = "127.0.0.1" }}
+                {{- continue }}
+            {{- end }}
+            {{- range sortObjectsByKeysAsc $.globals.CurrentContainer.Networks "Name" }}
+                {{- if and . .Gateway }}
+    #         container is in host network mode, using {{ .Name }} gateway IP
+                    {{- $ip = .Gateway }}
+                    {{- break }}
+                {{- end }}
+            {{- end }}
+            {{- if $ip }}
+                {{- continue }}
+            {{- end }}
+        {{- end }}
         {{- if and (not (index $.globals.networks .Name)) (not $.globals.networks.host) }}
     #         {{ .Name }} (unreachable)
             {{- continue }}
