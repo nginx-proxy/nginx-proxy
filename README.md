@@ -186,7 +186,7 @@ In this example, the `my-nginx-proxy` container will be connected to `my-network
 
 `nginx-proxy` is compatible with containers using Docker's [host networking](https://docs.docker.com/network/host/), both with the proxy connected to one or more [bridge network](https://docs.docker.com/network/bridge/) (default or user created) or running in host network mode itself.
 
-Proxyed containers running in host network mode **must** use the [`VIRTUAL_PORT](#virtual-ports) environment variable, as this is the only way for `nginx-proxy` to get the correct port (or a port at all) for those containers.
+Proxyed containers running in host network mode **must** use the [`VIRTUAL_PORT`](#virtual-ports) environment variable, as this is the only way for `nginx-proxy` to get the correct port (or a port at all) for those containers.
 
 ### Custom external HTTP/HTTPS ports
 
