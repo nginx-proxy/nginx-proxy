@@ -178,6 +178,9 @@
     {{- if exists $override }}
     include {{ $override }};
     {{- else }}
+        {{- if (hasPrefix "www." .Host) }}
+	    return 301 {{ternary "http" "https" (eq .HttpsMethod "nohttps") }}://{{ trimPrefix "www." .Host }}$request_uri;
+	    {{- else }}
         {{- $keepalive := first (keys (groupByLabel .Containers "com.github.nginx-proxy.nginx-proxy.keepalive")) }}
     location {{ .Path }} {
         {{- if eq .NetworkTag "internal" }}
@@ -215,6 +218,7 @@
         include /etc/nginx/vhost.d/default_location;
         {{- end }}
     }
+    {{- end }}
     {{- end }}
 {{- end }}
 
@@ -516,10 +520,19 @@ server {
     }
 
     location / {
-        {{- if eq $globals.external_https_port "443" }}
-        return 301 https://$host$request_uri;
+        {{- if (hasPrefix "www." $host) }}
+            {{- $nonWwwHost := trimPrefix "www." $host }}
+            {{- if eq $globals.external_https_port "443" }}
+            return 301 https://{{ $nonWwwHost }}$request_uri;
+            {{- else }}
+            return 301 https://{{ $nonWwwHost }}:{{ $globals.external_https_port }}$request_uri;
+            {{- end }}
         {{- else }}
-        return 301 https://$host:{{ $globals.external_https_port }}$request_uri;
+            {{- if eq $globals.external_https_port "443" }}
+            return 301 https://$host$request_uri;
+            {{- else }}
+            return 301 https://$host:{{ $globals.external_https_port }}$request_uri;
+            {{- end }}
         {{- end }}
     }
 }
@@ -625,7 +638,7 @@ server {
             {{- $upstream = printf "%s-%s" $upstream $sum }}
             {{- $dest = (or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "") }}
         {{- end }}
-        {{- template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "VhostRoot" $vhost_root "Dest" $dest "NetworkTag" $network_tag "Containers" $containers) }}
+        {{- template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "VhostRoot" $vhost_root "Dest" $dest "NetworkTag" $network_tag "Containers" $containers "HttpsMethod" $https_method) }}
     {{- end }}
     {{- if and (not (contains $paths "/")) (ne $globals.default_root_response "none")}}
     location / {
