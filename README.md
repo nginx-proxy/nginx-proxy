@@ -8,7 +8,7 @@ it to the docker hub automatically. See `.github/workflows/docker_push.yml` for 
 # Original Readme
 [![Test](https://github.com/nginx-proxy/nginx-proxy/actions/workflows/test.yml/badge.svg)](https://github.com/nginx-proxy/nginx-proxy/actions/workflows/test.yml)
 [![GitHub release](https://img.shields.io/github/v/release/nginx-proxy/nginx-proxy)](https://github.com/nginx-proxy/nginx-proxy/releases)
-![nginx 1.21.6](https://img.shields.io/badge/nginx-1.21.6-brightgreen.svg)
+![nginx 1.23.4](https://img.shields.io/badge/nginx-1.23.4-brightgreen.svg)
 [![Docker Image Size](https://img.shields.io/docker/image-size/nginxproxy/nginx-proxy?sort=semver)](https://hub.docker.com/r/nginxproxy/nginx-proxy "Click to view the image on Docker Hub")
 [![Docker stars](https://img.shields.io/docker/stars/nginxproxy/nginx-proxy.svg)](https://hub.docker.com/r/nginxproxy/nginx-proxy 'DockerHub')
 [![Docker pulls](https://img.shields.io/docker/pulls/nginxproxy/nginx-proxy.svg)](https://hub.docker.com/r/nginxproxy/nginx-proxy 'DockerHub')
@@ -130,7 +130,7 @@ You can also use wildcards at the beginning and the end of host name, like `*.ba
 You can have multiple containers proxied by the same `VIRTUAL_HOST` by adding a `VIRTUAL_PATH` environment variable containing the absolute path to where the container should be mounted. For example with `VIRTUAL_HOST=foo.example.com` and `VIRTUAL_PATH=/api/v2/service`, then requests to http://foo.example.com/api/v2/service will be routed to the container. If you wish to have a container serve the root while other containers serve other paths, give the root container a `VIRTUAL_PATH` of `/`.  Unmatched paths will be served by the container at `/` or will return the default nginx error page if no container has been assigned `/`.
 It is also possible to specify multiple paths with regex locations like `VIRTUAL_PATH=~^/(app1|alternative1)/`. For further details see the nginx documentation on location blocks. This is not compatible with `VIRTUAL_DEST`.
 
-The full request URI will be forwarded to the serving container in the `X-Forwarded-Path` header.
+The full request URI will be forwarded to the serving container in the `X-Original-URI` header.
 
 **NOTE**: Your application needs to be able to generate links starting with `VIRTUAL_PATH`. This can be achieved by it being natively on this path or having an option to prepend this path. The application does not need to expect this path in the request.
 
@@ -160,10 +160,17 @@ The filename of the previous example would be `example.tld_8610f6c344b4096614eab
 
 This environment variable of the nginx proxy container can be used to customize the return error page if no matching path is found. Furthermore it is possible to use anything which is compatible with the `return` statement of nginx.
 
-For example `DEFAUL_ROOT=418` will return a 418 error page instead of the normal 404 one.
-Another example is `DEFAULT_ROOT="301 https://github.com/nginx-proxy/nginx-proxy/blob/main/README.md"` which would redirect an invalid request to this documentation.
-Nginx variables such as $scheme, $host, and $request_uri can be used. However, care must be taken to make sure the $ signs are escaped properly.
-If you want to use `301 $scheme://$host/myapp1$request_uri` you should use:
+Exception:  If this is set to the string `none`, no default `location /` directive will be generated.  This makes it possible for you to provide your own `location /` directive in your [`/etc/nginx/vhost.d/VIRTUAL_HOST`](#per-virtual_host) or [`/etc/nginx/vhost.d/default`](#per-virtual_host-default-configuration) files.
+
+If unspecified, `DEFAULT_ROOT` defaults to `404`.
+
+Examples (YAML syntax):
+
+  * `DEFAULT_ROOT: "none"` prevents `nginx-proxy` from generating a default `location /` directive.
+  * `DEFAULT_ROOT: "418"` returns a 418 error page instead of the normal 404 one.
+  * `DEFAULT_ROOT: "301 https://github.com/nginx-proxy/nginx-proxy/blob/main/README.md"` redirects the client to this documentation.
+
+Nginx variables such as `$scheme`, `$host`, and `$request_uri` can be used.  However, care must be taken to make sure the `$` signs are escaped properly.  For example, if you want to use `301 $scheme://$host/myapp1$request_uri` you should use:
 
 * Bash: `DEFAULT_ROOT='301 $scheme://$host/myapp1$request_uri'`
 * Docker Compose yaml: `- DEFAULT_ROOT: 301 $$scheme://$$host/myapp1$$request_uri`
@@ -228,6 +235,11 @@ If you would like to connect to FastCGI backend, set `VIRTUAL_PROTO=fastcgi` on 
 
 If you use fastcgi,you can set `VIRTUAL_ROOT=xxx`  for your root directory
 
+### Custom log format
+
+If you want to use a custom log format, you can set `LOG_FORMAT=xxx` on the proxy container. 
+
+With docker compose take care to escape the `$` character with `$$` to avoid variable interpolation. Example: `$remote_addr` becomes `$$remote_addr`.
 
 ### Default Host
 
@@ -343,16 +355,40 @@ Note that the `Mozilla-Old` policy should use a 1024 bits DH key for compatibili
 
 The default behavior for the proxy when port 80 and 443 are exposed is as follows:
 
-* If a container has a usable cert, port 80 will redirect to 443 for that container so that HTTPS is always preferred when available.
-* If the container does not have a usable cert, a 503 will be returned.
-
-Note that in the latter case, a browser may get an connection error as no certificate is available to establish a connection. A self-signed or generic cert named `default.crt` and `default.key` will allow a client browser to make a SSL connection (likely w/ a warning) and subsequently receive a 500.
+* If a virtual host has a usable cert, port 80 will redirect to 443 for that virtual host so that HTTPS is always preferred when available.
+* If the virtual host does not have a usable cert, but `default.crt` and `default.key` exist, those will be used as the virtual host's certificate and the client browser will receive a 500 error.
+* If the virtual host does not have a usable cert, and `default.crt` and `default.key` do not exist, TLS negotiation will fail (see [Missing Certificate](#missing-certificate) below).
 
 To serve traffic in both SSL and non-SSL modes without redirecting to SSL, you can include the environment variable `HTTPS_METHOD=noredirect` (the default is `HTTPS_METHOD=redirect`). You can also disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`, or disable the HTTPS site with `HTTPS_METHOD=nohttps`. `HTTPS_METHOD` can be specified on each container for which you want to override the default behavior or on the proxy container to set it globally. If `HTTPS_METHOD=noredirect` is used, Strict Transport Security (HSTS) is disabled to prevent HTTPS users from being redirected by the client. If you cannot get to the HTTP site after changing this setting, your browser has probably cached the HSTS policy and is automatically redirecting you back to HTTPS. You will need to clear your browser's HSTS cache or use an incognito window / different browser.
 
 By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security)  is enabled with `max-age=31536000` for HTTPS sites. You can disable HSTS with the environment variable `HSTS=off` or use a custom HSTS configuration like `HSTS=max-age=31536000; includeSubDomains; preload`. 
 
 *WARNING*: HSTS will force your users to visit the HTTPS version of your site for the `max-age` time - even if they type in `http://` manually.  The only way to get to an HTTP site after receiving an HSTS response is to clear your browser's HSTS cache.
+
+#### Missing Certificate
+
+If HTTPS is enabled for a virtual host but its certificate is missing, nginx-proxy will configure nginx to use the default certificate (`default.crt` with `default.key`) and return a 500 error.
+
+If the default certificate is also missing, nginx-proxy will configure nginx to accept HTTPS connections but fail the TLS negotiation.  Client browsers will render a TLS error page.  As of March 2023, web browsers display the following error messages:
+
+  * Chrome:
+
+    > This site can't provide a secure connection
+    >
+    > example.test sent an invalid response.
+    >
+    > Try running Connectivity Diagnostics.
+    >
+    > `ERR_SSL_PROTOCOL_ERROR`
+
+  * Firefox:
+
+    > Secure Connection Failed
+    >
+    > An error occurred during a connection to example.test.
+    > Peer reports it experienced an internal error.
+    >
+    > Error code: `SSL_ERROR_INTERNAL_ERROR_ALERT` "TLS error".
 
 ### Basic Authentication Support
 
@@ -368,6 +404,72 @@ docker run -d -p 80:80 -p 443:443 \
 ```
 
 You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
+
+### Upstream (Backend) Server HTTP Load Balancing Support
+
+> **Warning**
+> This feature is experimental.  The behavior may change (or the feature may be removed entirely) without warning in a future release, even if the release is not a new major version.  If you use this feature, or if you would like to use this feature but you require changes to it first, please [provide feedback in #2195](https://github.com/nginx-proxy/nginx-proxy/discussions/2195).  Once we have collected enough feedback we will promote this feature to officially supported.
+
+If you have multiple containers with the same `VIRTUAL_HOST` and `VIRTUAL_PATH` settings, nginx will spread the load across all of them.  To change the load balancing algorithm from nginx's default (round-robin), set the `com.github.nginx-proxy.nginx-proxy.loadbalance` label on one or more of your application containers to the desired load balancing directive.  See the [`ngx_http_upstream_module` documentation](https://nginx.org/en/docs/http/ngx_http_upstream_module.html) for available directives.
+
+> **Note**
+> * Don't forget the terminating semicolon (`;`).
+> * If you are using Docker Compose, remember to escape any dollar sign (`$`) characters (`$` becomes `$$`).
+
+Docker Compose example:
+
+```yaml
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    environment:
+      HTTPS_METHOD: nohttps
+  myapp:
+    image: jwilder/whoami
+    expose:
+      - "8000"
+    environment:
+      VIRTUAL_HOST: myapp.example
+      VIRTUAL_PORT: "8000"
+    labels:
+      com.github.nginx-proxy.nginx-proxy.loadbalance: "hash $$remote_addr;"
+    deploy:
+      replicas: 4
+```
+
+### Upstream (Backend) Server HTTP Keep-Alive Support
+
+> **Warning**
+> This feature is experimental.  The behavior may change (or the feature may be removed entirely) without warning in a future release, even if the release is not a new major version.  If you use this feature, or if you would like to use this feature but you require changes to it first, please [provide feedback in #2194](https://github.com/nginx-proxy/nginx-proxy/discussions/2194).  Once we have collected enough feedback we will promote this feature to officially supported.
+
+To enable HTTP keep-alive between `nginx-proxy` and a backend server, set the `com.github.nginx-proxy.nginx-proxy.keepalive` label on the server's container to the desired maximum number of idle connections. See the [nginx keepalive documentation](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#keepalive) and the [Docker label documentation](https://docs.docker.com/config/labels-custom-metadata/) for details.
+
+### Headers
+
+By default, `nginx-proxy` forwards all incoming request headers from the client to the backend server unmodified, with the following exceptions:
+
+  * `Connection`: Set to `upgrade` if the client sets the `Upgrade` header, otherwise set to `close`. (Keep-alive between `nginx-proxy` and the backend server is not supported.)
+  * `Proxy`: Always removed if present. This prevents attackers from using the so-called [httpoxy attack](http://httpoxy.org). There is no legitimate reason for a client to send this header, and there are many vulnerable languages / platforms (`CVE-2016-5385`, `CVE-2016-5386`, `CVE-2016-5387`, `CVE-2016-5388`, `CVE-2016-1000109`, `CVE-2016-1000110`, `CERT-VU#797896`).
+  * `X-Real-IP`: Set to the client's IP address.
+  * `X-Forwarded-For`: The client's IP address is appended to the value provided by the client. (If the client did not provide this header, it is set to the client's IP address.)
+  * `X-Forwarded-Host`: If the client did not provide this header or if the `TRUST_DOWNSTREAM_PROXY` environment variable is set to `false` (see below), this is set to the value of the `Host` header provided by the client. Otherwise, the header is forwarded to the backend server unmodified.
+  * `X-Forwarded-Proto`: If the client did not provide this header or if the `TRUST_DOWNSTREAM_PROXY` environment variable is set to `false` (see below), this is set to `http` for plain HTTP connections and `https` for TLS connections. Otherwise, the header is forwarded to the backend server unmodified.
+  * `X-Forwarded-Ssl`: Set to `on` if the `X-Forwarded-Proto` header sent to the backend server is `https`, otherwise set to `off`.
+  * `X-Forwarded-Port`: If the client did not provide this header or if the `TRUST_DOWNSTREAM_PROXY` environment variable is set to `false` (see below), this is set to the port of the server that accepted the client's request. Otherwise, the header is forwarded to the backend server unmodified.
+  * `X-Original-URI`: Set to the original request URI.
+
+#### Trusting Downstream Proxy Headers
+
+For legacy compatibility reasons, `nginx-proxy` forwards any client-supplied `X-Forwarded-Proto` (which affects the value of `X-Forwarded-Ssl`), `X-Forwarded-Host`, and `X-Forwarded-Port` headers unchecked and unmodified. To prevent malicious clients from spoofing the protocol, hostname, or port that is perceived by your backend server, you are encouraged to set the `TRUST_DOWNSTREAM_PROXY` value to `false` if:
+
+  * you do not operate a second reverse proxy downstream of `nginx-proxy`, or
+  * you do operate a second reverse proxy downstream of `nginx-proxy` but that proxy forwards those headers unchecked from untrusted clients.
+
+The default for `TRUST_DOWNSTREAM_PROXY` may change to `false` in a future version of `nginx-proxy`. If you require it to be enabled, you are encouraged to explicitly set it to `true` to avoid compatibility problems when upgrading.
 
 ### Custom Nginx Configuration
 
@@ -386,18 +488,17 @@ proxy_set_header Upgrade $http_upgrade;
 proxy_set_header Connection $proxy_connection;
 proxy_set_header X-Real-IP $remote_addr;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Host $proxy_x_forwarded_host;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 proxy_set_header X-Forwarded-Ssl $proxy_x_forwarded_ssl;
 proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
-proxy_set_header X-Forwarded-Path $request_uri;
+proxy_set_header X-Original-URI $request_uri;
 
 # Mitigate httpoxy attack (see README for details)
 proxy_set_header Proxy "";
 ```
 
 ***NOTE***: If you provide this file it will replace the defaults; you may want to check the .tmpl file to make sure you have all of the needed options.
-
-***NOTE***: The default configuration blocks the `Proxy` HTTP request header from being sent to downstream servers.  This prevents attackers from using the so-called [httpoxy attack](http://httpoxy.org).  There is no legitimate reason for a client to send this header, and there are many vulnerable languages / platforms (`CVE-2016-5385`, `CVE-2016-5386`, `CVE-2016-5387`, `CVE-2016-5388`, `CVE-2016-1000109`, `CVE-2016-1000110`, `CERT-VU#797896`).
 
 #### Proxy-wide
 
@@ -465,6 +566,32 @@ ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
 
 If you want most of your virtual hosts to use a default single `location` block configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default_location` file. This file will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}_location` file associated with it.
 
+#### Overriding `location` blocks
+
+The `${VIRTUAL_HOST}_${PATH_HASH}_location`, `${VIRTUAL_HOST}_location`, and `default_location` files documented above make it possible to *augment* the generated [`location` block(s)](https://nginx.org/en/docs/http/ngx_http_core_module.html#location) in a virtual host.  In some circumstances, you may need to *completely override* the `location` block for a particular combination of virtual host and path.  To do this, create a file whose name follows this pattern:
+
+```
+/etc/nginx/vhost.d/${VIRTUAL_HOST}_${PATH_HASH}_location_override
+```
+
+where `${VIRTUAL_HOST}` is the name of the virtual host (the `VIRTUAL_HOST` environment variable) and `${PATH_HASH}` is the SHA-1 hash of the path, as [described above](#per-virtual_path-location-configuration).
+
+For convenience, the `_${PATH_HASH}` part can be omitted if the path is `/`:
+
+```
+/etc/nginx/vhost.d/${VIRTUAL_HOST}_location_override
+```
+
+When an override file exists, the `location` block that is normally created by `nginx-proxy` is not generated.  Instead, the override file is included via the [nginx `include` directive](https://nginx.org/en/docs/ngx_core_module.html#include).
+
+You are responsible for providing a suitable `location` block in your override file as required for your service.  By default, `nginx-proxy` uses the `VIRTUAL_HOST` name as the upstream name for your application's Docker container; see [here](#unhashed-vs-sha1-upstream-names) for details.  As an example, if your container has a `VIRTUAL_HOST` value of `app.example.com`, then to override the location block for `/` you would create a file named `/etc/nginx/vhost.d/app.example.com_location_override` that contains something like this:
+
+```
+location / {
+    proxy_pass http://app.example.com;
+}
+```
+
 #### Per-VIRTUAL_HOST `server_tokens` configuration
 Per virtual-host `servers_tokens` directive can be configured by passing appropriate value to the `SERVER_TOKENS` environment variable. Please see the [nginx http_core module configuration](https://nginx.org/en/docs/http/ngx_http_core_module.html#server_tokens) for more details.
 
@@ -476,12 +603,13 @@ Please note that using regular expressions in `VIRTUAL_HOST` will always result 
 
 ### Troubleshooting
 
-In case you can't access your VIRTUAL_HOST, set `DEBUG=true` in the client container's environment and have a look at the generated nginx configuration file `/etc/nginx/conf.d/default.conf`:
+If you can't access your `VIRTUAL_HOST`, inspect the generated nginx configuration:
 
 ```console
-docker exec <nginx-proxy-instance> cat /etc/nginx/conf.d/default.conf
+docker exec <nginx-proxy-instance> nginx -T
 ```
-Especially at `upstream` definition blocks which should look like:
+
+Pay attention to the `upstream` definition blocks, which should look like this:
 
 ```Nginx
 # foo.example.com

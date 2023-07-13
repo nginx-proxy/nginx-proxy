@@ -1,0 +1,15 @@
+services:
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    environment:
+      HTTPS_METHOD: redirect
+  http-only:
+    image: web
+    expose:
+      - "83"
+    environment:
+      WEB_PORTS: "83"
+      HTTPS_METHOD: nohttps
+      VIRTUAL_HOST: http-only.nginx-proxy.test

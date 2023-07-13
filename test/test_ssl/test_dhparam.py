@@ -1,6 +1,5 @@
 import re
 import subprocess
-import os
 
 import backoff
 import docker
@@ -219,7 +218,7 @@ def test_custom_dhparam_is_supported(docker_compose):
 
 # Only `web2` has a site-specific DH param file (which overrides all other DH config)
 # Other tests here use `web5` explicitly, or implicitly (via ENV `DEFAULT_HOST`, otherwise first HTTPS server)
-def test_custom_dhparam_is_supported_per_site(docker_compose):
+def test_custom_dhparam_is_supported_per_site(docker_compose, ca_root_certificate):
     container_name="dh-file"
     sut_container = docker_client.containers.get(container_name)
     assert sut_container.status == "running"
@@ -242,7 +241,7 @@ def test_custom_dhparam_is_supported_per_site(docker_compose):
     # - `web2` has it's own cert provisioned at `/etc/nginx/certs/web2.nginx-proxy.tld.crt`.
     can_verify_chain_of_trust(
         sut_container,
-        ca_cert = f"{os.getcwd()}/certs/ca-root.crt",
+        ca_cert = ca_root_certificate,
         fqdn    = 'web2.nginx-proxy.tld'
     )
 

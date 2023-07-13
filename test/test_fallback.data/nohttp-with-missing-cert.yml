@@ -1,0 +1,22 @@
+services:
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./withdefault.certs:/etc/nginx/certs:ro
+    environment:
+      HTTPS_METHOD: nohttp
+  https-only:
+    image: web
+    expose:
+      - "82"
+    environment:
+      WEB_PORTS: "82"
+      VIRTUAL_HOST: https-only.nginx-proxy.test
+  missing-cert:
+    image: web
+    expose:
+      - "84"
+    environment:
+      WEB_PORTS: "84"
+      VIRTUAL_HOST: missing-cert.nginx-proxy.test

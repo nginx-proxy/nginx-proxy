@@ -1,9 +1,10 @@
 import pytest
+import requests
 
 
-def test_web2_http_is_not_forwarded(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://web2.nginx-proxy.tld/", allow_redirects=False)
-    assert r.status_code == 503
+def test_web2_http_is_connection_refused(docker_compose, nginxproxy):
+    with pytest.raises(requests.exceptions.RequestException, match="Connection refused"):
+        nginxproxy.get("http://web2.nginx-proxy.tld/")
 
 
 def test_web2_https_is_forwarded(docker_compose, nginxproxy):

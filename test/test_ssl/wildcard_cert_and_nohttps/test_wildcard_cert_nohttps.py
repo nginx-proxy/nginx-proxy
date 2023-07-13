@@ -24,10 +24,10 @@ def test_https_get_served(docker_compose, nginxproxy, subdomain):
     assert f"answer from port 8{subdomain}\n" == r.text
 
 @pytest.mark.filterwarnings('ignore::urllib3.exceptions.InsecureRequestWarning')
-def test_web3_https_is_500_and_SSL_validation_fails(docker_compose, nginxproxy):
+def test_https_request_to_nohttps_vhost_goes_to_fallback_server(docker_compose, nginxproxy):
     with pytest.raises( (CertificateError, SSLError) ) as excinfo:
         nginxproxy.get("https://3.web.nginx-proxy.tld/port")
-    assert """hostname '3.web.nginx-proxy.tld' doesn't match 'nginx-proxy.tld'""" in str(excinfo.value)
+    assert """certificate is not valid for '3.web.nginx-proxy.tld'""" in str(excinfo.value)
 
     r = nginxproxy.get("https://3.web.nginx-proxy.tld/port", verify=False)
-    assert r.status_code == 500
+    assert r.status_code == 503
