@@ -471,6 +471,7 @@ server {
     {{- $containers := $vhost.containers }}
     {{- $default_server := when $vhost.default "default_server" "" }}
     {{- $https_method := $vhost.https_method }}
+    {{- $http2 := parseBool (or (first (keys (groupByLabel $containers "com.github.nginx-proxy.nginx-proxy.http2.enable"))) $globals.Env.ENABLE_HTTP2 "true")}}
 
     {{- $is_regexp := hasPrefix "~" $host }}
     {{- $upstream_name := when (or $is_regexp $globals.sha1_upstream_name) (sha1 $host) $host }}
@@ -549,7 +550,9 @@ server {
     {{- if $server_tokens }}
     server_tokens {{ $server_tokens }};
     {{- end }}
+    {{- if $http2 }}
     http2 on;
+    {{- end }}
     {{ $globals.access_log }}
     {{- if or (eq $https_method "nohttps") (not $cert_ok) (eq $https_method "noredirect") }}
     listen {{ $globals.external_http_port }} {{ $default_server }};
