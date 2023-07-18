@@ -203,6 +203,10 @@
         include /etc/nginx/network_internal.conf;
         {{- end }}
 
+        {{- if .http3 }}
+        add_header alt-svc 'h3=":{{ $.globals.external_https_port }}"; ma=86400;';
+        {{- end }}
+
         {{- if eq .Proto "uwsgi" }}
         include uwsgi_params;
         uwsgi_pass {{ trim .Proto }}://{{ trim .Upstream }};
@@ -333,7 +337,7 @@ map $proxy_x_forwarded_proto $proxy_x_forwarded_ssl {
 
 gzip_types text/plain text/css application/javascript application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 
-log_format vhost '{{ or $globals.Env.LOG_FORMAT "$host $remote_addr - $remote_user [$time_local] \"$request\" $status $body_bytes_sent \"$http_referer\" \"$http_user_agent\" \"$upstream_addr\"" }}';
+log_format vhost '{{ or $globals.Env.LOG_FORMAT "$host $remote_addr - $remote_user [$time_local] \"$request\" $status $body_bytes_sent \"$http_referer\" \"$http_user_agent\" \"$upstream_addr\" $http3" }}';
 
 access_log off;
 
@@ -350,7 +354,7 @@ include /etc/nginx/proxy.conf;
 # HTTP 1.1 support
 proxy_http_version 1.1;
 proxy_buffering off;
-proxy_set_header Host $http_host;
+proxy_set_header Host $host;
 proxy_set_header Upgrade $http_upgrade;
 proxy_set_header Connection $proxy_connection;
 proxy_set_header X-Real-IP $remote_addr;
@@ -384,7 +388,15 @@ proxy_set_header Proxy "";
     {{- $cert_ok := and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)) }}
     {{- $default := eq $globals.Env.DEFAULT_HOST $vhost }}
     {{- $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) $globals.Env.HTTPS_METHOD "redirect" }}
-    {{- $_ := set $globals.vhosts $vhost (dict "cert" $cert "cert_ok" $cert_ok "containers" $containers "default" $default "https_method" $https_method) }}
+    {{- $http3 := parseBool (or (first (keys (groupByLabel $containers "com.github.nginx-proxy.nginx-proxy.http3.enable"))) $globals.Env.ENABLE_HTTP3 "false")}}
+    {{- $_ := set $globals.vhosts $vhost (dict
+        "cert" $cert
+        "cert_ok" $cert_ok
+        "containers" $containers
+        "default" $default
+        "https_method" $https_method
+        "http3" $http3
+    ) }}
 {{- end }}
 
 {{- /*
@@ -406,6 +418,7 @@ proxy_set_header Proxy "";
     {{- $https_exists := false }}
     {{- $default_http_exists := false }}
     {{- $default_https_exists := false }}
+    {{- $http3 := false }}
     {{- range $vhost := $globals.vhosts }}
         {{- $http := or (ne $vhost.https_method "nohttp") (not $vhost.cert_ok) }}
         {{- $https := ne $vhost.https_method "nohttps" }}
@@ -413,6 +426,7 @@ proxy_set_header Proxy "";
         {{- $https_exists = or $https_exists $https }}
         {{- $default_http_exists = or $default_http_exists (and $http $vhost.default) }}
         {{- $default_https_exists = or $default_https_exists (and $https $vhost.default) }}
+        {{- $http3 = or $http3 $vhost.http3 }}
     {{- end }}
     {{- $fallback_http := and $http_exists (not $default_http_exists) }}
     {{- $fallback_https := and $https_exists (not $default_https_exists) }}
@@ -438,8 +452,14 @@ server {
         {{- end }}
         {{- if $fallback_https }}
     listen {{ $globals.external_https_port }} ssl; {{- /* Do not add `default_server` (see comment above). */}}
+            {{- if $http3 }}
+    listen {{ $globals.external_https_port }} quic reuseport; {{- /* Do not add `default_server` (see comment above). */}}
+            {{- end }}
             {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_https_port }} ssl; {{- /* Do not add `default_server` (see comment above). */}}
+                {{- if $http3 }}
+    listen [::]:{{ $globals.external_https_port }} quic reuseport; {{- /* Do not add `default_server` (see comment above). */}}
+                {{- end }}
             {{- end }}
     ssl_session_cache shared:SSL:50m;
     ssl_session_tickets off;
@@ -472,6 +492,7 @@ server {
     {{- $default_server := when $vhost.default "default_server" "" }}
     {{- $https_method := $vhost.https_method }}
     {{- $http2 := parseBool (or (first (keys (groupByLabel $containers "com.github.nginx-proxy.nginx-proxy.http2.enable"))) $globals.Env.ENABLE_HTTP2 "true")}}
+    {{- $http3 := parseBool (or (first (keys (groupByLabel $containers "com.github.nginx-proxy.nginx-proxy.http3.enable"))) $globals.Env.ENABLE_HTTP3 "false")}}
 
     {{- $is_regexp := hasPrefix "~" $host }}
     {{- $upstream_name := when (or $is_regexp $globals.sha1_upstream_name) (sha1 $host) $host }}
@@ -562,8 +583,14 @@ server {
     {{- end }}
     {{- if ne $https_method "nohttps" }}
     listen {{ $globals.external_https_port }} ssl {{ $default_server }};
+        {{- if $http3 }}
+    listen {{ $globals.external_https_port }} quic {{ $default_server }};
+        {{- end }}
         {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_https_port }} ssl {{ $default_server }};
+            {{- if $http3 }}
+    listen [::]:{{ $globals.external_https_port }} quic {{ $default_server }};
+            {{- end }}
         {{- end }}
 
         {{- if $cert_ok }}
@@ -648,7 +675,18 @@ server {
             {{- $upstream = printf "%s-%s" $upstream $sum }}
             {{- $dest = (or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "") }}
         {{- end }}
-        {{- template "location" (dict "Path" $path "Proto" $proto "Upstream" $upstream "Host" $host "VhostRoot" $vhost_root "Dest" $dest "NetworkTag" $network_tag "Containers" $containers) }}
+        {{- template "location" (dict
+            "globals" $globals
+            "Path" $path
+            "http3" $http3
+            "Proto" $proto
+            "Upstream" $upstream
+            "Host" $host
+            "VhostRoot" $vhost_root
+            "Dest" $dest
+            "NetworkTag" $network_tag
+            "Containers" $containers
+        ) }}
     {{- end }}
     {{- if and (not (contains $paths "/")) (ne $globals.default_root_response "none")}}
     location / {
