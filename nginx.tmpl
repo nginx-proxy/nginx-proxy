@@ -203,10 +203,6 @@
         include /etc/nginx/network_internal.conf;
         {{- end }}
 
-        {{- if .http3 }}
-        add_header alt-svc 'h3=":{{ $.globals.external_https_port }}"; ma=86400;';
-        {{- end }}
-
         {{- if eq .Proto "uwsgi" }}
         include uwsgi_params;
         uwsgi_pass {{ trim .Proto }}://{{ trim .Upstream }};
@@ -281,8 +277,8 @@ map $http_x_forwarded_proto $proxy_x_forwarded_proto {
 }
 
 map $http_x_forwarded_host $proxy_x_forwarded_host {
-    default {{ if $globals.trust_downstream_proxy }}$http_x_forwarded_host{{ else }}$http_host{{ end }};
-    '' $http_host;
+    default {{ if $globals.trust_downstream_proxy }}$http_x_forwarded_host{{ else }}$host{{ end }};
+    '' $host;
 }
 
 # If we receive X-Forwarded-Port, pass it through; otherwise, pass along the
@@ -337,7 +333,7 @@ map $proxy_x_forwarded_proto $proxy_x_forwarded_ssl {
 
 gzip_types text/plain text/css application/javascript application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 
-log_format vhost '{{ or $globals.Env.LOG_FORMAT "$host $remote_addr - $remote_user [$time_local] \"$request\" $status $body_bytes_sent \"$http_referer\" \"$http_user_agent\" \"$upstream_addr\" $http3" }}';
+log_format vhost '{{ or $globals.Env.LOG_FORMAT "$host $remote_addr - $remote_user [$time_local] \"$request\" $status $body_bytes_sent \"$http_referer\" \"$http_user_agent\" \"$upstream_addr\"" }}';
 
 access_log off;
 
@@ -443,6 +439,7 @@ proxy_set_header Proxy "";
 server {
     server_name _; # This is just an invalid value which will never trigger on a real hostname.
     server_tokens off;
+    {{ $globals.access_log }}
     http2 on;
         {{- if $fallback_http }}
     listen {{ $globals.external_http_port }}; {{- /* Do not add `default_server` (see comment above). */}}
@@ -452,19 +449,19 @@ server {
         {{- end }}
         {{- if $fallback_https }}
     listen {{ $globals.external_https_port }} ssl; {{- /* Do not add `default_server` (see comment above). */}}
-            {{- if $http3 }}
-    listen {{ $globals.external_https_port }} quic reuseport; {{- /* Do not add `default_server` (see comment above). */}}
-            {{- end }}
             {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_https_port }} ssl; {{- /* Do not add `default_server` (see comment above). */}}
-                {{- if $http3 }}
+            {{- end }}
+            {{- if $http3 }}
+    http3 on;
+    listen {{ $globals.external_https_port }} quic reuseport; {{- /* Do not add `default_server` (see comment above). */}}
+                {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_https_port }} quic reuseport; {{- /* Do not add `default_server` (see comment above). */}}
                 {{- end }}
             {{- end }}
     ssl_session_cache shared:SSL:50m;
     ssl_session_tickets off;
         {{- end }}
-    {{ $globals.access_log }}
         {{- if $globals.default_cert_ok }}
     ssl_certificate /etc/nginx/certs/default.crt;
     ssl_certificate_key /etc/nginx/certs/default.key;
@@ -540,11 +537,11 @@ server {
         {{- if $server_tokens }}
     server_tokens {{ $server_tokens }};
         {{- end }}
+    {{ $globals.access_log }}
     listen {{ $globals.external_http_port }} {{ $default_server }};
         {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_http_port }} {{ $default_server }};
         {{- end }}
-    {{ $globals.access_log }}
 
     # Do not HTTPS redirect Let's Encrypt ACME challenge
     location ^~ /.well-known/acme-challenge/ {
@@ -571,10 +568,10 @@ server {
     {{- if $server_tokens }}
     server_tokens {{ $server_tokens }};
     {{- end }}
+    {{ $globals.access_log }}
     {{- if $http2 }}
     http2 on;
     {{- end }}
-    {{ $globals.access_log }}
     {{- if or (eq $https_method "nohttps") (not $cert_ok) (eq $https_method "noredirect") }}
     listen {{ $globals.external_http_port }} {{ $default_server }};
         {{- if $globals.enable_ipv6 }}
@@ -583,12 +580,15 @@ server {
     {{- end }}
     {{- if ne $https_method "nohttps" }}
     listen {{ $globals.external_https_port }} ssl {{ $default_server }};
-        {{- if $http3 }}
-    listen {{ $globals.external_https_port }} quic {{ $default_server }};
-        {{- end }}
         {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_https_port }} ssl {{ $default_server }};
-            {{- if $http3 }}
+        {{- end }}
+
+        {{- if $http3 }}
+    http3 on;
+    add_header alt-svc 'h3=":{{ $globals.external_https_port }}"; ma=86400;';
+    listen {{ $globals.external_https_port }} quic {{ $default_server }};
+            {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_https_port }} quic {{ $default_server }};
             {{- end }}
         {{- end }}
@@ -676,9 +676,7 @@ server {
             {{- $dest = (or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "") }}
         {{- end }}
         {{- template "location" (dict
-            "globals" $globals
             "Path" $path
-            "http3" $http3
             "Proto" $proto
             "Upstream" $upstream
             "Host" $host
