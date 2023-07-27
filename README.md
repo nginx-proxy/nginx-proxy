@@ -388,6 +388,35 @@ If the default certificate is also missing, nginx-proxy will configure nginx to 
     >
     > Error code: `SSL_ERROR_INTERNAL_ERROR_ALERT` "TLS error".
 
+### HTTP/2 support
+
+HTTP/2 is enabled by default and can be disabled if necessary either per-proxied container or globally:
+
+To disable HTTP/2 for a single proxied container, set the `com.github.nginx-proxy.nginx-proxy.http2.enable` label to `false` on this container.
+
+To disable HTTP/2 globally set the environment variable `ENABLE_HTTP2` to `false` on the nginx-proxy container.
+
+More reading on the potential TCP head-of-line blocking issue with HTTP/2: [HTTP/2 Issues](https://www.twilio.com/blog/2017/10/http2-issues.html), [Comparing HTTP/3 vs HTTP/2](https://blog.cloudflare.com/http-3-vs-http-2/)
+
+### HTTP/3 support
+
+> **Warning**
+> HTTP/3 support [is still considered experimental in nginx](https://www.nginx.com/blog/binary-packages-for-preview-nginx-quic-http3-implementation/) and as such is considered experimental in nginx-proxy too and is disabled by default. [Feedbacks for the HTTP/3 support are welcome in #2271.](https://github.com/nginx-proxy/nginx-proxy/discussions/2271)
+
+HTTP/3 use the QUIC protocol over UDP (unlike HTTP/1.1 and HTTP/2 which work over TCP), so if you want to use HTTP/3 you'll have to explicitely publish the 443/udp port of the proxy in addition to the 443/tcp port:
+
+```console
+docker run -d -p 80:80 -p 443:443/tcp -p 443:443/udp \
+    -v /var/run/docker.sock:/tmp/docker.sock:ro \
+    nginxproxy/nginx-proxy
+```
+
+HTTP/3 can be enabled either per-proxied container or globally:
+
+To enable HTTP/3 for a single proxied container, set the `com.github.nginx-proxy.nginx-proxy.http3.enable` label to `true` on this container.
+
+To enable HTTP/3 globally set the environment variable `ENABLE_HTTP3` to `true` on the nginx-proxy container.
+
 ### Basic Authentication Support
 
 In order to be able to secure your virtual host, you have to create a file named as its equivalent VIRTUAL_HOST variable on directory
