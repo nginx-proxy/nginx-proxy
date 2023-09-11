@@ -23,7 +23,7 @@ jobs:
         base_docker_image: [alpine, debian]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
