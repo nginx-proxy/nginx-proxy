@@ -273,7 +273,10 @@
         set $upstream_keepalive {{ if $keepalive }}true{{ else }}false{{ end }};
         {{- end }}
 
-        {{- if (exists (printf "/etc/nginx/htpasswd/%s" .Host)) }}
+        {{- if (exists (printf "/etc/nginx/htpasswd/%s_%s" .Host (sha1 .Path) )) }}
+        auth_basic "Restricted {{ .Host }}/{{ .Path }}";
+        auth_basic_user_file {{ (printf "/etc/nginx/htpasswd/%s_%s" .Host (sha1 .Path)) }};
+        {{- else if (exists (printf "/etc/nginx/htpasswd/%s" .Host)) }}
         auth_basic "Restricted {{ .Host }}";
         auth_basic_user_file {{ (printf "/etc/nginx/htpasswd/%s" .Host) }};
         {{- end }}
