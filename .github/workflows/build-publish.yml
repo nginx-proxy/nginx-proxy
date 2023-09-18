@@ -34,7 +34,7 @@ jobs:
 
       - name: Get Docker tags for Debian based image
         id: docker_meta_debian
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: |
             ghcr.io/nginx-proxy/nginx-proxy
@@ -103,7 +103,7 @@ jobs:
 
       - name: Get Docker tags for Alpine based image
         id: docker_meta_alpine
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: |
             ghcr.io/nginx-proxy/nginx-proxy
