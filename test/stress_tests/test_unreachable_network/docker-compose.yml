@@ -9,7 +9,7 @@ services:
     container_name: reverseproxy
     networks:
       - netA
-    image: jwilder/nginx-proxy:test
+    image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
 

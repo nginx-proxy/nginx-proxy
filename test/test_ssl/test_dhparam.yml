@@ -6,11 +6,48 @@ web5:
     WEB_PORTS: "85"
     VIRTUAL_HOST: "web5.nginx-proxy.tld"
 
+# sut - System Under Test
+# `docker.sock` required for functionality
+# `certs` required to enable HTTPS via template
+with_default_group:
+  container_name: dh-default
+  image: &img-nginxproxy nginxproxy/nginx-proxy:test
+  volumes: &vols-common
+    - &docker-sock /var/run/docker.sock:/tmp/docker.sock:ro
+    - &nginx-certs ./certs:/etc/nginx/certs:ro
 
-sut:
-  image: jwilder/nginx-proxy:test
-  container_name: nginxproxy
-  volumes:
-    - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ../lib/ssl/dhparam.pem:/etc/nginx/dhparam/dhparam.pem:ro
-    - ./certs:/etc/nginx/certs:ro
+with_alternative_group:
+  container_name: dh-env
+  environment:
+    - DHPARAM_BITS=2048
+  image: *img-nginxproxy
+  volumes: *vols-common
+
+with_invalid_group:
+  container_name: invalid-group-1024
+  environment:
+    - DHPARAM_BITS=1024
+  image: *img-nginxproxy
+  volumes: *vols-common
+
+with_custom_file:
+  container_name: dh-file
+  image: *img-nginxproxy
+  volumes: 
+    - *docker-sock
+    - *nginx-certs
+    - ../../dhparam/ffdhe3072.pem:/etc/nginx/dhparam/dhparam.pem:ro
+
+with_skip:
+  container_name: dh-skip
+  environment:
+    - DHPARAM_SKIP=true
+  image: *img-nginxproxy
+  volumes: *vols-common
+
+with_skip_backward:
+  container_name: dh-skip-backward
+  environment:
+    - DHPARAM_GENERATION=false
+  image: *img-nginxproxy
+  volumes: *vols-common

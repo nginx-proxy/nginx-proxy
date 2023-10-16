@@ -2,7 +2,9 @@
 
 ## Questions
 
-If you have a question, DO NOT SUBMIT a new issue.  Please ask the question on the Q&A Group: https://groups.google.com/forum/#!forum/nginx-proxy
+If you have a question, DO NOT SUBMIT a new issue.
+
+Please ask the question on the Discussions section: https://github.com/nginx-proxy/nginx-proxy/discussions
 
 ## Bugs or Features
 
