@@ -1,0 +1,15 @@
+services:
+  http3-global-disabled:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: http3-global-disabled.nginx-proxy.tld
+
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    #environment:
+      #ENABLE_HTTP3: "false"    #Disabled by default
