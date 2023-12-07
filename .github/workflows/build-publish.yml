@@ -73,7 +73,7 @@ jobs:
 
       - name: Build and push the Debian based image
         id: docker_build_debian
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile
@@ -143,7 +143,7 @@ jobs:
 
       - name: Build and push the Alpine based image
         id: docker_build_alpine
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile.alpine
