@@ -370,6 +370,32 @@ Complete list of policies available through the `SSL_POLICY` environment variabl
   </ul>
 </details>
 <details>
+  <summary>AWS ELB TLS 1.3 security policies</summary>
+  <ul>
+    <li>
+      <code>AWS-TLS13-1-3-2021-06</code>
+    </li>
+    <li>
+      <code>AWS-TLS13-1-2-2021-06</code>
+    </li>
+    <li>
+      <code>AWS-TLS13-1-2-Res-2021-06</code>
+    </li>
+    <li>
+      <code>AWS-TLS13-1-2-Ext1-2021-06</code>
+    </li>
+    <li>
+      <code>AWS-TLS13-1-2-Ext2-2021-06</code>
+    </li>
+    <li>
+      <code>AWS-TLS13-1-1-2021-06</code>
+    </li>
+    <li>
+      <code>AWS-TLS13-1-0-2021-06</code>
+    </li>
+  </ul>
+</details>
+<details>
   <summary>AWS ELB FS supported policies</summary>
   <ul>
     <li>
