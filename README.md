@@ -353,17 +353,17 @@ Complete list of policies available through the `SSL_POLICY` environment variabl
   <summary>Mozilla policies</summary>
   <ul>
     <li>
-      <a href="https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility">
+      <a href="https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility" target="_blank">
         <code>Mozilla-Modern</code>
       </a>
     </li>
     <li>
-      <a href="https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29">
+      <a href="https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29" target="_blank">
         <code>Mozilla-Intermediate</code>
       </a>
     </li>
     <li>
-      <a href="https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility">
+      <a href="https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility" target="_blank">
         <code>Mozilla-Old</code>
       </a>
     </li>
