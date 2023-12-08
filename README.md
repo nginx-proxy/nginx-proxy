@@ -347,7 +347,80 @@ The default SSL cipher configuration is based on the [Mozilla intermediate profi
 
 If you don't require backward compatibility, you can use the [Mozilla modern profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility) profile instead by including the environment variable `SSL_POLICY=Mozilla-Modern` to the nginx-proxy container or to your container. This profile is compatible with clients back to Firefox 63, Android 10.0, Chrome 70, Edge 75, Java 11, OpenSSL 1.1.1, Opera 57, and Safari 12.1.  Note that this profile is **not** compatible with any version of Internet Explorer.
 
-Other policies available through the `SSL_POLICY` environment variable are [`Mozilla-Old`](https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility) and the [AWS ELB Security Policies](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html#describe-ssl-policies) `AWS-FS-1-2-Res-2020-10`, `AWS-FS-1-2-Res-2019-08`, `AWS-FS-1-2-2019-08`, `AWS-FS-1-1-2019-08`, `AWS-FS-2018-06`, `AWS-TLS-1-2-Ext-2018-06`, `AWS-TLS-1-2-2017-01`, `AWS-TLS-1-1-2017-01`, `AWS-2016-08`, `AWS-2015-05`, `AWS-2015-03` and `AWS-2015-02`.
+Complete list of policies available through the `SSL_POLICY` environment variable, including the [AWS ELB Security Policies](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html#describe-ssl-policies) and [AWS Classic ELB security policies](https://docs.aws.amazon.com/fr_fr/elasticloadbalancing/latest/classic/elb-security-policy-table.html):
+
+<details>
+  <summary>Mozilla policies</summary>
+  <ul>
+    <li>
+      <a href="https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility">
+        <code>Mozilla-Modern</code>
+      </a>
+    </li>
+    <li>
+      <a href="https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29">
+        <code>Mozilla-Intermediate</code>
+      </a>
+    </li>
+    <li>
+      <a href="https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility">
+        <code>Mozilla-Old</code>
+      </a>
+    </li>
+  </ul>
+</details>
+<details>
+  <summary>AWS ELB FS supported policies</summary>
+  <ul>
+    <li>
+      <code>AWS-FS-1-2-Res-2020-10</code>
+    </li>
+    <li>
+      <code>AWS-FS-1-2-Res-2019-08</code>
+    </li>
+    <li>
+      <code>AWS-FS-1-2-2019-08</code>
+    </li>
+    <li>
+      <code>AWS-FS-1-1-2019-08</code>
+    </li>
+    <li>
+      <code>AWS-FS-2018-06</code>
+    </li>
+  </ul>
+</details>
+<details>
+  <summary>AWS ELB TLS 1.0 - 1.2 security policies</summary>
+  <ul>
+    <li>
+      <code>AWS-TLS-1-2-Ext-2018-06</code>
+    </li>
+    <li>
+      <code>AWS-TLS-1-2-2017-01</code>
+    </li>
+    <li>
+      <code>AWS-TLS-1-1-2017-01</code>
+    </li>
+    <li>
+      <code>AWS-2016-08</code>
+    </li>
+  </ul>
+</details>
+<details>
+  <summary>AWS Classic ELB security policies</summary>
+  <ul>
+     <li>
+      <code>AWS-2015-05</code>
+    </li>
+    <li>
+      <code>AWS-2015-03</code>
+    </li>
+    <li>
+      <code>AWS-2015-02</code>
+    </li>
+  </ul>
+</details>
+</br>
 
 Note that the `Mozilla-Old` policy should use a 1024 bits DH key for compatibility but this container provides a 4096 bits key. The [Diffie-Hellman Groups](#diffie-hellman-groups) section details different methods of bypassing this, either globally or per virtual-host.
 
