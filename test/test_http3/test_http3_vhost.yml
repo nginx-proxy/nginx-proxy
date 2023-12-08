@@ -1,0 +1,33 @@
+services:
+  http3-vhost-enabled:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: http3-vhost-enabled.nginx-proxy.tld
+    labels:
+      com.github.nginx-proxy.nginx-proxy.http3.enable: "true"
+
+  http3-vhost-disabled:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: http3-vhost-disabled.nginx-proxy.tld
+    labels:
+      com.github.nginx-proxy.nginx-proxy.http3.enable: "false"
+
+  http3-vhost-default-disabled:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: http3-vhost-default-disabled.nginx-proxy.tld
+
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro

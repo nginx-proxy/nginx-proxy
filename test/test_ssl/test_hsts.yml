@@ -34,6 +34,16 @@ web4:
     HSTS: "off"
     HTTPS_METHOD: "noredirect"
 
+web5:
+  image: web
+  expose:
+    - "81"
+  environment:
+    WEB_PORTS: "81"
+    VIRTUAL_HOST: http3-vhost-enabled.nginx-proxy.tld
+  labels:
+    com.github.nginx-proxy.nginx-proxy.http3.enable: "true"
+
 sut:
   image: nginxproxy/nginx-proxy:test
   volumes:
