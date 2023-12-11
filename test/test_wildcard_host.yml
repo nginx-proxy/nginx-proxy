@@ -28,7 +28,7 @@ web4:
     - "84"
   environment:
     WEB_PORTS: "84"
-    VIRTUAL_HOST: ~^web4\..*\.nginx-proxy\.regexp$$ # we need to double the `$` because of docker-compose variable interpolation
+    VIRTUAL_HOST: ~^web4\..*\.nginx-proxy\.regexp$$ # we need to double the `$` because of docker compose variable interpolation
 
 
 sut:
