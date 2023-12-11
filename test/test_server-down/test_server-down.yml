@@ -8,7 +8,7 @@ services:
     environment:
       WEB_PORTS: 81
       VIRTUAL_HOST: web.nginx-proxy.tld
-    net: "none"
+    network_mode: "none"
 
   sut:
     image: nginxproxy/nginx-proxy:test
