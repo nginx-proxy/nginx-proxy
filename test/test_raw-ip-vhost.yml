@@ -1,4 +1,4 @@
-version: '2'
+version: "2"
 
 networks:
   net1:
@@ -6,7 +6,7 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/16
-        - subnet: fd00::/80  
+        - subnet: fd00::/80
 
 services:
   web1:

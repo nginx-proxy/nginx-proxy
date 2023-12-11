@@ -1,3 +1,5 @@
+version: "2"
+
 services:
   sut:
     image: nginxproxy/nginx-proxy:test
@@ -6,6 +8,7 @@ services:
       - ./withdefault.certs:/etc/nginx/certs:ro
     environment:
       HTTPS_METHOD: nohttp
+
   https-only:
     image: web
     expose:
@@ -13,6 +16,7 @@ services:
     environment:
       WEB_PORTS: "82"
       VIRTUAL_HOST: https-only.nginx-proxy.test
+
   missing-cert:
     image: web
     expose:

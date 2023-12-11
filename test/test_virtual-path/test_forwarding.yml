@@ -1,17 +1,20 @@
-web1:
-  image: web
-  expose:
-    - "81"
-  environment:
-    WEB_PORTS: "81"
-    VIRTUAL_HOST: "www.nginx-proxy.tld"
-    VIRTUAL_PATH: "/web1/"
-    VIRTUAL_DEST: "/"
+version: "2"
 
-sut:
-  image: nginxproxy/nginx-proxy:test
-  volumes:
-    - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ./certs:/etc/nginx/certs:ro
-  environment:
-    - DEFAULT_ROOT=301 http://$$host/web1$$request_uri
+services:
+  web1:
+    image: web
+    expose:
+      - "81"
+    environment:
+      WEB_PORTS: "81"
+      VIRTUAL_HOST: "www.nginx-proxy.tld"
+      VIRTUAL_PATH: "/web1/"
+      VIRTUAL_DEST: "/"
+
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs:/etc/nginx/certs:ro
+    environment:
+      - DEFAULT_ROOT=301 http://$$host/web1$$request_uri

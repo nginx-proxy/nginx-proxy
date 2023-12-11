@@ -1,9 +1,12 @@
+version: "2"
+
 services:
   sut:
     image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./nodefault.certs:/etc/nginx/certs:ro
+
   https-and-http:
     image: web
     expose:
@@ -11,6 +14,7 @@ services:
     environment:
       WEB_PORTS: "81"
       VIRTUAL_HOST: https-and-http.nginx-proxy.test
+
   https-only:
     image: web
     expose:
@@ -19,6 +23,7 @@ services:
       WEB_PORTS: "82"
       VIRTUAL_HOST: https-only.nginx-proxy.test
       HTTPS_METHOD: nohttp
+
   http-only:
     image: web
     expose:
@@ -27,6 +32,7 @@ services:
       WEB_PORTS: "83"
       VIRTUAL_HOST: http-only.nginx-proxy.test
       HTTPS_METHOD: nohttps
+
   missing-cert:
     image: web
     expose:

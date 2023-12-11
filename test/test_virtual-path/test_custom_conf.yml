@@ -1,48 +1,49 @@
+version: "2"
 
-foo:
-  image: web
-  expose:
-    - "42"
-  environment:
-    WEB_PORTS: "42"
-    VIRTUAL_HOST: "foo.nginx-proxy.test"
+services:
+  foo:
+    image: web
+    expose:
+      - "42"
+    environment:
+      WEB_PORTS: "42"
+      VIRTUAL_HOST: "foo.nginx-proxy.test"
 
-web1:
-  image: web
-  expose:
-    - "81"
-  environment:
-    WEB_PORTS: "81"
-    VIRTUAL_HOST: "nginx-proxy.test"
-    VIRTUAL_PATH: "/web1/"
-    VIRTUAL_DEST: "/"
+  web1:
+    image: web
+    expose:
+      - "81"
+    environment:
+      WEB_PORTS: "81"
+      VIRTUAL_HOST: "nginx-proxy.test"
+      VIRTUAL_PATH: "/web1/"
+      VIRTUAL_DEST: "/"
 
-web2:
-  image: web
-  expose:
-    - "82"
-  environment:
-    WEB_PORTS: "82"
-    VIRTUAL_HOST: "nginx-proxy.test"
-    VIRTUAL_PATH: "/web2/"
-    VIRTUAL_DEST: "/"
+  web2:
+    image: web
+    expose:
+      - "82"
+    environment:
+      WEB_PORTS: "82"
+      VIRTUAL_HOST: "nginx-proxy.test"
+      VIRTUAL_PATH: "/web2/"
+      VIRTUAL_DEST: "/"
 
-web3:
-  image: web
-  expose:
-    - "83"
-  environment:
-    WEB_PORTS: "83"
-    VIRTUAL_HOST: "nginx-proxy.test"
-    VIRTUAL_PATH: "~ ^/(web3|alt)/"
+  web3:
+    image: web
+    expose:
+      - "83"
+    environment:
+      WEB_PORTS: "83"
+      VIRTUAL_HOST: "nginx-proxy.test"
+      VIRTUAL_PATH: "~ ^/(web3|alt)/"
 
-sut:
-  image: nginxproxy/nginx-proxy:test
-  environment:
-    DEFAULT_ROOT: 418
-  volumes:
-    - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ./foo.conf:/etc/nginx/vhost.d/foo.nginx-proxy.test:ro
-    - ./bar.conf:/etc/nginx/vhost.d/nginx-proxy.test_918d687a929083edd0c7224ee2293e0e7c062ab4_location:ro
-    - ./alternate.conf:/etc/nginx/vhost.d/nginx-proxy.test_7fb22b74bbdf907425dbbad18e4462565cada230_location:ro
-
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    environment:
+      DEFAULT_ROOT: 418
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./foo.conf:/etc/nginx/vhost.d/foo.nginx-proxy.test:ro
+      - ./bar.conf:/etc/nginx/vhost.d/nginx-proxy.test_918d687a929083edd0c7224ee2293e0e7c062ab4_location:ro
+      - ./alternate.conf:/etc/nginx/vhost.d/nginx-proxy.test_7fb22b74bbdf907425dbbad18e4462565cada230_location:ro

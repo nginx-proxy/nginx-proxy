@@ -1,3 +1,5 @@
+version: "2"
+
 services:
   sut:
     image: nginxproxy/nginx-proxy:test
@@ -5,6 +7,7 @@ services:
       - /var/run/docker.sock:/tmp/docker.sock:ro
     environment:
       HTTPS_METHOD: nohttps
+
   http-only:
     image: web
     expose:

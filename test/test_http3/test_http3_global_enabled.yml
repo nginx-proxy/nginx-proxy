@@ -1,3 +1,5 @@
+version: "2"
+
 services:
   http3-global-enabled:
     image: web

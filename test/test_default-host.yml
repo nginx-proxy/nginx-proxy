@@ -1,17 +1,19 @@
-# GIVEN a webserver with VIRTUAL_HOST set to web1.tld
-web1:
-  image: web
-  expose:
-    - "81"
-  environment:
-    WEB_PORTS: 81
-    VIRTUAL_HOST: web1.tld
+version: "2"
 
+services:
+  # GIVEN a webserver with VIRTUAL_HOST set to web1.tld
+  web1:
+    image: web
+    expose:
+      - "81"
+    environment:
+      WEB_PORTS: 81
+      VIRTUAL_HOST: web1.tld
 
-# WHEN nginx-proxy runs with DEFAULT_HOST set to web1.tld
-sut:
-  image: nginxproxy/nginx-proxy:test
-  volumes:
-    - /var/run/docker.sock:/tmp/docker.sock:ro
-  environment:
-    DEFAULT_HOST: web1.tld
+  # WHEN nginx-proxy runs with DEFAULT_HOST set to web1.tld
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    environment:
+      DEFAULT_HOST: web1.tld
