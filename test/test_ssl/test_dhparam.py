@@ -3,7 +3,6 @@ import subprocess
 
 import backoff
 import docker
-import pprint
 import pytest
 
 docker_client = docker.from_env()
