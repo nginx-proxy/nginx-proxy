@@ -3,6 +3,7 @@ import subprocess
 
 import backoff
 import docker
+import pprint
 import pytest
 
 docker_client = docker.from_env()
@@ -60,7 +61,8 @@ def require_openssl(required_version):
 
 @require_openssl("1.0.2")
 def negotiate_cipher(sut_container, additional_params='', grep='Cipher is'):
-    host = f"{sut_container.attrs['NetworkSettings']['IPAddress']}:443"
+    sut_container.reload()
+    host = f"{sut_container.attrs['NetworkSettings']['Networks']['test_ssl_default']['IPAddress']}:443"
 
     try:
         # Enforce TLS 1.2 as newer versions don't support custom dhparam or ciphersuite preference.
@@ -77,7 +79,7 @@ def negotiate_cipher(sut_container, additional_params='', grep='Cipher is'):
     except subprocess.CalledProcessError as e:
         # Output a more helpful error, the original exception in this case isn't that helpful.
         # `from None` to ignore undesired output from exception chaining.
-        raise Exception("Failed to process CLI request:\n" + e.stderr) from None
+        raise Exception(f"Failed to process CLI request openssl s_client -connect {host} -tls1_2 {additional_params}:\n" + e.stderr) from None
 
 
 # The default `dh_bits` can vary due to configuration.

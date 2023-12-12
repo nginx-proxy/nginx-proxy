@@ -1,26 +1,28 @@
-web1:
-  image: web
-  expose:
-    - "81"
-  environment:
-    WEB_PORTS: "81"
-    VIRTUAL_HOST: "www.nginx-proxy.tld"
-    VIRTUAL_PATH: "/web1/"
-    VIRTUAL_DEST: "/"
+version: "2"
 
-web2:
-  image: web
-  expose:
-    - "82"
-  environment:
-    WEB_PORTS: "82"
-    VIRTUAL_HOST: "www.nginx-proxy.tld"
-    VIRTUAL_PATH: "/web2/"
-    VIRTUAL_DEST: "/"
+services:
+  web1:
+    image: web
+    expose:
+      - "81"
+    environment:
+      WEB_PORTS: "81"
+      VIRTUAL_HOST: "www.nginx-proxy.tld"
+      VIRTUAL_PATH: "/web1/"
+      VIRTUAL_DEST: "/"
 
-sut:
-  image: nginxproxy/nginx-proxy:test
-  volumes:
-    - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ./certs:/etc/nginx/certs:ro
+  web2:
+    image: web
+    expose:
+      - "82"
+    environment:
+      WEB_PORTS: "82"
+      VIRTUAL_HOST: "www.nginx-proxy.tld"
+      VIRTUAL_PATH: "/web2/"
+      VIRTUAL_DEST: "/"
 
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs:/etc/nginx/certs:ro

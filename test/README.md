@@ -48,11 +48,11 @@ This test suite uses [pytest](http://doc.pytest.org/en/latest/). The [conftest.p
 
 When using the `docker_compose` fixture in a test, pytest will try to find a yml file named after your test module filename. For instance, if your test module is `test_example.py`, then the `docker_compose` fixture will try to load a `test_example.yml` [docker compose file](https://docs.docker.com/compose/compose-file/).
 
-Once the docker compose file found, the fixture will remove all containers, run `docker-compose up`, and finally your test will be executed.
+Once the docker compose file found, the fixture will remove all containers, run `docker compose up`, and finally your test will be executed.
 
-The fixture will run the _docker-compose_ command with the `-f` option to load the given compose file. So you can test your docker compose file syntax by running it yourself with:
+The fixture will run the _docker compose_ command with the `-f` option to load the given compose file. So you can test your docker compose file syntax by running it yourself with:
 
-    docker-compose -f test_example.yml up -d
+    docker compose -f test_example.yml up -d
 
 In the case you are running pytest from within a docker container, the `docker_compose` fixture will make sure the container running pytest is attached to all docker networks. That way, your test will be able to reach any of them.
 

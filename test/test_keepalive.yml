@@ -1,25 +1,27 @@
-keepalive-disabled:
-  image: web
-  expose:
-    - "80"
-  environment:
-    WEB_PORTS: 80
-    VIRTUAL_HOST: keepalive-disabled.nginx-proxy.test
+version: "2"
 
-keepalive-enabled:
-  image: web
-  expose:
-    - "80"
-  environment:
-    WEB_PORTS: 80
-    VIRTUAL_HOST: keepalive-enabled.nginx-proxy.test
-  labels:
-    com.github.nginx-proxy.nginx-proxy.keepalive: "64"
+services:
+  keepalive-disabled:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: keepalive-disabled.nginx-proxy.test
 
+  keepalive-enabled:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: keepalive-enabled.nginx-proxy.test
+    labels:
+      com.github.nginx-proxy.nginx-proxy.keepalive: "64"
 
-sut:
-  image: nginxproxy/nginx-proxy:test
-  volumes:
-    - /var/run/docker.sock:/tmp/docker.sock:ro
-  environment:
-    HTTPS_METHOD: nohttps
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    environment:
+      HTTPS_METHOD: nohttps

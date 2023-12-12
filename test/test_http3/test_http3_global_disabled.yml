@@ -1,3 +1,5 @@
+version: "2"
+
 services:
   http3-global-disabled:
     image: web
@@ -12,4 +14,4 @@ services:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
     #environment:
-      #ENABLE_HTTP3: "false"    #Disabled by default
+    #ENABLE_HTTP3: "false"    #Disabled by default

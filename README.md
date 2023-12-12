@@ -73,7 +73,7 @@ services:
 ```
 
 ```console
-docker-compose up
+docker compose up
 curl -H "Host: whoami.example" localhost
 ```
 
@@ -259,10 +259,10 @@ nginx-proxy can also be run as two separate containers using the [nginxproxy/doc
 
 You may want to do this to prevent having the docker socket bound to a publicly exposed container service.
 
-You can demo this pattern with docker-compose:
+You can demo this pattern with docker compose:
 
 ```console
-docker-compose --file docker-compose-separate-containers.yml up
+docker compose --file docker-compose-separate-containers.yml up
 curl -H "Host: whoami.example" localhost
 ```
 

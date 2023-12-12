@@ -1,9 +1,12 @@
+version: "2"
+
 services:
   sut:
     image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./custom-fallback.conf:/etc/nginx/conf.d/zzz-custom-fallback.conf:ro
+
   http-only:
     image: web
     expose:

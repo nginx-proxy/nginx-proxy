@@ -1,8 +1,11 @@
+version: "2"
+
 services:
   sut:
     image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+
   web1:
     image: web
     expose:
@@ -11,6 +14,7 @@ services:
       WEB_PORTS: "81"
       # The space is intentional (should be trimmed).
       VIRTUAL_HOST: " "
+
   web2:
     image: web
     expose:
@@ -19,6 +23,7 @@ services:
       WEB_PORTS: "82"
       # The space is intentional (should be trimmed).
       VIRTUAL_HOST: "web2.nginx-proxy.test ,"
+
   web3:
     image: web
     expose:
@@ -27,6 +32,7 @@ services:
       WEB_PORTS: "83"
       # The space is intentional (should be trimmed).
       VIRTUAL_HOST: " ,web3.nginx-proxy.test"
+
   web4:
     image: web
     expose:

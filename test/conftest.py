@@ -301,19 +301,19 @@ def get_nginx_conf_from_container(container):
 
 
 def docker_compose_up(compose_file='docker-compose.yml'):
-    logging.info(f'docker-compose -f {compose_file} up -d')
+    logging.info(f'docker compose -f {compose_file} up -d')
     try:
-        subprocess.check_output(shlex.split(f'docker-compose -f {compose_file} up -d'), stderr=subprocess.STDOUT)
+        subprocess.check_output(shlex.split(f'docker compose -f {compose_file} up -d'), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        pytest.fail(f"Error while runninng 'docker-compose -f {compose_file} up -d':\n{e.output}", pytrace=False)
+        pytest.fail(f"Error while runninng 'docker compose -f {compose_file} up -d':\n{e.output}", pytrace=False)
 
 
 def docker_compose_down(compose_file='docker-compose.yml'):
-    logging.info(f'docker-compose -f {compose_file} down -v')
+    logging.info(f'docker compose -f {compose_file} down -v')
     try:
-        subprocess.check_output(shlex.split(f'docker-compose -f {compose_file} down -v'), stderr=subprocess.STDOUT)
+        subprocess.check_output(shlex.split(f'docker compose -f {compose_file} down -v'), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        pytest.fail(f"Error while runninng 'docker-compose -f {compose_file} down -v':\n{e.output}", pytrace=False)
+        pytest.fail(f"Error while runninng 'docker compose -f {compose_file} down -v':\n{e.output}", pytrace=False)
 
 
 def wait_for_nginxproxy_to_be_ready():
@@ -333,7 +333,7 @@ def wait_for_nginxproxy_to_be_ready():
 
 @pytest.fixture
 def docker_compose_file(request):
-    """Fixture naming the docker-compose file to consider.
+    """Fixture naming the docker compose file to consider.
 
     If a YAML file exists with the same name as the test module (with the `.py` extension replaced
     with `.yml` or `.yaml`), use that.  Otherwise, use `docker-compose.yml` in the same directory
@@ -354,7 +354,7 @@ def docker_compose_file(request):
         docker_compose_file = default_file
 
     if not os.path.isfile(docker_compose_file):
-        logging.error("Could not find any docker-compose file named either '{0}.yml', '{0}.yaml' or 'docker-compose.yml'".format(request.module.__name__))
+        logging.error("Could not find any docker compose file named either '{0}.yml', '{0}.yaml' or 'docker-compose.yml'".format(request.module.__name__))
 
     logging.debug(f"using docker compose file {docker_compose_file}")
     return docker_compose_file

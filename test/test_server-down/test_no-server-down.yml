@@ -1,12 +1,15 @@
-web:
-  image: web
-  expose:
-    - "81"
-  environment:
-    WEB_PORTS: 81
-    VIRTUAL_HOST: web.nginx-proxy.tld
+version: "2"
 
-sut:
-  image: nginxproxy/nginx-proxy:test
-  volumes:
-    - /var/run/docker.sock:/tmp/docker.sock:ro
+services:
+  web:
+    image: web
+    expose:
+      - "81"
+    environment:
+      WEB_PORTS: 81
+      VIRTUAL_HOST: web.nginx-proxy.tld
+
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro

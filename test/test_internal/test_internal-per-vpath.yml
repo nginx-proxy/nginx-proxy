@@ -1,27 +1,29 @@
-web1:
-  image: web
-  expose:
-    - "81"
-  environment:
-    WEB_PORTS: 81
-    VIRTUAL_HOST: nginx-proxy.example
-    VIRTUAL_PATH: /web1/
-    VIRTUAL_DEST: /
-    NETWORK_ACCESS: internal
+version: "2"
 
-web2:
-  image: web
-  expose:
-    - "82"
-  environment:
-    WEB_PORTS: 82
-    VIRTUAL_HOST: nginx-proxy.example
-    VIRTUAL_PATH: /web2/
-    VIRTUAL_DEST: /
+services:
+  web1:
+    image: web
+    expose:
+      - "81"
+    environment:
+      WEB_PORTS: 81
+      VIRTUAL_HOST: nginx-proxy.example
+      VIRTUAL_PATH: /web1/
+      VIRTUAL_DEST: /
+      NETWORK_ACCESS: internal
 
-sut:
-  image: nginxproxy/nginx-proxy:test
-  volumes:
-    - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ./network_internal.conf:/etc/nginx/network_internal.conf:ro
+  web2:
+    image: web
+    expose:
+      - "82"
+    environment:
+      WEB_PORTS: 82
+      VIRTUAL_HOST: nginx-proxy.example
+      VIRTUAL_PATH: /web2/
+      VIRTUAL_DEST: /
 
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./network_internal.conf:/etc/nginx/network_internal.conf:ro

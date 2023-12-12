@@ -1,4 +1,4 @@
-version: '2'
+version: "2"
 
 networks:
   net1:
@@ -27,7 +27,6 @@ services:
       VIRTUAL_HOST: web2.nginx-proxy.tld
     networks:
       - net1
-
 
   sut:
     image: nginxproxy/nginx-proxy:test

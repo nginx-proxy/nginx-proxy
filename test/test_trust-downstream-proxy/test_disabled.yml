@@ -1,18 +1,20 @@
-web:
-  image: web
-  expose:
-    - "80"
-  environment:
-    WEB_PORTS: 80
-    VIRTUAL_HOST: web.nginx-proxy.tld
-    HTTPS_METHOD: noredirect
+version: "2"
 
+services:
+  web:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: web.nginx-proxy.tld
+      HTTPS_METHOD: noredirect
 
-sut:
-  image: nginxproxy/nginx-proxy:test
-  environment:
-    TRUST_DOWNSTREAM_PROXY: "false"
-  volumes:
-    - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ./certs/web.nginx-proxy.tld.crt:/etc/nginx/certs/web.nginx-proxy.tld.crt:ro
-    - ./certs/web.nginx-proxy.tld.key:/etc/nginx/certs/web.nginx-proxy.tld.key:ro
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    environment:
+      TRUST_DOWNSTREAM_PROXY: "false"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs/web.nginx-proxy.tld.crt:/etc/nginx/certs/web.nginx-proxy.tld.crt:ro
+      - ./certs/web.nginx-proxy.tld.key:/etc/nginx/certs/web.nginx-proxy.tld.key:ro

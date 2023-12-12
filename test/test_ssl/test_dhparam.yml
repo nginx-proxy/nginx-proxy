@@ -1,73 +1,75 @@
-web5:
-  image: web
-  expose:
-    - "85"
-  environment:
-    WEB_PORTS: "85"
-    VIRTUAL_HOST: "web5.nginx-proxy.tld"
+version: "2"
 
-# Intended for testing with `dh-file` container.
-# VIRTUAL_HOST is paired with site-specific DH param file.
-# DEFAULT_HOST is required to avoid defaulting to web2,
-# if not specifying FQDN (`-servername`) in openssl queries.
-web2:
-  image: web
-  expose:
-    - "85"
-  environment:
-    WEB_PORTS: "85"
-    VIRTUAL_HOST: "web2.nginx-proxy.tld"
+services:
+  web5:
+    image: web
+    expose:
+      - "85"
+    environment:
+      WEB_PORTS: "85"
+      VIRTUAL_HOST: "web5.nginx-proxy.tld"
 
+  # Intended for testing with `dh-file` container.
+  # VIRTUAL_HOST is paired with site-specific DH param file.
+  # DEFAULT_HOST is required to avoid defaulting to web2,
+  # if not specifying FQDN (`-servername`) in openssl queries.
+  web2:
+    image: web
+    expose:
+      - "85"
+    environment:
+      WEB_PORTS: "85"
+      VIRTUAL_HOST: "web2.nginx-proxy.tld"
 
-# sut - System Under Test
-# `docker.sock` required for functionality
-# `certs` required to enable HTTPS via template
-with_default_group:
-  container_name: dh-default
-  image: &img-nginxproxy nginxproxy/nginx-proxy:test
-  environment: &env-common
-    - &default-host DEFAULT_HOST=web5.nginx-proxy.tld
-  volumes: &vols-common
-    - &docker-sock /var/run/docker.sock:/tmp/docker.sock:ro
-    - &nginx-certs ./certs:/etc/nginx/certs:ro
+  # sut - System Under Test
+  # `docker.sock` required for functionality
+  # `certs` required to enable HTTPS via template
+  with_default_group:
+    container_name: dh-default
+    image: &img-nginxproxy nginxproxy/nginx-proxy:test
+    environment: &env-common
+      - &default-host DEFAULT_HOST=web5.nginx-proxy.tld
+    volumes: &vols-common
+      - &docker-sock /var/run/docker.sock:/tmp/docker.sock:ro
+      - &nginx-certs ./certs:/etc/nginx/certs:ro
 
-with_alternative_group:
-  container_name: dh-env
-  environment:
-    - DHPARAM_BITS=3072
-    - *default-host
-  image: *img-nginxproxy
-  volumes: *vols-common
+  with_alternative_group:
+    container_name: dh-env
+    environment:
+      - DHPARAM_BITS=3072
+      - *default-host
+    image: *img-nginxproxy
+    volumes: *vols-common
 
-with_invalid_group:
-  container_name: invalid-group-1024
-  environment:
-    - DHPARAM_BITS=1024
-    - *default-host
-  image: *img-nginxproxy
-  volumes: *vols-common
+  with_invalid_group:
+    container_name: invalid-group-1024
+    environment:
+      - DHPARAM_BITS=1024
+      - *default-host
+    image: *img-nginxproxy
+    volumes: *vols-common
 
-with_custom_file:
-  container_name: dh-file
-  image: *img-nginxproxy
-  environment: *env-common
-  volumes:
-    - *docker-sock
-    - *nginx-certs
-    - ../../app/dhparam/ffdhe3072.pem:/etc/nginx/dhparam/dhparam.pem:ro
+  with_custom_file:
+    container_name: dh-file
+    image: *img-nginxproxy
+    environment: *env-common
+    volumes:
+      - *docker-sock
+      - *nginx-certs
+      - ../../app/dhparam/ffdhe3072.pem:/etc/nginx/dhparam/dhparam.pem:ro
 
-with_skip:
-  container_name: dh-skip
-  environment:
-    - DHPARAM_SKIP=true
-    - *default-host
-  image: *img-nginxproxy
-  volumes: *vols-common
+  with_skip:
+    container_name: dh-skip
+    environment:
+      - DHPARAM_SKIP=true
+      - *default-host
+    image: *img-nginxproxy
+    volumes: *vols-common
 
-with_skip_backward:
-  container_name: dh-skip-backward
-  environment:
-    - DHPARAM_GENERATION=false
-    - *default-host
-  image: *img-nginxproxy
-  volumes: *vols-common
+  with_skip_backward:
+    container_name: dh-skip-backward
+    environment:
+      - DHPARAM_GENERATION=false
+      - *default-host
+    image: *img-nginxproxy
+    volumes: *vols-common
