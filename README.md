@@ -601,6 +601,35 @@ The default for `TRUST_DOWNSTREAM_PROXY` may change to `false` in a future versi
 
 If you need to configure Nginx beyond what is possible using environment variables, you can provide custom configuration files on either a proxy-wide or per-`VIRTUAL_HOST` basis.
 
+#### TCP and UDP stream support
+
+If you want to proxy non-HTTP traffic, you can use nginx's stream module. Write a configuration file and mount it to `/etc/nginx/toplevel.conf.d`.
+
+```Nginx
+# stream.conf
+stream {
+
+    server {
+        listen     12345;
+        #TCP traffic will be forwarded to the "stream_backend" upstream group
+        proxy_pass stream_backend;
+    }
+
+    server {
+        listen     12346;
+        #TCP traffic will be forwarded to the specified server
+        proxy_pass backend.example.com:12346;
+    }
+
+    server {
+        listen     53 udp;
+        #UDP traffic will be forwarded to the "dns_servers" upstream group
+        proxy_pass dns_servers;
+    }
+    # ...
+}
+```
+
 #### Replacing default proxy settings
 
 If you want to replace the default proxy settings for the nginx container, add a configuration file at `/etc/nginx/proxy.conf`. A file with the default settings would look like this:
