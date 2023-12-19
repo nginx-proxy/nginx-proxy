@@ -26,6 +26,7 @@ CA_ROOT_CERTIFICATE = os.path.join(os.path.dirname(__file__), 'certs/ca-root.crt
 PYTEST_RUNNING_IN_CONTAINER = os.environ.get('PYTEST_RUNNING_IN_CONTAINER') == "1"
 FORCE_CONTAINER_IPV6 = False  # ugly global state to consider containers' IPv6 address instead of IPv4
 
+DOCKER_COMPOSE = os.environ.get('DOCKER_COMPOSE', 'docker compose')
 
 docker_client = docker.from_env()
 
@@ -301,19 +302,19 @@ def get_nginx_conf_from_container(container):
 
 
 def docker_compose_up(compose_file='docker-compose.yml'):
-    logging.info(f'docker compose -f {compose_file} up -d')
+    logging.info(f'{DOCKER_COMPOSE} -f {compose_file} up -d')
     try:
-        subprocess.check_output(shlex.split(f'docker compose -f {compose_file} up -d'), stderr=subprocess.STDOUT)
+        subprocess.check_output(shlex.split(f'{DOCKER_COMPOSE} -f {compose_file} up -d'), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        pytest.fail(f"Error while runninng 'docker compose -f {compose_file} up -d':\n{e.output}", pytrace=False)
+        pytest.fail(f"Error while runninng '{DOCKER_COMPOSE} -f {compose_file} up -d':\n{e.output}", pytrace=False)
 
 
 def docker_compose_down(compose_file='docker-compose.yml'):
-    logging.info(f'docker compose -f {compose_file} down -v')
+    logging.info(f'{DOCKER_COMPOSE} -f {compose_file} down -v')
     try:
-        subprocess.check_output(shlex.split(f'docker compose -f {compose_file} down -v'), stderr=subprocess.STDOUT)
+        subprocess.check_output(shlex.split(f'{DOCKER_COMPOSE} -f {compose_file} down -v'), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        pytest.fail(f"Error while runninng 'docker compose -f {compose_file} down -v':\n{e.output}", pytrace=False)
+        pytest.fail(f"Error while runninng '{DOCKER_COMPOSE} -f {compose_file} down -v':\n{e.output}", pytrace=False)
 
 
 def wait_for_nginxproxy_to_be_ready():
