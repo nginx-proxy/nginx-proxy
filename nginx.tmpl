@@ -75,7 +75,7 @@
                 {{- continue }}
             {{- end }}
             {{- range sortObjectsByKeysAsc $.globals.CurrentContainer.Networks "Name" }}
-                {{- if and . .Gateway }}
+                {{- if and . .Gateway (not .Internal) }}
     #         container is in host network mode, using {{ .Name }} gateway IP
                     {{- $ip = .Gateway }}
                     {{- break }}
