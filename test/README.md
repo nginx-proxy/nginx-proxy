@@ -28,6 +28,9 @@ need more verbosity ?
 
     pytest -s
 
+Note: By default this test suite relies on Docker Compose v2 with the command `docker compose`. It still supports Docker Compose v1 via the `DOCKER_COMPOSE` environment variable:
+
+    DOCKER_COMPOSE=docker-compose pytest
 
 Run one single test module
 --------------------------
