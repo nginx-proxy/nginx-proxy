@@ -46,7 +46,7 @@ def test_https_web_is_200(docker_compose, nginxproxy):
 def test_delete_cert_and_restart_reverseproxy(docker_compose):
     os.remove(join(script_dir, "tmp_certs", "web.nginx-proxy.crt"))
     docker_compose.containers.get("reverseproxy").restart()
-    sleep(3)  # give time for the container to initialize
+    sleep(5)  # give time for the container to initialize
     assert "running" == docker_compose.containers.get("reverseproxy").status
 
 
