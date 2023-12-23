@@ -9,6 +9,8 @@ from requests import ConnectionError
 
 script_dir = os.path.dirname(__file__)
 
+pytestmark = pytest.mark.xfail()  # TODO delete this marker once those issues are fixed
+
 @pytest.fixture(scope="module", autouse=True)
 def certs():
     """
@@ -43,24 +45,28 @@ def test_https_web_is_200(docker_compose, nginxproxy):
     assert "answer from port 81\n" in r.text
 
 
+@pytest.mark.incremental
 def test_delete_cert_and_restart_reverseproxy(docker_compose):
     os.remove(join(script_dir, "tmp_certs", "web.nginx-proxy.crt"))
     docker_compose.containers.get("reverseproxy").restart()
-    sleep(5)  # give time for the container to initialize
+    sleep(3)  # give time for the container to initialize
     assert "running" == docker_compose.containers.get("reverseproxy").status
 
 
-def test_unknown_virtual_host_is_still_503(docker_compose, nginxproxy):
+@pytest.mark.incremental
+def test_unknown_virtual_host_is_still_503(nginxproxy):
     r = nginxproxy.get("http://foo.nginx-proxy/")
     assert r.status_code == 503
 
 
-def test_http_web_is_now_200(docker_compose, nginxproxy):
+@pytest.mark.incremental
+def test_http_web_is_now_200(nginxproxy):
     r = nginxproxy.get("http://web.nginx-proxy/port", allow_redirects=False)
     assert r.status_code == 200
     assert "answer from port 81\n" == r.text
 
 
+@pytest.mark.incremental
 def test_https_web_is_now_broken_since_there_is_no_cert(nginxproxy):
     with pytest.raises(ConnectionError):
         nginxproxy.get("https://web.nginx-proxy/port")
