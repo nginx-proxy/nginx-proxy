@@ -1,0 +1,42 @@
+version: '2'
+
+services:
+  web1:
+    container_name: web1
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: web1.nginx-proxy.test
+  web2:
+    container_name: web2
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: web23.nginx-proxy.test
+  web3:
+    container_name: web3
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: web23.nginx-proxy.test
+  web4:
+    container_name: web4
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: web4a.nginx-proxy.test,web4b.nginx-proxy.test
+
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    environment:
+      UPSTREAM_NAME_STYLE: container-name
