@@ -14,16 +14,10 @@ ENV NGINX_PROXY_VERSION=${NGINX_PROXY_VERSION} \
    DOCKER_HOST=unix:///tmp/docker.sock
 
 # Install dependencies
-RUN apk add --no-cache --virtual .run-deps \
-   bash \
-   ca-certificates \
-   openssl \
-   && update-ca-certificates
+RUN apk add --no-cache --virtual .run-deps bash
 
 # Configure Nginx
-RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
-   && sed -i 's/worker_processes  1/worker_processes  auto/' /etc/nginx/nginx.conf \
-   && sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf \
+RUN sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf \
    && mkdir -p '/etc/nginx/dhparam'
 
 # Install Forego + docker-gen
