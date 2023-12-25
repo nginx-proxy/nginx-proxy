@@ -117,5 +117,3 @@ if [[ $* == 'forego start -r' ]]; then
 		EOT
 	fi
 fi
-
-exec "$@"

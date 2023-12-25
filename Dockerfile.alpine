@@ -21,7 +21,7 @@ RUN apk add --no-cache --virtual .run-deps \
    && update-ca-certificates
 
 # Configure Nginx
-RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
+RUN sed -i 's/\[ "\$1" = "nginx" \]/\[ "\$1" = "forego" \] || \[ "\$1" = "nginx" \]/' /docker-entrypoint.sh \
    && sed -i 's/worker_processes  1/worker_processes  auto/' /etc/nginx/nginx.conf \
    && sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf \
    && mkdir -p '/etc/nginx/dhparam'
@@ -31,9 +31,9 @@ COPY --from=forego /usr/local/bin/forego /usr/local/bin/forego
 COPY --from=docker-gen /usr/local/bin/docker-gen /usr/local/bin/docker-gen
 
 COPY network_internal.conf /etc/nginx/
+COPY app/40-nginx-proxy.sh /docker-entrypoint.d/
 
 COPY app nginx.tmpl LICENSE /app/
 WORKDIR /app/
 
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]
