@@ -674,6 +674,18 @@ By default the nginx configuration `upstream` blocks will use this block's corre
 
 Please note that using regular expressions in `VIRTUAL_HOST` will always result in a corresponding `upstream` block with an SHA1 name.
 
+### Disabling colors in the log output
+
+To remove colors from the log output, set the [`NO_COLOR` environment variable to any value other than an empty string](https://no-color.org/) on the nginx-proxy container.
+
+```console
+docker run --detach \
+  --publish 80:80 \
+  --env NO_COLOR=1 \
+  --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+  nginxproxy/nginx-proxy
+```
+
 ### Troubleshooting
 
 If you can't access your `VIRTUAL_HOST`, inspect the generated nginx configuration:
