@@ -13,12 +13,6 @@ ENV NGINX_PROXY_VERSION=${NGINX_PROXY_VERSION} \
    DOCKER_GEN_VERSION=${DOCKER_GEN_VERSION} \
    DOCKER_HOST=unix:///tmp/docker.sock
 
-# Install/update certificates
-RUN apt-get update \
-   && apt-get install -y -q --no-install-recommends ca-certificates \
-   && apt-get clean \
-   && rm -r /var/lib/apt/lists/*
-
 # Configure Nginx
 RUN sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf \
    && mkdir -p '/etc/nginx/dhparam'
