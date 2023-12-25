@@ -556,7 +556,6 @@ If you want to replace the default proxy settings for the nginx container, add a
 ```Nginx
 # HTTP 1.1 support
 proxy_http_version 1.1;
-proxy_buffering off;
 proxy_set_header Host $http_host;
 proxy_set_header Upgrade $http_upgrade;
 proxy_set_header Connection $proxy_connection;
