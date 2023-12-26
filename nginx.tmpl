@@ -291,7 +291,6 @@
 
 {{- define "upstream" }}
 upstream {{ .Upstream }} {
-    {{- $server_found := false }}
     {{- $servers := 0 }}
     {{- $loadbalance := first (keys (groupByLabel .Containers "com.github.nginx-proxy.nginx-proxy.loadbalance")) }}
     {{- if $loadbalance }}
@@ -307,13 +306,12 @@ upstream {{ .Upstream }} {
         {{- template "container_port" $args }}
         {{- $port := $args.port }}
         {{- if $ip }}
-            {{- $server_found = true }}
             {{- $servers = add1 $servers }}
     server {{ $ip }}:{{ $port }};
         {{- end }}
     {{- end }}
     {{- /* nginx-proxy/nginx-proxy#1105 */}}
-    {{- if not $server_found }}
+    {{- if lt $servers 1 }}
     # Fallback entry
     server 127.0.0.1 down;
     {{- end }}
