@@ -292,6 +292,7 @@
 {{- define "upstream" }}
 upstream {{ .Upstream }} {
     {{- $server_found := false }}
+    {{- $servers := 0 }}
     {{- $loadbalance := first (keys (groupByLabel .Containers "com.github.nginx-proxy.nginx-proxy.loadbalance")) }}
     {{- if $loadbalance }}
     # From the container's loadbalance label:
@@ -307,6 +308,7 @@ upstream {{ .Upstream }} {
         {{- $port := $args.port }}
         {{- if $ip }}
             {{- $server_found = true }}
+            {{- $servers = add1 $servers }}
     server {{ $ip }}:{{ $port }};
         {{- end }}
     {{- end }}
@@ -316,8 +318,12 @@ upstream {{ .Upstream }} {
     server 127.0.0.1 down;
     {{- end }}
     {{- $keepalive := coalesce (first (keys (groupByLabel .Containers "com.github.nginx-proxy.nginx-proxy.keepalive"))) "disabled" }}
-    {{- if ne $keepalive "disabled" }}
+    {{- if and (ne $keepalive "disabled") (gt $servers 0) }}
+        {{- if eq $keepalive "auto" }}
+    keepalive {{ mul $servers 2 }};
+        {{- else }}
     keepalive {{ $keepalive }};
+        {{- end }}
     {{- end }}
 }
 {{- end }}
