@@ -20,6 +20,9 @@ def test_keepalive_disabled_other_headers_ok(docker_compose, nginxproxy):
     assert re.search(fr'(?m)^(?i:X-Real-IP): ', r.text)
 
 def test_keepalive_enabled(docker_compose, nginxproxy):
+    conf = nginxproxy.get_conf().decode('ASCII')
+    assert re.search(r"keepalive 64\;", conf)
+
     r = nginxproxy.get("http://keepalive-enabled.nginx-proxy.test/headers")
     assert r.status_code == 200
     assert not re.search(fr'(?m)^(?i:Connection):', r.text)
