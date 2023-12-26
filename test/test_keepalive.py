@@ -27,6 +27,14 @@ def test_keepalive_enabled(docker_compose, nginxproxy):
     assert r.status_code == 200
     assert not re.search(fr'(?m)^(?i:Connection):', r.text)
 
+def test_keepalive_auto_enabled(docker_compose, nginxproxy):
+    conf = nginxproxy.get_conf().decode('ASCII')
+    assert re.search(r"keepalive 8\;", conf)
+
+    r = nginxproxy.get("http://keepalive-auto.nginx-proxy.test/headers")
+    assert r.status_code == 200
+    assert not re.search(fr'(?m)^(?i:Connection):', r.text)
+
 def test_keepalive_enabled_other_headers_ok(docker_compose, nginxproxy):
     """See the docstring for the disabled case above."""
     r = nginxproxy.get("http://keepalive-enabled.nginx-proxy.test/headers")
