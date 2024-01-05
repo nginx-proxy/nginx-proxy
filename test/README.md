@@ -4,11 +4,9 @@ Nginx proxy test suite
 Install requirements
 --------------------
 
-You need [python 3.9](https://www.python.org/) and [pip](https://pip.pypa.io/en/stable/installing/) installed. Then run the commands:
+You need [Docker Compose v2](https://docs.docker.com/compose/install/linux/), [python 3.9](https://www.python.org/) and [pip](https://pip.pypa.io/en/stable/installation/)  installed. Then run the commands:
 
     pip install -r requirements/python-requirements.txt
-
-
 
 Prepare the nginx-proxy test image
 ----------------------------------
@@ -37,6 +35,16 @@ Run one single test module
 
     pytest test_nominal.py
 
+Run the test suite from a Docker container
+------------------------------------------
+
+If you cannot (or don't want to) install pytest and its requirements on your computer. You can use the nginx-proxy-tester docker image to run the test suite from a Docker container.
+
+    make test-debian
+
+or if you want to test the alpine flavor:
+
+    make test-alpine
 
 Write a test module
 -------------------
