@@ -14,7 +14,7 @@ ENV NGINX_PROXY_VERSION=${NGINX_PROXY_VERSION} \
    DOCKER_HOST=unix:///tmp/docker.sock
 
 # Install dependencies
-RUN apk add --no-cache --virtual .run-deps bash
+RUN apk add --no-cache --virtual .run-deps bash openssl
 
 # Configure Nginx
 RUN sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf \
