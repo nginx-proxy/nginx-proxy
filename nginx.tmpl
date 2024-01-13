@@ -249,7 +249,7 @@
     {{- if exists $override }}
     include {{ $override }};
     {{- else }}
-        {{- $keepalive := first (keys (groupByLabel .Containers "com.github.nginx-proxy.nginx-proxy.keepalive")) }}
+        {{- $keepalive := coalesce (first (keys (groupByLabel .Containers "com.github.nginx-proxy.nginx-proxy.keepalive"))) "disabled" }}
     location {{ .Path }} {
         {{- if eq .NetworkTag "internal" }}
         # Only allow traffic from internal clients
@@ -263,14 +263,14 @@
         root {{ trim .VhostRoot }};
         include fastcgi_params;
         fastcgi_pass {{ trim .Upstream }};
-            {{- if $keepalive }}
+            {{- if ne $keepalive "disabled" }}
         fastcgi_keep_conn on;
             {{- end }}
         {{- else if eq .Proto "grpc" }}
         grpc_pass {{ trim .Proto }}://{{ trim .Upstream }};
         {{- else }}
         proxy_pass {{ trim .Proto }}://{{ trim .Upstream }}{{ trim .Dest }};
-        set $upstream_keepalive {{ if $keepalive }}true{{ else }}false{{ end }};
+        set $upstream_keepalive {{ if ne $keepalive "disabled" }}true{{ else }}false{{ end }};
         {{- end }}
 
         {{- if (exists (printf "/etc/nginx/htpasswd/%s" .Host)) }}
@@ -291,7 +291,7 @@
 
 {{- define "upstream" }}
 upstream {{ .Upstream }} {
-    {{- $server_found := false }}
+    {{- $servers := 0 }}
     {{- $loadbalance := first (keys (groupByLabel .Containers "com.github.nginx-proxy.nginx-proxy.loadbalance")) }}
     {{- if $loadbalance }}
     # From the container's loadbalance label:
@@ -306,18 +306,22 @@ upstream {{ .Upstream }} {
         {{- template "container_port" $args }}
         {{- $port := $args.port }}
         {{- if $ip }}
-            {{- $server_found = true }}
+            {{- $servers = add1 $servers }}
     server {{ $ip }}:{{ $port }};
         {{- end }}
     {{- end }}
     {{- /* nginx-proxy/nginx-proxy#1105 */}}
-    {{- if not $server_found }}
+    {{- if lt $servers 1 }}
     # Fallback entry
     server 127.0.0.1 down;
     {{- end }}
-    {{- $keepalive := first (keys (groupByLabel .Containers "com.github.nginx-proxy.nginx-proxy.keepalive")) }}
-    {{- if $keepalive }}
+    {{- $keepalive := coalesce (first (keys (groupByLabel .Containers "com.github.nginx-proxy.nginx-proxy.keepalive"))) "disabled" }}
+    {{- if and (ne $keepalive "disabled") (gt $servers 0) }}
+        {{- if eq $keepalive "auto" }}
+    keepalive {{ mul $servers 2 }};
+        {{- else }}
     keepalive {{ $keepalive }};
+        {{- end }}
     {{- end }}
 }
 {{- end }}

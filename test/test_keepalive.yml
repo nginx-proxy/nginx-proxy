@@ -18,6 +18,19 @@ services:
       VIRTUAL_HOST: keepalive-enabled.nginx-proxy.test
     labels:
       com.github.nginx-proxy.nginx-proxy.keepalive: "64"
+  
+  keepalive-auto:
+    image: web
+    deploy:
+      mode: replicated
+      replicas: 4
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: keepalive-auto.nginx-proxy.test
+    labels:
+      com.github.nginx-proxy.nginx-proxy.keepalive: "auto"
 
   sut:
     image: nginxproxy/nginx-proxy:test
