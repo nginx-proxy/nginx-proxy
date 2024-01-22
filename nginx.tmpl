@@ -600,6 +600,9 @@ server {
         {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_http_port }} {{ $default_server }};
         {{- end }}
+        {{- if (exists (printf "/etc/nginx/vhost.d/%s_http" $host)) }}
+    include {{ printf "/etc/nginx/vhost.d/%s_http" $host }};
+        {{- end }}
 
     # Do not HTTPS redirect Let's Encrypt ACME challenge
     location ^~ /.well-known/acme-challenge/ {
