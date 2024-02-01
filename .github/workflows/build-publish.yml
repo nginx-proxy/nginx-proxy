@@ -88,7 +88,7 @@ jobs:
           build-args: |
             NGINX_PROXY_VERSION=${{ steps.nginx-proxy_version.outputs.VERSION }}
             DOCKER_GEN_VERSION=${{ steps.docker-gen_version.outputs.VERSION }}
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          platforms: linux/amd64,linux/arm64,linux/s390x,linux/arm/v7
           sbom: true
           push: true
           provenance: mode=max
