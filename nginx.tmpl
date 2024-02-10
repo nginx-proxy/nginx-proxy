@@ -402,7 +402,24 @@ map $proxy_x_forwarded_proto $proxy_x_forwarded_ssl {
 
 gzip_types text/plain text/css application/javascript application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 
-log_format vhost '{{ or $globals.Env.LOG_FORMAT "$host $remote_addr - $remote_user [$time_local] \"$request\" $status $body_bytes_sent \"$http_referer\" \"$http_user_agent\" \"$upstream_addr\"" }}';
+
+{{- /* See https://nginx.org/en/docs/http/ngx_http_log_module.html#log_format for details and variables
+     * LOG_FORMAT_ESCAPE sets the escape part of the log format
+     * LOG_FORMAT        sets the log format
+     */}}
+{{- $logEscape := printf "escape=%s" (or $globals.Env.LOG_FORMAT_ESCAPE "default") }}
+{{- $logFormat := or $globals.Env.LOG_FORMAT `$host $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$upstream_addr"` }}
+
+{{- if parseBool (or $globals.Env.LOG_JSON "false") }}
+    {{- /* LOG_JSON is a shorthand
+        * that sets logging defaults to JSON format
+        */}}
+# JSON Logging enabled (via LOG_JSON env variable)
+    {{- $logEscape = printf "escape=%s" (or $globals.Env.LOG_FORMAT_ESCAPE "json") }}
+    {{- $logFormat = or $globals.Env.LOG_FORMAT `{"time_local":"$time_iso8601","client_ip":"$http_x_forwarded_for","remote_addr":"$remote_addr","request":"$request","status":"$status","body_bytes_sent":"$body_bytes_sent","request_time":"$request_time","upstream_response_time":"$upstream_response_time","upstream_addr":"$upstream_addr","http_referrer":"$http_referer","http_user_agent":"$http_user_agent","request_id":"$request_id"}` }}
+{{- end }}
+
+log_format vhost {{ $logEscape }} '{{ or $globals.Env.LOG_FORMAT $logFormat }}';
 
 access_log off;
 
