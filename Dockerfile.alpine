@@ -1,4 +1,4 @@
-FROM nginxproxy/docker-gen:0.11.1 AS docker-gen
+FROM nginxproxy/docker-gen:0.11.2 AS docker-gen
 
 FROM nginxproxy/forego:0.18.1 AS forego
 
