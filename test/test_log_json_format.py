@@ -12,5 +12,3 @@ def test_log_json_format(docker_compose, nginxproxy):
     docker_logs = docker_logs.decode("utf-8").splitlines()
     docker_logs = [line for line in docker_logs if "{\"time_local\":" in line]
     assert "GET /port" in docker_logs[0]
-
-
