@@ -347,6 +347,13 @@ map $http_x_forwarded_port $proxy_x_forwarded_port {
     '' $server_port;
 }
 
+# Include the port in the Host header sent to the container if it is non-standard
+map $server_port $host_port {
+    default :$server_port;
+    80 '';
+    443 '';
+}
+
 # If the request from the downstream client has an "Upgrade:" header (set to any
 # non-empty value), pass "Connection: upgrade" to the upstream (backend) server.
 # Otherwise, the value for the "Connection" header depends on whether the user
@@ -408,7 +415,7 @@ include /etc/nginx/proxy.conf;
 {{- else }}
 # HTTP 1.1 support
 proxy_http_version 1.1;
-proxy_set_header Host $host;
+proxy_set_header Host $host$host_port;
 proxy_set_header Upgrade $http_upgrade;
 proxy_set_header Connection $proxy_connection;
 proxy_set_header X-Real-IP $remote_addr;
