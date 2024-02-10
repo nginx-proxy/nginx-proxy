@@ -17,8 +17,10 @@ ENV NGINX_PROXY_VERSION=${NGINX_PROXY_VERSION} \
 RUN apk add --no-cache --virtual .run-deps bash openssl
 
 # Configure Nginx
-RUN sed -i 's/worker_connections  1024/worker_connections  10240/' /etc/nginx/nginx.conf \
-   && mkdir -p '/etc/nginx/dhparam'
+RUN sed -i 's/worker_connections.*;$/worker_connections   10240;/' /etc/nginx/nginx.conf \
+   && sed -i -e '/^\}$/{s//\}\nworker_rlimit_nofile 20480;/;:a' -e '$!N;$!ba' -e '}' /etc/nginx/nginx.conf \
+   && mkdir -p '/etc/nginx/dhparam' \
+   && mkdir -p '/etc/nginx/certs'
 
 # Install Forego + docker-gen
 COPY --from=forego /usr/local/bin/forego /usr/local/bin/forego
