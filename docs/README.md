@@ -528,7 +528,7 @@ docker run -d -p 80:80 -p 443:443 \
 
 You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
 
-If you want to define basic authentication for a `VIRTUAL_PATH`, you have to create a file named as /etc/ngingx/htpasswd/${VIRTUAL_HOST}_${VIRTUAL_PATH_SHA1}
+If you want to define basic authentication for a `VIRTUAL_PATH`, you have to create a file named as /etc/nginx/htpasswd/${VIRTUAL_HOST}_${VIRTUAL_PATH_SHA1}
 (where $VIRTUAL_PATH_SHA1 is the SHA1 hash for the virtual path, you can use any SHA1 online generator to calculate it).
 
 ### Upstream (Backend) Server HTTP Load Balancing Support
