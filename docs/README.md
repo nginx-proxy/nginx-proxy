@@ -515,8 +515,8 @@ To enable HTTP/3 globally set the environment variable `ENABLE_HTTP3` to `true` 
 
 ### Basic Authentication Support
 
-In order to be able to secure your virtual host, you have to create a file named as its equivalent VIRTUAL_HOST variable on directory
-/etc/nginx/htpasswd/$VIRTUAL_HOST
+In order to be able to secure your virtual host, you have to create a file named as its equivalent `VIRTUAL_HOST` variable in directory
+`/etc/nginx/htpasswd/{$VIRTUAL_HOST}`
 
 ```console
 docker run -d -p 80:80 -p 443:443 \
@@ -526,10 +526,10 @@ docker run -d -p 80:80 -p 443:443 \
     nginxproxy/nginx-proxy
 ```
 
-You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/2.2/programs/htpasswd.html)
+If you want to define basic authentication for a `VIRTUAL_PATH`, you have to create a file named as `/etc/nginx/htpasswd/${VIRTUAL_HOST}_${VIRTUAL_PATH_SHA1}`
+(where `$VIRTUAL_PATH_SHA1` is the SHA1 hash for the virtual path, you can use any SHA1 online generator to calculate it).
 
-If you want to define basic authentication for a `VIRTUAL_PATH`, you have to create a file named as /etc/nginx/htpasswd/${VIRTUAL_HOST}_${VIRTUAL_PATH_SHA1}
-(where $VIRTUAL_PATH_SHA1 is the SHA1 hash for the virtual path, you can use any SHA1 online generator to calculate it).
+You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/programs/htpasswd.html)
 
 ### Upstream (Backend) Server HTTP Load Balancing Support
 
