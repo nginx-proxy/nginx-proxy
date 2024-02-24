@@ -450,33 +450,62 @@ proxy_set_header X-Original-URI $request_uri;
 proxy_set_header Proxy "";
 {{- end }}
 
-{{- /*
-     * Precompute some information about each vhost.  This is done early because
-     * the creation of fallback servers depends on DEFAULT_HOST, HTTPS_METHOD,
-     * and whether there are any missing certs.
-     */}}
-{{- range $vhost, $containers := groupByMulti $globals.containers "Env.VIRTUAL_HOST" "," }}
-    {{- $vhost := trim $vhost }}
-    {{- if not $vhost }}
+{{- /* Precompute some information about each vhost. */}}
+{{- range $hostname, $containers := groupByMulti $globals.containers "Env.VIRTUAL_HOST" "," }}
+    {{- $hostname := trim $hostname }}
+    {{- if not $hostname }}
         {{- /* Ignore containers with VIRTUAL_HOST set to the empty string. */}}
         {{- continue }}
     {{- end }}
+
     {{- $certName := first (groupByKeys $containers "Env.CERT_NAME") }}
-    {{- $vhostCert := closest (dir "/etc/nginx/certs") (printf "%s.crt" $vhost) }}
+    {{- $vhostCert := closest (dir "/etc/nginx/certs") (printf "%s.crt" $hostname) }}
     {{- $vhostCert = trimSuffix ".crt" $vhostCert }}
     {{- $vhostCert = trimSuffix ".key" $vhostCert }}
     {{- $cert := or $certName $vhostCert }}
     {{- $cert_ok := and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)) }}
-    {{- $default := eq $globals.Env.DEFAULT_HOST $vhost }}
+
+    {{- $default := eq $globals.Env.DEFAULT_HOST $hostname }}
     {{- $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) $globals.Env.HTTPS_METHOD "redirect" }}
-    {{- $http3 := parseBool (or (first (keys (groupByLabel $containers "com.github.nginx-proxy.nginx-proxy.http3.enable"))) $globals.Env.ENABLE_HTTP3 "false")}}
-    {{- $_ := set $globals.vhosts $vhost (dict
+    {{- $http2_enabled := parseBool (or (first (keys (groupByLabel $containers "com.github.nginx-proxy.nginx-proxy.http2.enable"))) $globals.Env.ENABLE_HTTP2 "true")}}
+    {{- $http3_enabled := parseBool (or (first (keys (groupByLabel $containers "com.github.nginx-proxy.nginx-proxy.http3.enable"))) $globals.Env.ENABLE_HTTP3 "false")}}
+
+    {{- $is_regexp := hasPrefix "~" $hostname }}
+    {{- $upstream_name := when (or $is_regexp $globals.sha1_upstream_name) (sha1 $hostname) $hostname }}
+
+    {{- /* Get the SERVER_TOKENS defined by containers w/ the same vhost, falling back to "". */}}
+    {{- $server_tokens := trim (or (first (groupByKeys $containers "Env.SERVER_TOKENS")) "") }}
+
+    {{- /* Get the SSL_POLICY defined by containers w/ the same vhost, falling back to empty string (use default). */}}
+    {{- $ssl_policy := or (first (groupByKeys $containers "Env.SSL_POLICY")) "" }}
+
+    {{- /* Get the HSTS defined by containers w/ the same vhost, falling back to "max-age=31536000". */}}
+    {{- $hsts := or (first (groupByKeys $containers "Env.HSTS")) (or $globals.Env.HSTS "max-age=31536000") }}
+
+    {{- /* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
+    {{- $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
+
+
+    {{- $paths := groupBy $containers "Env.VIRTUAL_PATH" }}
+    {{- $has_virtual_paths := gt (len $paths) 0}}
+    {{- if not $has_virtual_paths }}
+        {{- $paths = dict "/" $containers }}
+    {{- end }}
+
+    {{- $_ := set $globals.vhosts $hostname (dict
         "cert" $cert
         "cert_ok" $cert_ok
-        "containers" $containers
         "default" $default
+        "has_virtual_paths" $has_virtual_paths
+        "hsts" $hsts
         "https_method" $https_method
-        "http3" $http3
+        "http2_enabled" $http2_enabled
+        "http3_enabled" $http3_enabled
+        "paths" $paths
+        "server_tokens" $server_tokens
+        "ssl_policy" $ssl_policy
+        "upstream_name" $upstream_name
+        "vhost_root" $vhost_root
     ) }}
 {{- end }}
 
@@ -499,7 +528,7 @@ proxy_set_header Proxy "";
     {{- $https_exists := false }}
     {{- $default_http_exists := false }}
     {{- $default_https_exists := false }}
-    {{- $http3 := false }}
+    {{- $http3_enabled := false }}
     {{- range $vhost := $globals.vhosts }}
         {{- $http := or (ne $vhost.https_method "nohttp") (not $vhost.cert_ok) }}
         {{- $https := ne $vhost.https_method "nohttps" }}
@@ -507,7 +536,7 @@ proxy_set_header Proxy "";
         {{- $https_exists = or $https_exists $https }}
         {{- $default_http_exists = or $default_http_exists (and $http $vhost.default) }}
         {{- $default_https_exists = or $default_https_exists (and $https $vhost.default) }}
-        {{- $http3 = or $http3 $vhost.http3 }}
+        {{- $http3_enabled = or $http3_enabled $vhost.http3_enabled }}
     {{- end }}
     {{- $fallback_http := and $http_exists (not $default_http_exists) }}
     {{- $fallback_https := and $https_exists (not $default_https_exists) }}
@@ -537,7 +566,7 @@ server {
             {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_https_port }} ssl; {{- /* Do not add `default_server` (see comment above). */}}
             {{- end }}
-            {{- if $http3 }}
+            {{- if $http3_enabled }}
     http3 on;
     listen {{ $globals.external_https_port }} quic reuseport; {{- /* Do not add `default_server` (see comment above). */}}
                 {{- if $globals.enable_ipv6 }}
@@ -567,60 +596,24 @@ server {
     {{- end }}
 {{- end }}
 
-{{- range $host, $vhost := $globals.vhosts }}
-    {{- $cert := $vhost.cert }}
-    {{- $cert_ok := $vhost.cert_ok }}
-    {{- $containers := $vhost.containers }}
+{{- range $hostname, $vhost := $globals.vhosts }}
     {{- $default_server := when $vhost.default "default_server" "" }}
-    {{- $https_method := $vhost.https_method }}
-    {{- $http2 := parseBool (or (first (keys (groupByLabel $containers "com.github.nginx-proxy.nginx-proxy.http2.enable"))) $globals.Env.ENABLE_HTTP2 "true")}}
-    {{- $http3 := parseBool (or (first (keys (groupByLabel $containers "com.github.nginx-proxy.nginx-proxy.http3.enable"))) $globals.Env.ENABLE_HTTP3 "false")}}
 
-    {{- $is_regexp := hasPrefix "~" $host }}
-    {{- $upstream_name := when (or $is_regexp $globals.sha1_upstream_name) (sha1 $host) $host }}
-
-    {{- $paths := groupBy $containers "Env.VIRTUAL_PATH" }}
-    {{- $nPaths := len $paths }}
-    {{- if eq $nPaths 0 }}
-        {{- $paths = dict "/" $containers }}
-    {{- end }}
-
-    {{- range $path, $containers := $paths }}
-        {{- $upstream := $upstream_name }}
-        {{- if gt $nPaths 0 }}
+    {{- range $path, $containers := $vhost.paths }}
+        {{- $upstream := $vhost.upstream_name }}
+        {{- if $vhost.has_virtual_paths }}
             {{- $sum := sha1 $path }}
             {{- $upstream = printf "%s-%s" $upstream $sum }}
         {{- end }}
-# {{ $host }}{{ $path }}
+# {{ $hostname }}{{ $path }}
 {{ template "upstream" (dict "globals" $globals "Upstream" $upstream "Containers" $containers) }}
     {{- end }}
 
-    {{- /*
-         * Get the SERVER_TOKENS defined by containers w/ the same vhost,
-         * falling back to "".
-         */}}
-    {{- $server_tokens := trim (or (first (groupByKeys $containers "Env.SERVER_TOKENS")) "") }}
-
-    {{- /*
-         * Get the SSL_POLICY defined by containers w/ the same vhost, falling
-         * back to empty string (use default).
-         */}}
-    {{- $ssl_policy := or (first (groupByKeys $containers "Env.SSL_POLICY")) "" }}
-
-    {{- /*
-         * Get the HSTS defined by containers w/ the same vhost, falling back to
-         * "max-age=31536000".
-         */}}
-    {{- $hsts := or (first (groupByKeys $containers "Env.HSTS")) (or $globals.Env.HSTS "max-age=31536000") }}
-
-    {{- /* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
-    {{- $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
-
-    {{- if and $cert_ok (eq $https_method "redirect") }}
+    {{- if and $vhost.cert_ok (eq $vhost.https_method "redirect") }}
 server {
-    server_name {{ $host }};
-        {{- if $server_tokens }}
-    server_tokens {{ $server_tokens }};
+    server_name {{ $hostname }};
+        {{- if $vhost.server_tokens }}
+    server_tokens {{ $vhost.server_tokens }};
         {{- end }}
     {{ $globals.access_log }}
     listen {{ $globals.external_http_port }} {{ $default_server }};
@@ -649,27 +642,27 @@ server {
     {{- end }}
 
 server {
-    server_name {{ $host }};
-    {{- if $server_tokens }}
-    server_tokens {{ $server_tokens }};
+    server_name {{ $hostname }};
+    {{- if $vhost.server_tokens }}
+    server_tokens {{ $vhost.server_tokens }};
     {{- end }}
     {{ $globals.access_log }}
-    {{- if $http2 }}
+    {{- if $vhost.http2_enabled }}
     http2 on;
     {{- end }}
-    {{- if or (eq $https_method "nohttps") (not $cert_ok) (eq $https_method "noredirect") }}
+    {{- if or (eq $vhost.https_method "nohttps") (not $vhost.cert_ok) (eq $vhost.https_method "noredirect") }}
     listen {{ $globals.external_http_port }} {{ $default_server }};
         {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_http_port }} {{ $default_server }};
         {{- end }}
     {{- end }}
-    {{- if ne $https_method "nohttps" }}
+    {{- if ne $vhost.https_method "nohttps" }}
     listen {{ $globals.external_https_port }} ssl {{ $default_server }};
         {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_https_port }} ssl {{ $default_server }};
         {{- end }}
 
-        {{- if $http3 }}
+        {{- if $vhost.http3_enabled }}
     http3 on;
     add_header alt-svc 'h3=":{{ $globals.external_https_port }}"; ma=86400;';
     listen {{ $globals.external_https_port }} quic {{ $default_server }};
@@ -678,30 +671,30 @@ server {
             {{- end }}
         {{- end }}
 
-        {{- if $cert_ok }}
-            {{- template "ssl_policy" (dict "ssl_policy" $ssl_policy) }}
+        {{- if $vhost.cert_ok }}
+            {{- template "ssl_policy" (dict "ssl_policy" $vhost.ssl_policy) }}
 
     ssl_session_timeout 5m;
     ssl_session_cache shared:SSL:50m;
     ssl_session_tickets off;
 
-    ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $cert) }};
-    ssl_certificate_key /etc/nginx/certs/{{ (printf "%s.key" $cert) }};
+    ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $vhost.cert) }};
+    ssl_certificate_key /etc/nginx/certs/{{ (printf "%s.key" $vhost.cert) }};
 
-            {{- if (exists (printf "/etc/nginx/certs/%s.dhparam.pem" $cert)) }}
-    ssl_dhparam {{ printf "/etc/nginx/certs/%s.dhparam.pem" $cert }};
+            {{- if (exists (printf "/etc/nginx/certs/%s.dhparam.pem" $vhost.cert)) }}
+    ssl_dhparam {{ printf "/etc/nginx/certs/%s.dhparam.pem" $vhost.cert }};
             {{- end }}
 
-            {{- if (exists (printf "/etc/nginx/certs/%s.chain.pem" $cert)) }}
+            {{- if (exists (printf "/etc/nginx/certs/%s.chain.pem" $vhost.cert)) }}
     ssl_stapling on;
     ssl_stapling_verify on;
-    ssl_trusted_certificate {{ printf "/etc/nginx/certs/%s.chain.pem" $cert }};
+    ssl_trusted_certificate {{ printf "/etc/nginx/certs/%s.chain.pem" $vhost.cert }};
             {{- end }}
 
-            {{- if (not (or (eq $https_method "noredirect") (eq $hsts "off"))) }}
+            {{- if (not (or (eq $vhost.https_method "noredirect") (eq $vhost.hsts "off"))) }}
     set $sts_header "";
     if ($https) {
-        set $sts_header "{{ trim $hsts }}";
+        set $sts_header "{{ trim $vhost.hsts }}";
     }
     add_header Strict-Transport-Security $sts_header always;
             {{- end }}
@@ -735,13 +728,13 @@ server {
         {{- end }}
     {{- end }}
 
-    {{- if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
-    include {{ printf "/etc/nginx/vhost.d/%s" $host }};
+    {{- if (exists (printf "/etc/nginx/vhost.d/%s" $hostname)) }}
+    include {{ printf "/etc/nginx/vhost.d/%s" $hostname }};
     {{- else if (exists "/etc/nginx/vhost.d/default") }}
     include /etc/nginx/vhost.d/default;
     {{- end }}
 
-    {{- range $path, $containers := $paths }}
+    {{- range $path, $containers := $vhost.paths }}
         {{- /*
              * Get the VIRTUAL_PROTO defined by containers w/ the same
              * vhost-vpath, falling back to "http".
@@ -753,9 +746,9 @@ server {
              * falling back to "external".
              */}}
         {{- $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
-        {{- $upstream := $upstream_name }}
+        {{- $upstream := $vhost.upstream_name }}
         {{- $dest := "" }}
-        {{- if gt $nPaths 0 }}
+        {{- if $vhost.has_virtual_paths }}
             {{- $sum := sha1 $path }}
             {{- $upstream = printf "%s-%s" $upstream $sum }}
             {{- $dest = (or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "") }}
@@ -764,14 +757,14 @@ server {
             "Path" $path
             "Proto" $proto
             "Upstream" $upstream
-            "Host" $host
-            "VhostRoot" $vhost_root
+            "Host" $hostname
+            "VhostRoot" $vhost.vhost_root
             "Dest" $dest
             "NetworkTag" $network_tag
             "Containers" $containers
         ) }}
     {{- end }}
-    {{- if and (not (contains $paths "/")) (ne $globals.default_root_response "none")}}
+    {{- if and (not (contains $vhost.paths "/")) (ne $globals.default_root_response "none")}}
     location / {
         return {{ $globals.default_root_response }};
     }
