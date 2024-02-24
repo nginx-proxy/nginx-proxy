@@ -486,17 +486,40 @@ proxy_set_header Proxy "";
     {{- $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
 
 
-    {{- $paths := groupBy $containers "Env.VIRTUAL_PATH" }}
-    {{- $has_virtual_paths := gt (len $paths) 0}}
+    {{- $tmp_paths := groupBy $containers "Env.VIRTUAL_PATH" }}
+    {{- $has_virtual_paths := gt (len $tmp_paths) 0}}
     {{- if not $has_virtual_paths }}
-        {{- $paths = dict "/" $containers }}
+        {{- $tmp_paths = dict "/" $containers }}
+    {{- end }}
+
+    {{ $paths := dict }}
+
+    {{- range $path, $containers := $tmp_paths }}
+        {{- /* Get the VIRTUAL_PROTO defined by containers w/ the same vhost-vpath, falling back to "http". */}}
+        {{- $proto := trim (or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http") }}
+        {{- /* Get the NETWORK_ACCESS defined by codontainers w/ the same vhost, falling back to "external". */}}
+        {{- $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
+
+        {{- $upstream := $upstream_name }}
+        {{- $dest := "" }}
+        {{- if $has_virtual_paths }}
+            {{- $sum := sha1 $path }}
+            {{- $upstream = printf "%s-%s" $upstream $sum }}
+            {{- $dest = (or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "") }}
+        {{- end }}
+        {{- $_ := set $paths $path (dict
+            "containers" $containers
+            "dest" $dest
+            "proto" $proto
+            "network_tag" $network_tag
+            "upstream" $upstream
+        ) }}
     {{- end }}
 
     {{- $_ := set $globals.vhosts $hostname (dict
         "cert" $cert
         "cert_ok" $cert_ok
         "default" $default
-        "has_virtual_paths" $has_virtual_paths
         "hsts" $hsts
         "https_method" $https_method
         "http2_enabled" $http2_enabled
@@ -504,7 +527,6 @@ proxy_set_header Proxy "";
         "paths" $paths
         "server_tokens" $server_tokens
         "ssl_policy" $ssl_policy
-        "upstream_name" $upstream_name
         "vhost_root" $vhost_root
     ) }}
 {{- end }}
@@ -599,14 +621,9 @@ server {
 {{- range $hostname, $vhost := $globals.vhosts }}
     {{- $default_server := when $vhost.default "default_server" "" }}
 
-    {{- range $path, $containers := $vhost.paths }}
-        {{- $upstream := $vhost.upstream_name }}
-        {{- if $vhost.has_virtual_paths }}
-            {{- $sum := sha1 $path }}
-            {{- $upstream = printf "%s-%s" $upstream $sum }}
-        {{- end }}
+    {{- range $path, $vpath := $vhost.paths }}
 # {{ $hostname }}{{ $path }}
-{{ template "upstream" (dict "globals" $globals "Upstream" $upstream "Containers" $containers) }}
+        {{ template "upstream" (dict "globals" $globals "Upstream" $vpath.upstream "Containers" $vpath.containers) }}
     {{- end }}
 
     {{- if and $vhost.cert_ok (eq $vhost.https_method "redirect") }}
@@ -734,36 +751,19 @@ server {
     include /etc/nginx/vhost.d/default;
     {{- end }}
 
-    {{- range $path, $containers := $vhost.paths }}
-        {{- /*
-             * Get the VIRTUAL_PROTO defined by containers w/ the same
-             * vhost-vpath, falling back to "http".
-             */}}
-        {{- $proto := trim (or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http") }}
-
-        {{- /*
-             * Get the NETWORK_ACCESS defined by containers w/ the same vhost,
-             * falling back to "external".
-             */}}
-        {{- $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
-        {{- $upstream := $vhost.upstream_name }}
-        {{- $dest := "" }}
-        {{- if $vhost.has_virtual_paths }}
-            {{- $sum := sha1 $path }}
-            {{- $upstream = printf "%s-%s" $upstream $sum }}
-            {{- $dest = (or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "") }}
-        {{- end }}
+    {{- range $path, $vpath := $vhost.paths }}
         {{- template "location" (dict
             "Path" $path
-            "Proto" $proto
-            "Upstream" $upstream
+            "Proto" $vpath.proto
+            "Upstream" $vpath.upstream
             "Host" $hostname
             "VhostRoot" $vhost.vhost_root
-            "Dest" $dest
-            "NetworkTag" $network_tag
-            "Containers" $containers
+            "Dest" $vpath.dest
+            "NetworkTag" $vpath.network_tag
+            "Containers" $vpath.containers
         ) }}
     {{- end }}
+
     {{- if and (not (contains $vhost.paths "/")) (ne $globals.default_root_response "none")}}
     location / {
         return {{ $globals.default_root_response }};
