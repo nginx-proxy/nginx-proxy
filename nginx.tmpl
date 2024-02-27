@@ -497,7 +497,7 @@ proxy_set_header Proxy "";
     {{- range $path, $containers := $tmp_paths }}
         {{- /* Get the VIRTUAL_PROTO defined by containers w/ the same vhost-vpath, falling back to "http". */}}
         {{- $proto := trim (or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http") }}
-        {{- /* Get the NETWORK_ACCESS defined by codontainers w/ the same vhost, falling back to "external". */}}
+        {{- /* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external". */}}
         {{- $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
 
         {{- $upstream := $upstream_name }}
