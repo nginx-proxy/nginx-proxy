@@ -452,7 +452,7 @@ proxy_set_header Proxy "";
 
 {{- /* Precompute some information about each vhost. */}}
 {{- range $hostname, $containers := groupByMulti $globals.containers "Env.VIRTUAL_HOST" "," }}
-    {{- $hostname := trim $hostname }}
+    {{- $hostname = trim $hostname }}
     {{- if not $hostname }}
         {{- /* Ignore containers with VIRTUAL_HOST set to the empty string. */}}
         {{- continue }}
