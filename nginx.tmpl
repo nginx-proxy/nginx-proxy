@@ -128,7 +128,7 @@
     #     exposed ports:{{ range sortObjectsByKeysAsc $.container.Addresses "Port" }} {{ .Port }}/{{ .Proto }}{{ else }} (none){{ end }}
     {{- $default_port := when (eq (len $.container.Addresses) 1) (first $.container.Addresses).Port "80" }}
     #     default port: {{ $default_port }}
-    {{- $port := or $.container.Env.VIRTUAL_PORT $default_port }}
+    {{- $port := when (eq $.port "legacy") (or $.container.Env.VIRTUAL_PORT $default_port) $.port }}
     #     using port: {{ $port }}
     {{- $addr_obj := where $.container.Addresses "Port" $port | first }}
     {{- if and $addr_obj $addr_obj.HostPort }}
@@ -242,6 +242,7 @@
 {{- end }}
 
 {{- define "location" }}
+    {{- $vpath := .VPath }}
     {{- $override := printf "/etc/nginx/vhost.d/%s_%s_location_override" .Host (sha1 .Path) }}
     {{- if and (eq .Path "/") (not (exists $override)) }}
         {{- $override = printf "/etc/nginx/vhost.d/%s_location_override" .Host }}
@@ -249,29 +250,32 @@
     {{- if exists $override }}
     include {{ $override }};
     {{- else }}
-        {{- $keepalive := coalesce (first (keys (groupByLabel .Containers "com.github.nginx-proxy.nginx-proxy.keepalive"))) "disabled" }}
+        {{- $keepalive := $vpath.keepalive }}
     location {{ .Path }} {
-        {{- if eq .NetworkTag "internal" }}
+        {{- if eq $vpath.network_tag "internal" }}
         # Only allow traffic from internal clients
         include /etc/nginx/network_internal.conf;
         {{- end }}
 
-        {{- if eq .Proto "uwsgi" }}
+        {{ $proto := $vpath.proto }}
+        {{ $upstream := $vpath.upstream }}
+        {{ $dest := $vpath.dest }}
+        {{- if eq $proto "uwsgi" }}
         include uwsgi_params;
-        uwsgi_pass {{ trim .Proto }}://{{ trim .Upstream }};
-        {{- else if eq .Proto "fastcgi" }}
+        uwsgi_pass {{ trim $proto }}://{{ trim $upstream }};
+        {{- else if eq $proto "fastcgi" }}
         root {{ trim .VhostRoot }};
         include fastcgi_params;
-        fastcgi_pass {{ trim .Upstream }};
+        fastcgi_pass {{ trim $upstream }};
             {{- if ne $keepalive "disabled" }}
         fastcgi_keep_conn on;
             {{- end }}
-        {{- else if eq .Proto "grpc" }}
-        grpc_pass {{ trim .Proto }}://{{ trim .Upstream }};
-        {{- else if eq .Proto "grpcs" }}
-        grpc_pass {{ trim .Proto }}://{{ trim .Upstream }};
+        {{- else if eq $proto "grpc" }}
+        grpc_pass {{ trim $proto }}://{{ trim $upstream }};
+        {{- else if eq $proto "grpcs" }}
+        grpc_pass {{ trim $proto }}://{{ trim $upstream }};
         {{- else }}
-        proxy_pass {{ trim .Proto }}://{{ trim .Upstream }}{{ trim .Dest }};
+        proxy_pass {{ trim $proto }}://{{ trim $upstream }}{{ trim $dest }};
         set $upstream_keepalive {{ if ne $keepalive "disabled" }}true{{ else }}false{{ end }};
         {{- end }}
 
@@ -295,24 +299,27 @@
 {{- end }}
 
 {{- define "upstream" }}
-upstream {{ .Upstream }} {
+    {{- $path := .Path }}
+    {{- $vpath := .VPath }}
+upstream {{ $vpath.upstream }} {
     {{- $servers := 0 }}
-    {{- $loadbalance := first (keys (groupByLabel .Containers "com.github.nginx-proxy.nginx-proxy.loadbalance")) }}
+    {{- $loadbalance := $vpath.loadbalance }}
     {{- if $loadbalance }}
     # From the container's loadbalance label:
     {{ $loadbalance }}
     {{- end }}
-    {{- range $container := .Containers }}
+    {{- range $port, $containers := $vpath.ports }}
+        {{- range $container := $containers }}
     # Container: {{ $container.Name }}
-        {{- $args := dict "globals" $.globals "container" $container }}
-        {{- template "container_ip" $args }}
-        {{- $ip := $args.ip }}
-        {{- $args := dict "container" $container }}
-        {{- template "container_port" $args }}
-        {{- $port := $args.port }}
-        {{- if $ip }}
-            {{- $servers = add1 $servers }}
-    server {{ $ip }}:{{ $port }};
+            {{- $args := dict "globals" $.globals "container" $container }}
+            {{- template "container_ip" $args }}
+            {{- $ip := $args.ip }}
+            {{- $args = dict "container" $container "path" $path "port" $port }}
+            {{- template "container_port" $args }}
+            {{- if $ip }}
+                {{- $servers = add1 $servers }}
+    server {{ $ip }}:{{ $args.port }};
+            {{- end }}
         {{- end }}
     {{- end }}
     {{- /* nginx-proxy/nginx-proxy#1105 */}}
@@ -320,7 +327,7 @@ upstream {{ .Upstream }} {
     # Fallback entry
     server 127.0.0.1 down;
     {{- end }}
-    {{- $keepalive := coalesce (first (keys (groupByLabel .Containers "com.github.nginx-proxy.nginx-proxy.keepalive"))) "disabled" }}
+    {{- $keepalive := $vpath.keepalive }}
     {{- if and (ne $keepalive "disabled") (gt $servers 0) }}
         {{- if eq $keepalive "auto" }}
     keepalive {{ mul $servers 2 }};
@@ -329,6 +336,49 @@ upstream {{ .Upstream }} {
         {{- end }}
     {{- end }}
 }
+{{- end }}
+
+{{- /*
+     * Template used as a function to collect virtual path properties from
+     * the given containers.  These properties are "returned" by storing their
+     * values into the provided dot dict.
+     *
+     * The provided dot dict is expected to have the following entries:
+     *   - "Containers": List of container's RuntimeContainer struct.
+     *   - "Upstream_name"
+     *   - "Has_virtual_paths": boolean
+     *   - "Path"
+     *
+     * The return values will be added to the dot dict with keys:
+     * - "dest"
+     * - "proto"
+     * - "network_tag"
+     * - "upstream"
+     * - "loadbalance"
+     * - "keepalive"
+     */}}
+{{- define "get_path_info" }}
+    {{- /* Get the VIRTUAL_PROTO defined by containers w/ the same vhost-vpath, falling back to "http". */}}
+    {{- $proto := trim (or (first (groupByKeys $.Containers "Env.VIRTUAL_PROTO")) "http") }}
+    {{- /* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external". */}}
+    {{- $network_tag := or (first (groupByKeys $.Containers "Env.NETWORK_ACCESS")) "external" }}
+
+    {{- $loadbalance := first (keys (groupByLabel $.Containers "com.github.nginx-proxy.nginx-proxy.loadbalance")) }}
+    {{- $keepalive := coalesce (first (keys (groupByLabel $.Containers "com.github.nginx-proxy.nginx-proxy.keepalive"))) "disabled" }}
+
+    {{- $upstream := $.Upstream_name }}
+    {{- $dest := "" }}
+    {{- if $.Has_virtual_paths }}
+        {{- $sum := sha1 $.Path }}
+        {{- $upstream = printf "%s-%s" $upstream $sum }}
+        {{- $dest = or (first (groupByKeys $.Containers "Env.VIRTUAL_DEST")) "" }}
+    {{- end }}
+    {{- $_ := set $ "proto" $proto }}
+    {{- $_ := set $ "network_tag" $network_tag }}
+    {{- $_ := set $ "upstream" $upstream }}
+    {{- $_ := set $ "dest" $dest }}
+    {{- $_ := set $ "loadbalance" $loadbalance }}
+    {{- $_ := set $ "keepalive" $keepalive }}
 {{- end }}
 
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
@@ -492,27 +542,19 @@ proxy_set_header Proxy "";
         {{- $tmp_paths = dict "/" $containers }}
     {{- end }}
 
-    {{ $paths := dict }}
+    {{- $paths := dict }}
 
     {{- range $path, $containers := $tmp_paths }}
-        {{- /* Get the VIRTUAL_PROTO defined by containers w/ the same vhost-vpath, falling back to "http". */}}
-        {{- $proto := trim (or (first (groupByKeys $containers "Env.VIRTUAL_PROTO")) "http") }}
-        {{- /* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external". */}}
-        {{- $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
-
-        {{- $upstream := $upstream_name }}
-        {{- $dest := "" }}
-        {{- if $has_virtual_paths }}
-            {{- $sum := sha1 $path }}
-            {{- $upstream = printf "%s-%s" $upstream $sum }}
-            {{- $dest = (or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "") }}
-        {{- end }}
+        {{- $args := dict "Containers" $containers "Path" $path "Upstream_name" $upstream_name "Has_virtual_paths" $has_virtual_paths }}
+        {{- template "get_path_info" $args }}
         {{- $_ := set $paths $path (dict
-            "containers" $containers
-            "dest" $dest
-            "proto" $proto
-            "network_tag" $network_tag
-            "upstream" $upstream
+            "ports" (dict "legacy" $containers)
+            "dest" $args.dest
+            "proto" $args.proto
+            "network_tag" $args.network_tag
+            "upstream" $args.upstream
+            "loadbalance" $args.loadbalance
+            "keepalive" $args.keepalive
         ) }}
     {{- end }}
 
@@ -623,7 +665,7 @@ server {
 
     {{- range $path, $vpath := $vhost.paths }}
 # {{ $hostname }}{{ $path }}
-        {{ template "upstream" (dict "globals" $globals "Upstream" $vpath.upstream "Containers" $vpath.containers) }}
+        {{ template "upstream" (dict "globals" $globals "Path" $path "VPath" $vpath) }}
     {{- end }}
 
     {{- if and $vhost.cert_ok (eq $vhost.https_method "redirect") }}
@@ -754,13 +796,9 @@ server {
     {{- range $path, $vpath := $vhost.paths }}
         {{- template "location" (dict
             "Path" $path
-            "Proto" $vpath.proto
-            "Upstream" $vpath.upstream
             "Host" $hostname
             "VhostRoot" $vhost.vhost_root
-            "Dest" $vpath.dest
-            "NetworkTag" $vpath.network_tag
-            "Containers" $vpath.containers
+            "VPath" $vpath
         ) }}
     {{- end }}
 
