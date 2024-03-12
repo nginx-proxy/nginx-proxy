@@ -1,0 +1,20 @@
+version: "2"
+
+services:
+  web:
+    image: web
+    expose:
+      - "80"
+      - "81"
+      - "82"
+      - "83"
+    environment:
+      WEB_PORTS: "80 81 82 83"
+      VIRTUAL_HOST: "web.nginx-proxy.tld"
+      VIRTUAL_PORT: "80,81:/81:/,82:/82:/port,83:~ ^/[8][3]"
+  
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./web.nginx-proxy.tld_022792f37cc2c58102bdf79316aebed215e0de21_location:/etc/nginx/vhost.d/web.nginx-proxy.tld_022792f37cc2c58102bdf79316aebed215e0de21_location
