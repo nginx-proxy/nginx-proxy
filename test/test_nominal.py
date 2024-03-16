@@ -22,3 +22,8 @@ def test_forwards_to_web2(docker_compose, nginxproxy):
 def test_ipv6_is_disabled_by_default(docker_compose, nginxproxy):
     with pytest.raises(ConnectionError):
         nginxproxy.get("http://nginx-proxy/port", ipv6=True)
+
+
+def test_container_version_is_displayed(docker_compose, nginxproxy):
+    conf = nginxproxy.get_conf().decode('ASCII')
+    assert "# nginx-proxy version : test" in conf

@@ -1,28 +1,30 @@
-web:
-  image: web
-  expose:
-    - "80"
-  environment:
-    WEB_PORTS: 80
-    VIRTUAL_HOST: web.nginx-proxy.tld
+version: "2"
 
-web-server-tokens-off:
-  image: web
-  expose:
-    - "80"
-  environment:
-    WEB_PORTS: 80
-    VIRTUAL_HOST: web-server-tokens-off.nginx-proxy.tld
-    SERVER_TOKENS: "off"
+services:
+  web:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: web.nginx-proxy.tld
 
+  web-server-tokens-off:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: web-server-tokens-off.nginx-proxy.tld
+      SERVER_TOKENS: "off"
 
-sut:
-  image: nginxproxy/nginx-proxy:test
-  volumes:
-    - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ./certs/web.nginx-proxy.tld.crt:/etc/nginx/certs/default.crt:ro
-    - ./certs/web.nginx-proxy.tld.key:/etc/nginx/certs/default.key:ro
-    - ./certs/web.nginx-proxy.tld.crt:/etc/nginx/certs/web.nginx-proxy.tld.crt:ro
-    - ./certs/web.nginx-proxy.tld.key:/etc/nginx/certs/web.nginx-proxy.tld.key:ro
-    - ./certs/web-server-tokens-off.nginx-proxy.tld.crt:/etc/nginx/certs/web-server-tokens-off.nginx-proxy.tld.crt:ro
-    - ./certs/web-server-tokens-off.nginx-proxy.tld.key:/etc/nginx/certs/web-server-tokens-off.nginx-proxy.tld.key:ro
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs/web.nginx-proxy.tld.crt:/etc/nginx/certs/default.crt:ro
+      - ./certs/web.nginx-proxy.tld.key:/etc/nginx/certs/default.key:ro
+      - ./certs/web.nginx-proxy.tld.crt:/etc/nginx/certs/web.nginx-proxy.tld.crt:ro
+      - ./certs/web.nginx-proxy.tld.key:/etc/nginx/certs/web.nginx-proxy.tld.key:ro
+      - ./certs/web-server-tokens-off.nginx-proxy.tld.crt:/etc/nginx/certs/web-server-tokens-off.nginx-proxy.tld.crt:ro
+      - ./certs/web-server-tokens-off.nginx-proxy.tld.key:/etc/nginx/certs/web-server-tokens-off.nginx-proxy.tld.key:ro

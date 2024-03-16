@@ -3,13 +3,13 @@
 
 
 build-webserver:
-	docker build -t web test/requirements/web
+	docker build --pull -t web test/requirements/web
 
 build-nginx-proxy-test-debian:
-	docker build -t nginxproxy/nginx-proxy:test .
+	docker build --pull --build-arg NGINX_PROXY_VERSION="test" -f Dockerfile.debian -t nginxproxy/nginx-proxy:test .
 
 build-nginx-proxy-test-alpine:
-	docker build -f Dockerfile.alpine -t nginxproxy/nginx-proxy:test .
+	docker build --pull --build-arg NGINX_PROXY_VERSION="test" -f Dockerfile.alpine -t nginxproxy/nginx-proxy:test .
 
 test-debian: build-webserver build-nginx-proxy-test-debian
 	test/pytest.sh

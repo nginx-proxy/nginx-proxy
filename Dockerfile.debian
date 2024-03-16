@@ -1,0 +1,32 @@
+FROM nginxproxy/docker-gen:0.12.0-debian AS docker-gen
+
+FROM nginxproxy/forego:0.18.1-debian AS forego
+
+# Build the final image
+FROM nginx:1.25.4
+
+ARG NGINX_PROXY_VERSION
+# Add DOCKER_GEN_VERSION environment variable because 
+# acme-companion rely on it (but the actual value is not important)
+ARG DOCKER_GEN_VERSION="unknown"
+ENV NGINX_PROXY_VERSION=${NGINX_PROXY_VERSION} \
+   DOCKER_GEN_VERSION=${DOCKER_GEN_VERSION} \
+   DOCKER_HOST=unix:///tmp/docker.sock
+
+# Configure Nginx
+RUN sed -i 's/worker_connections.*;$/worker_connections  10240;/' /etc/nginx/nginx.conf \
+   && sed -i -e '/^\}$/{s//\}\nworker_rlimit_nofile 20480;/;:a' -e '$!N;$!ba' -e '}' /etc/nginx/nginx.conf \
+   && mkdir -p '/etc/nginx/dhparam' \
+   && mkdir -p '/etc/nginx/certs'
+
+# Install Forego + docker-gen
+COPY --from=forego /usr/local/bin/forego /usr/local/bin/forego
+COPY --from=docker-gen /usr/local/bin/docker-gen /usr/local/bin/docker-gen
+
+COPY network_internal.conf /etc/nginx/
+
+COPY app nginx.tmpl LICENSE /app/
+WORKDIR /app/
+
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+CMD ["forego", "start", "-r"]

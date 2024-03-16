@@ -1,15 +1,17 @@
-web3:
-  image: web
-  expose:
-    - "83"
-  environment:
-    WEB_PORTS: "83"
-    VIRTUAL_HOST: "web3.nginx-proxy.tld"
-    HTTPS_METHOD: noredirect
+version: "2"
 
+services:
+  web3:
+    image: web
+    expose:
+      - "83"
+    environment:
+      WEB_PORTS: "83"
+      VIRTUAL_HOST: "web3.nginx-proxy.tld"
+      HTTPS_METHOD: noredirect
 
-sut:
-  image: nginxproxy/nginx-proxy:test
-  volumes:
-    - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ./certs:/etc/nginx/certs:ro
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs:/etc/nginx/certs:ro

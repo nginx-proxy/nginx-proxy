@@ -4,11 +4,9 @@ Nginx proxy test suite
 Install requirements
 --------------------
 
-You need [python 3.9](https://www.python.org/) and [pip](https://pip.pypa.io/en/stable/installing/) installed. Then run the commands:
+You need [Docker Compose v2](https://docs.docker.com/compose/install/linux/), [python 3.9](https://www.python.org/) and [pip](https://pip.pypa.io/en/stable/installation/)  installed. Then run the commands:
 
     pip install -r requirements/python-requirements.txt
-
-
 
 Prepare the nginx-proxy test image
 ----------------------------------
@@ -28,12 +26,25 @@ need more verbosity ?
 
     pytest -s
 
+Note: By default this test suite relies on Docker Compose v2 with the command `docker compose`. It still supports Docker Compose v1 via the `DOCKER_COMPOSE` environment variable:
+
+    DOCKER_COMPOSE=docker-compose pytest
 
 Run one single test module
 --------------------------
 
     pytest test_nominal.py
 
+Run the test suite from a Docker container
+------------------------------------------
+
+If you cannot (or don't want to) install pytest and its requirements on your computer. You can use the nginx-proxy-tester docker image to run the test suite from a Docker container.
+
+    make test-debian
+
+or if you want to test the alpine flavor:
+
+    make test-alpine
 
 Write a test module
 -------------------
@@ -48,11 +59,11 @@ This test suite uses [pytest](http://doc.pytest.org/en/latest/). The [conftest.p
 
 When using the `docker_compose` fixture in a test, pytest will try to find a yml file named after your test module filename. For instance, if your test module is `test_example.py`, then the `docker_compose` fixture will try to load a `test_example.yml` [docker compose file](https://docs.docker.com/compose/compose-file/).
 
-Once the docker compose file found, the fixture will remove all containers, run `docker-compose up`, and finally your test will be executed.
+Once the docker compose file found, the fixture will remove all containers, run `docker compose up`, and finally your test will be executed.
 
-The fixture will run the _docker-compose_ command with the `-f` option to load the given compose file. So you can test your docker compose file syntax by running it yourself with:
+The fixture will run the _docker compose_ command with the `-f` option to load the given compose file. So you can test your docker compose file syntax by running it yourself with:
 
-    docker-compose -f test_example.yml up -d
+    docker compose -f test_example.yml up -d
 
 In the case you are running pytest from within a docker container, the `docker_compose` fixture will make sure the container running pytest is attached to all docker networks. That way, your test will be able to reach any of them.
 

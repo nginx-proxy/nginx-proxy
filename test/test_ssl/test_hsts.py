@@ -31,3 +31,11 @@ def test_web4_HSTS_off_noredirect(docker_compose, nginxproxy):
     r = nginxproxy.get("https://web4.nginx-proxy.tld/port", allow_redirects=False)
     assert "answer from port 81\n" in r.text
     assert "Strict-Transport-Security" not in r.headers
+
+def test_http3_vhost_enabled_HSTS_default(docker_compose, nginxproxy):
+    r = nginxproxy.get("https://http3-vhost-enabled.nginx-proxy.tld/port", allow_redirects=False)
+    assert "answer from port 81\n" in r.text
+    assert "Strict-Transport-Security" in r.headers
+    assert "max-age=31536000" == r.headers["Strict-Transport-Security"]
+    assert "alt-svc" in r.headers
+    assert r.headers["alt-svc"] == 'h3=":443"; ma=86400;'

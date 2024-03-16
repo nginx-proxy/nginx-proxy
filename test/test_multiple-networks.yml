@@ -1,8 +1,10 @@
-version: '2'
+version: "2"
 
 networks:
   net1: {}
   net2: {}
+  net3a: {}
+  net3b: {}
 
 services:
   nginx-proxy:
@@ -12,6 +14,8 @@ services:
     networks:
       - net1
       - net2
+      - net3a
+      - net3b
 
   web1:
     image: web
@@ -19,7 +23,7 @@ services:
       - "81"
     environment:
       WEB_PORTS: 81
-      VIRTUAL_HOST: web1.nginx-proxy.local
+      VIRTUAL_HOST: web1.nginx-proxy.example
     networks:
       - net1
 
@@ -29,6 +33,17 @@ services:
       - "82"
     environment:
       WEB_PORTS: 82
-      VIRTUAL_HOST: web2.nginx-proxy.local
+      VIRTUAL_HOST: web2.nginx-proxy.example
     networks:
       - net2
+
+  web3:
+    image: web
+    expose:
+      - "83"
+    environment:
+      WEB_PORTS: 83
+      VIRTUAL_HOST: web3.nginx-proxy.test
+    networks:
+      - net3a
+      - net3b

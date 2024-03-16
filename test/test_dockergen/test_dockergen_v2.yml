@@ -1,4 +1,4 @@
-version: '2'
+version: "2"
 
 services:
   nginx:
@@ -8,13 +8,13 @@ services:
       - /etc/nginx/conf.d
 
   dockergen:
-    image: jwilder/docker-gen
+    image: nginxproxy/docker-gen
     command: -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
     volumes_from:
       - nginx
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl
+      - ../../nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl
 
   web:
     image: web

@@ -1,0 +1,4 @@
+# The file with the hash should trump this file.
+location / {
+    return 503;
+}

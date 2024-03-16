@@ -1,0 +1,31 @@
+version: "2"
+
+networks:
+  net1:
+    internal: true
+  net2:
+
+services:
+  bridge-network:
+    image: web
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: "bridge-network.nginx-proxy.tld"
+    networks:
+      - net2
+
+  host-network:
+    image: web
+    environment:
+      WEB_PORTS: "8080"
+      VIRTUAL_HOST: "host-network.nginx-proxy.tld"
+      VIRTUAL_PORT: "8080"
+    network_mode: host
+
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    networks:
+      - net1
+      - net2
