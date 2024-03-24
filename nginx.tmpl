@@ -128,7 +128,7 @@
     #     exposed ports:{{ range sortObjectsByKeysAsc $.container.Addresses "Port" }} {{ .Port }}/{{ .Proto }}{{ else }} (none){{ end }}
     {{- $default_port := when (eq (len $.container.Addresses) 1) (first $.container.Addresses).Port "80" }}
     #     default port: {{ $default_port }}
-    {{- $port := when (eq $.port "legacy") (or $.container.Env.VIRTUAL_PORT $default_port) $.port }}
+    {{- $port := when (eq $.port "default") $default_port (when (eq $.port "legacy") (or $.container.Env.VIRTUAL_PORT $default_port) $.port) }}
     #     using port: {{ $port }}
     {{- $addr_obj := where $.container.Addresses "Port" $port | first }}
     {{- if and $addr_obj $addr_obj.HostPort }}
@@ -347,6 +347,7 @@ upstream {{ $vpath.upstream }} {
      *   - "Containers": List of container's RuntimeContainer struct.
      *   - "Upstream_name"
      *   - "Has_virtual_paths": boolean
+     *   - "Multiport_syntax": boolean
      *   - "Path"
      *
      * The return values will be added to the dot dict with keys:
@@ -372,6 +373,12 @@ upstream {{ $vpath.upstream }} {
         {{- $sum := sha1 $.Path }}
         {{- $upstream = printf "%s-%s" $upstream $sum }}
         {{- $dest = or (first (groupByKeys $.Containers "Env.VIRTUAL_DEST")) "" }}
+    {{- end }}
+    {{- if $.Multiport_syntax }}
+        {{- if (not (eq $.Path "/")) }}
+            {{- $sum := sha1 $.Path }}
+            {{- $upstream = printf "%s-%s" $upstream $sum }}
+        {{- end }}
     {{- end }}
     {{- $_ := set $ "proto" $proto }}
     {{- $_ := set $ "network_tag" $network_tag }}
@@ -501,14 +508,107 @@ proxy_set_header Proxy "";
 {{- end }}
 
 {{- /* Precompute some information about each vhost. */}}
+{{- range $vhosts_yaml, $containers := groupBy $globals.containers "Env.VIRTUAL_HOST_YAML" }}
+    {{- range $hostname, $vhost := (fromYaml $vhosts_yaml) }}
+        {{- $vhost_data := when (hasKey $globals.vhosts $hostname) (get $globals.vhosts $hostname) (dict) }}
+        {{- $paths := coalesce $vhost_data.paths (dict) }}
+        {{- if (empty $vhost) }}
+            {{ $vhost = dict "/" (dict) }}
+        {{- end }}
+        {{- range $path, $vpath := $vhost }}
+            {{- $dest := coalesce $vpath.dest "" }}
+            {{- $port := when (hasKey $vpath "port") (toString $vpath.port) "default" }}
+            {{- $path_data := when (hasKey $paths $path) (get $paths $path) (dict) }}
+            {{- $path_ports := when (hasKey $path_data "ports") (get $path_data "ports") (dict) }}
+            {{- $path_port_containers := when (hasKey $path_ports $port) (get $path_ports $port) (list) }}
+            {{- $path_port_containers = concat $path_port_containers $containers }}
+            {{- $_ := set $path_ports $port $path_port_containers }}
+            {{- $_ := set $path_data "ports" $path_ports }}
+            {{- if (not (hasKey $path_data "dest")) }}
+                {{- $_ := set $path_data "dest" $dest }}
+            {{- end }}
+            {{- $_ := set $paths $path $path_data }}
+        {{- end }}
+        {{- $_ := set $vhost_data "paths" $paths }}
+        {{- $is_regexp := hasPrefix "~" $hostname }}
+        {{- $_ := set $vhost_data "upstream_name" (when (or $is_regexp $globals.sha1_upstream_name) (sha1 $hostname) $hostname) }}
+        {{- $_ := set $vhost_data "has_virtual_paths" false }}
+        {{- $_ := set $vhost_data "multiport_syntax" true }}
+        {{- $_ := set $globals.vhosts $hostname $vhost_data }}
+    {{- end }}
+{{- end }}
+
 {{- range $hostname, $containers := groupByMulti $globals.containers "Env.VIRTUAL_HOST" "," }}
     {{- $hostname = trim $hostname }}
     {{- if not $hostname }}
         {{- /* Ignore containers with VIRTUAL_HOST set to the empty string. */}}
         {{- continue }}
     {{- end }}
+    {{- range $_, $containers_to_drop := groupBy $containers "Env.VIRTUAL_HOST_YAML" }}
+        {{- range $container := $containers_to_drop }}
+            {{- $containers = without $containers $container }}
+        {{- end }}
+    {{- end }}
+    {{- if (eq (len $containers) 0) }}
+        {{- continue }}
+    {{- end }}
+    {{- $vhost_data := when (hasKey $globals.vhosts $hostname) (get $globals.vhosts $hostname) (dict) }}
 
-    {{- $certName := first (groupByKeys $containers "Env.CERT_NAME") }}
+    {{- $is_regexp := hasPrefix "~" $hostname }}
+    {{- $upstream_name := when (or $is_regexp $globals.sha1_upstream_name) (sha1 $hostname) $hostname }}
+
+    {{- $has_virtual_paths := false }}
+    {{- $paths := coalesce $vhost_data.paths (dict) }}
+    {{- $tmp_paths := groupBy $containers "Env.VIRTUAL_PATH" }}
+    {{- $has_virtual_paths = gt (len $tmp_paths) 0}}
+    {{- if not $has_virtual_paths }}
+        {{- $tmp_paths = dict "/" $containers }}
+    {{- end }}
+    {{- range $path, $containers := $tmp_paths }}
+        {{- $path_data := when (hasKey $paths $path) (get $paths $path) (dict) }}
+        {{- $path_ports := when (hasKey $path_data "ports") (get $path_data "ports") (dict) }}
+        {{- $port := "legacy" }}
+        {{- $path_port_containers := when (hasKey $path_ports $port) (get $path_ports $port) (list) }}
+        {{- $path_port_containers = concat $path_port_containers $containers }}
+
+        {{- $_ := set $path_ports $port $path_port_containers }}
+        {{- $_ := set $path_data "ports" $path_ports }}
+        {{- if (not (hasKey $path_data "dest")) }}
+            {{- $_ := set $path_data "dest" (or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "") }}
+        {{- end }}
+        {{- $_ := set $paths $path $path_data }}
+    {{- end }}
+    {{- $_ := set $vhost_data "paths" $paths }}
+    {{- $_ := set $vhost_data "upstream_name" $upstream_name }}
+    {{- $_ := set $vhost_data "has_virtual_paths" $has_virtual_paths }}
+    {{- $_ := set $vhost_data "multiport_syntax" false }}
+    {{- $_ := set $globals.vhosts $hostname $vhost_data }}
+{{- end }}
+
+{{- range $hostname, $vhost_data := $globals.vhosts }}
+    {{- $vhost_containers := list }}
+    {{- range $path, $vpath_data := $vhost_data.paths }}
+        {{- $vpath_containers := list }}
+        {{- range $port, $vport_containers := $vpath_data.ports }}
+            {{ $vpath_containers = concat $vpath_containers $vport_containers }}
+        {{- end }}
+
+        {{- $args := dict "Containers" $vpath_containers "Path" $path "Upstream_name" $vhost_data.upstream_name "Has_virtual_paths" $vhost_data.has_virtual_paths "Multiport_syntax" $vhost_data.multiport_syntax }}
+        {{- template "get_path_info" $args }}
+        {{- if $vhost_data.has_virtual_paths }}
+            {{- $_ := set $vpath_data "dest" $args.dest }}
+        {{- end }}
+        {{- $_ := set $vpath_data "proto" $args.proto }}
+        {{- $_ := set $vpath_data "network_tag" $args.network_tag }}
+        {{- $_ := set $vpath_data "upstream" $args.upstream }}
+        {{- $_ := set $vpath_data "loadbalance" $args.loadbalance }}
+        {{- $_ := set $vpath_data "keepalive" $args.keepalive }}
+        {{- $_ := set $vhost_data.paths $path $vpath_data }}
+
+        {{ $vhost_containers = concat $vhost_containers $vpath_containers }}
+    {{- end }}
+
+    {{- $certName := first (groupByKeys $vhost_containers "Env.CERT_NAME") }}
     {{- $vhostCert := closest (dir "/etc/nginx/certs") (printf "%s.crt" $hostname) }}
     {{- $vhostCert = trimSuffix ".crt" $vhostCert }}
     {{- $vhostCert = trimSuffix ".key" $vhostCert }}
@@ -516,49 +616,23 @@ proxy_set_header Proxy "";
     {{- $cert_ok := and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)) }}
 
     {{- $default := eq $globals.Env.DEFAULT_HOST $hostname }}
-    {{- $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) $globals.Env.HTTPS_METHOD "redirect" }}
-    {{- $http2_enabled := parseBool (or (first (keys (groupByLabel $containers "com.github.nginx-proxy.nginx-proxy.http2.enable"))) $globals.Env.ENABLE_HTTP2 "true")}}
-    {{- $http3_enabled := parseBool (or (first (keys (groupByLabel $containers "com.github.nginx-proxy.nginx-proxy.http3.enable"))) $globals.Env.ENABLE_HTTP3 "false")}}
-
-    {{- $is_regexp := hasPrefix "~" $hostname }}
-    {{- $upstream_name := when (or $is_regexp $globals.sha1_upstream_name) (sha1 $hostname) $hostname }}
+    {{- $https_method := or (first (groupByKeys $vhost_containers "Env.HTTPS_METHOD")) $globals.Env.HTTPS_METHOD "redirect" }}
+    {{- $http2_enabled := parseBool (or (first (keys (groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http2.enable"))) $globals.Env.ENABLE_HTTP2 "true")}}
+    {{- $http3_enabled := parseBool (or (first (keys (groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http3.enable"))) $globals.Env.ENABLE_HTTP3 "false")}}
 
     {{- /* Get the SERVER_TOKENS defined by containers w/ the same vhost, falling back to "". */}}
-    {{- $server_tokens := trim (or (first (groupByKeys $containers "Env.SERVER_TOKENS")) "") }}
+    {{- $server_tokens := trim (or (first (groupByKeys $vhost_containers "Env.SERVER_TOKENS")) "") }}
 
     {{- /* Get the SSL_POLICY defined by containers w/ the same vhost, falling back to empty string (use default). */}}
-    {{- $ssl_policy := or (first (groupByKeys $containers "Env.SSL_POLICY")) "" }}
+    {{- $ssl_policy := or (first (groupByKeys $vhost_containers "Env.SSL_POLICY")) "" }}
 
     {{- /* Get the HSTS defined by containers w/ the same vhost, falling back to "max-age=31536000". */}}
-    {{- $hsts := or (first (groupByKeys $containers "Env.HSTS")) (or $globals.Env.HSTS "max-age=31536000") }}
+    {{- $hsts := or (first (groupByKeys $vhost_containers "Env.HSTS")) (or $globals.Env.HSTS "max-age=31536000") }}
 
     {{- /* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
-    {{- $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
+    {{- $vhost_root := or (first (groupByKeys $vhost_containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
 
-
-    {{- $tmp_paths := groupBy $containers "Env.VIRTUAL_PATH" }}
-    {{- $has_virtual_paths := gt (len $tmp_paths) 0}}
-    {{- if not $has_virtual_paths }}
-        {{- $tmp_paths = dict "/" $containers }}
-    {{- end }}
-
-    {{- $paths := dict }}
-
-    {{- range $path, $containers := $tmp_paths }}
-        {{- $args := dict "Containers" $containers "Path" $path "Upstream_name" $upstream_name "Has_virtual_paths" $has_virtual_paths }}
-        {{- template "get_path_info" $args }}
-        {{- $_ := set $paths $path (dict
-            "ports" (dict "legacy" $containers)
-            "dest" $args.dest
-            "proto" $args.proto
-            "network_tag" $args.network_tag
-            "upstream" $args.upstream
-            "loadbalance" $args.loadbalance
-            "keepalive" $args.keepalive
-        ) }}
-    {{- end }}
-
-    {{- $_ := set $globals.vhosts $hostname (dict
+    {{- $vhost_data = merge $vhost_data (dict
         "cert" $cert
         "cert_ok" $cert_ok
         "default" $default
@@ -566,12 +640,13 @@ proxy_set_header Proxy "";
         "https_method" $https_method
         "http2_enabled" $http2_enabled
         "http3_enabled" $http3_enabled
-        "paths" $paths
         "server_tokens" $server_tokens
         "ssl_policy" $ssl_policy
         "vhost_root" $vhost_root
     ) }}
+    {{- $_ := set $globals.vhosts $hostname $vhost_data }}
 {{- end }}
+
 
 {{- /*
      * If needed, create a catch-all fallback server to send an error code to
