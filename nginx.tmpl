@@ -276,6 +276,9 @@
         grpc_pass {{ trim $proto }}://{{ trim $upstream }};
         {{- else }}
         proxy_pass {{ trim $proto }}://{{ trim $upstream }}{{ trim $dest }};
+            {{- if not (eq .Path "/") }}
+        proxy_redirect ~^/(.*)$ {{ trimSuffix `/` .Path }}/$1;
+            {{- end }}
         set $upstream_keepalive {{ if ne $keepalive "disabled" }}true{{ else }}false{{ end }};
         {{- end }}
 
