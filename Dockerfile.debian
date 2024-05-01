@@ -3,7 +3,7 @@ FROM nginxproxy/docker-gen:0.12.0-debian AS docker-gen
 FROM nginxproxy/forego:0.18.1-debian AS forego
 
 # Build the final image
-FROM nginx:1.25.4
+FROM nginx:1.26.0
 
 ARG NGINX_PROXY_VERSION
 # Add DOCKER_GEN_VERSION environment variable because 
