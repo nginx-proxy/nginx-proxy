@@ -346,12 +346,9 @@ upstream {{ $vpath.upstream }} {
      * The provided dot dict is expected to have the following entries:
      *   - "Containers": List of container's RuntimeContainer struct.
      *   - "Upstream_name"
-     *   - "Has_virtual_paths": boolean
-     *   - "Multiport_syntax": boolean
      *   - "Path"
      *
      * The return values will be added to the dot dict with keys:
-     * - "dest"
      * - "proto"
      * - "network_tag"
      * - "upstream"
@@ -368,22 +365,13 @@ upstream {{ $vpath.upstream }} {
     {{- $keepalive := coalesce (first (keys (groupByLabel $.Containers "com.github.nginx-proxy.nginx-proxy.keepalive"))) "disabled" }}
 
     {{- $upstream := $.Upstream_name }}
-    {{- $dest := "" }}
-    {{- if $.Has_virtual_paths }}
+    {{- if (not (eq $.Path "/")) }}
         {{- $sum := sha1 $.Path }}
         {{- $upstream = printf "%s-%s" $upstream $sum }}
-        {{- $dest = or (first (groupByKeys $.Containers "Env.VIRTUAL_DEST")) "" }}
-    {{- end }}
-    {{- if $.Multiport_syntax }}
-        {{- if (not (eq $.Path "/")) }}
-            {{- $sum := sha1 $.Path }}
-            {{- $upstream = printf "%s-%s" $upstream $sum }}
-        {{- end }}
     {{- end }}
     {{- $_ := set $ "proto" $proto }}
     {{- $_ := set $ "network_tag" $network_tag }}
     {{- $_ := set $ "upstream" $upstream }}
-    {{- $_ := set $ "dest" $dest }}
     {{- $_ := set $ "loadbalance" $loadbalance }}
     {{- $_ := set $ "keepalive" $keepalive }}
 {{- end }}
@@ -507,14 +495,16 @@ proxy_set_header X-Original-URI $request_uri;
 proxy_set_header Proxy "";
 {{- end }}
 
-{{- /* Precompute some information about each vhost. */}}
+{{- /* Precompute some information about vhost that use VIRTUAL_HOST_YAML. */}}
 {{- range $vhosts_yaml, $containers := groupBy $globals.containers "Env.VIRTUAL_HOST_YAML" }}
     {{- range $hostname, $vhost := (fromYaml $vhosts_yaml) }}
         {{- $vhost_data := when (hasKey $globals.vhosts $hostname) (get $globals.vhosts $hostname) (dict) }}
         {{- $paths := coalesce $vhost_data.paths (dict) }}
+        
         {{- if (empty $vhost) }}
             {{ $vhost = dict "/" (dict) }}
         {{- end }}
+
         {{- range $path, $vpath := $vhost }}
             {{- $dest := coalesce $vpath.dest "" }}
             {{- $port := when (hasKey $vpath "port") (toString $vpath.port) "default" }}
@@ -532,18 +522,19 @@ proxy_set_header Proxy "";
         {{- $_ := set $vhost_data "paths" $paths }}
         {{- $is_regexp := hasPrefix "~" $hostname }}
         {{- $_ := set $vhost_data "upstream_name" (when (or $is_regexp $globals.sha1_upstream_name) (sha1 $hostname) $hostname) }}
-        {{- $_ := set $vhost_data "has_virtual_paths" false }}
-        {{- $_ := set $vhost_data "multiport_syntax" true }}
         {{- $_ := set $globals.vhosts $hostname $vhost_data }}
     {{- end }}
 {{- end }}
 
+{{- /* Precompute some information about vhost that use VIRTUAL_HOST. */}}
 {{- range $hostname, $containers := groupByMulti $globals.containers "Env.VIRTUAL_HOST" "," }}
+    {{- /* Ignore containers with VIRTUAL_HOST set to the empty string. */}}
     {{- $hostname = trim $hostname }}
     {{- if not $hostname }}
-        {{- /* Ignore containers with VIRTUAL_HOST set to the empty string. */}}
         {{- continue }}
     {{- end }}
+
+    {{/* Drop containers with VIRTUAL_HOST_YAML set (VIRTUAL_HOST_YAML takes precedence). */}}
     {{- range $_, $containers_to_drop := groupBy $containers "Env.VIRTUAL_HOST_YAML" }}
         {{- range $container := $containers_to_drop }}
             {{- $containers = without $containers $container }}
@@ -552,36 +543,32 @@ proxy_set_header Proxy "";
     {{- if (eq (len $containers) 0) }}
         {{- continue }}
     {{- end }}
+
     {{- $vhost_data := when (hasKey $globals.vhosts $hostname) (get $globals.vhosts $hostname) (dict) }}
-
-    {{- $is_regexp := hasPrefix "~" $hostname }}
-    {{- $upstream_name := when (or $is_regexp $globals.sha1_upstream_name) (sha1 $hostname) $hostname }}
-
-    {{- $has_virtual_paths := false }}
     {{- $paths := coalesce $vhost_data.paths (dict) }}
+
     {{- $tmp_paths := groupBy $containers "Env.VIRTUAL_PATH" }}
-    {{- $has_virtual_paths = gt (len $tmp_paths) 0}}
-    {{- if not $has_virtual_paths }}
+    {{- if not (gt (len $tmp_paths) 0) }}
         {{- $tmp_paths = dict "/" $containers }}
     {{- end }}
+
     {{- range $path, $containers := $tmp_paths }}
+        {{- $dest := or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "" }}
+        {{- $port := "legacy" }}
         {{- $path_data := when (hasKey $paths $path) (get $paths $path) (dict) }}
         {{- $path_ports := when (hasKey $path_data "ports") (get $path_data "ports") (dict) }}
-        {{- $port := "legacy" }}
         {{- $path_port_containers := when (hasKey $path_ports $port) (get $path_ports $port) (list) }}
         {{- $path_port_containers = concat $path_port_containers $containers }}
-
         {{- $_ := set $path_ports $port $path_port_containers }}
         {{- $_ := set $path_data "ports" $path_ports }}
         {{- if (not (hasKey $path_data "dest")) }}
-            {{- $_ := set $path_data "dest" (or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "") }}
+            {{- $_ := set $path_data "dest" $dest }}
         {{- end }}
         {{- $_ := set $paths $path $path_data }}
     {{- end }}
     {{- $_ := set $vhost_data "paths" $paths }}
-    {{- $_ := set $vhost_data "upstream_name" $upstream_name }}
-    {{- $_ := set $vhost_data "has_virtual_paths" $has_virtual_paths }}
-    {{- $_ := set $vhost_data "multiport_syntax" false }}
+    {{- $is_regexp := hasPrefix "~" $hostname }}
+    {{- $_ := set $vhost_data "upstream_name" (when (or $is_regexp $globals.sha1_upstream_name) (sha1 $hostname) $hostname) }}
     {{- $_ := set $globals.vhosts $hostname $vhost_data }}
 {{- end }}
 
@@ -593,11 +580,13 @@ proxy_set_header Proxy "";
             {{ $vpath_containers = concat $vpath_containers $vport_containers }}
         {{- end }}
 
-        {{- $args := dict "Containers" $vpath_containers "Path" $path "Upstream_name" $vhost_data.upstream_name "Has_virtual_paths" $vhost_data.has_virtual_paths "Multiport_syntax" $vhost_data.multiport_syntax }}
+        {{- $args := (dict 
+            "Containers" $vpath_containers
+            "Path" $path
+            "Upstream_name" $vhost_data.upstream_name
+        )}}
+
         {{- template "get_path_info" $args }}
-        {{- if $vhost_data.has_virtual_paths }}
-            {{- $_ := set $vpath_data "dest" $args.dest }}
-        {{- end }}
         {{- $_ := set $vpath_data "proto" $args.proto }}
         {{- $_ := set $vpath_data "network_tag" $args.network_tag }}
         {{- $_ := set $vpath_data "upstream" $args.upstream }}
