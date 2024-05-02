@@ -1,0 +1,61 @@
+version: "2"
+
+services:
+  skipvirtualhost:
+    image: web
+    expose:
+      - "81"
+    environment:
+      WEB_PORTS: "81"
+      VIRTUAL_HOST: skipped.nginx-proxy.tld
+      VIRTUAL_HOST_YAML: |-
+        notskipped.nginx-proxy.tld:
+
+  defaultport:
+    image: web
+    expose:
+      - "80"
+      - "8080"
+    environment:
+      WEB_PORTS: "80 8080"
+      VIRTUAL_HOST_YAML: |-
+        port80.a.nginx-proxy.tld:
+        port80.b.nginx-proxy.tld:
+        port80.c.nginx-proxy.tld:
+          "/":
+
+  multiports:
+    image: web
+    expose:
+      - "8080"
+      - "9000"
+    environment:
+      WEB_PORTS: "8080 9000"
+      VIRTUAL_HOST_YAML: |-
+        port8080.nginx-proxy.tld:
+          "/":
+            port: 8080
+        port9000.nginx-proxy.tld:
+          "/":
+            port: 9000
+  
+  virtualpath:
+    image: web
+    expose:
+      - "10001"
+      - "10002"
+    environment:
+      WEB_PORTS: "10001 10002"
+      VIRTUAL_HOST_YAML: |-
+        virtualpaths.nginx-proxy.tld:
+          "/rootdest":
+            port: 10001
+            dest: "/"
+          "/customdest":
+            port: 10002
+            dest: "/port"
+
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
