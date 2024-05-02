@@ -710,7 +710,7 @@ server {
         internal;
     }
         {{- end }}
-    location / {
+    location ^~ / {
         return 503;
     }
 }
