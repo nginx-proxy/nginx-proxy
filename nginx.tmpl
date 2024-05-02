@@ -506,6 +506,9 @@ proxy_set_header Proxy "";
         {{- end }}
 
         {{- range $path, $vpath := $vhost }}
+            {{- if (empty $vpath) }}
+                {{- $vpath = dict "dest" "" "port" "default" }}
+            {{- end }}
             {{- $dest := coalesce $vpath.dest "" }}
             {{- $port := when (hasKey $vpath "port") (toString $vpath.port) "default" }}
             {{- $path_data := when (hasKey $paths $path) (get $paths $path) (dict) }}
