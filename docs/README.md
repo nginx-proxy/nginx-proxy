@@ -53,6 +53,62 @@ For each host defined into `VIRTUAL_HOST`, the associated virtual port is retrie
 1. From the container's exposed port if there is only one
 1. From the default port 80 when none of the above methods apply
 
+### Multiple ports
+
+If your container expose more than one service on different ports and those services need to be proxied, you'll need to use the `VIRTUAL_HOST_MULTIPORTS` environment variable. This variable takes virtual host, path, port and dest definition in YAML (or JSON) form, and completely override the `VIRTUAL_HOST`, `VIRTUAL_PORT`, `VIRTUAL_PATH` and `VIRTUAL_DEST` environment variables on this container.
+
+The expected format is the following:
+
+```yaml
+hostname:
+  path:
+    port: int
+    dest: string
+```
+
+For each hostname entry, `path`, `port` and `dest` are optionnal and are assigned default values when missing:
+
+- `path` = "/"
+- `port` = default port
+- `dest` = ""
+
+Docker compose example with an hypotetical container running services on port 80, 8000 and 9000:
+
+```yaml
+services:
+  multiport-container:
+    image: somerepo/somecontainer
+    container_name: multiport-container
+    environment:
+      VIRTUAL_HOST_MULTIPORTS: |-
+        service1.example.org:
+        service2.example.org:
+          "/":
+            port: 8000
+          "/foo":
+            port: 9000
+            dest: "/"
+        service3.example.org:
+          "/bar":
+            dest: "/somewhere"
+```
+
+Command line equivalent using JSON formatting:
+
+```console
+docker run --detach \
+  --name multiport-container \
+  --env 'VIRTUAL_HOST_MULTIPORTS={"service1.example.org": {}, "service2.example.org": {"/": {"port": 8000}, "/somewhere": {"port": 9000, "dest": "/elsewhere"}}, "service3.example.org": {"/foo": {"dest": "/bar"}}}'
+  somerepo/somecontainer
+```
+
+This would result in the following proxy config:
+
+- `host1.example.org` -> `multiport-container:80`
+- `host2.example.org` -> `multiport-container:8000`
+- `host2.example.org/foo` -> `multiport-container:9000`
+- `host3.example.org/bar` -> `multiport-container:80/somewhere`
+
 ⬆️ [back to table of contents](#table-of-contents)
 
 ## Path-based Routing
