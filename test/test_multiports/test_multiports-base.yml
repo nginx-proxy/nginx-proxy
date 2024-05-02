@@ -8,7 +8,7 @@ services:
     environment:
       WEB_PORTS: "81"
       VIRTUAL_HOST: skipped.nginx-proxy.tld
-      VIRTUAL_HOST_YAML: |-
+      VIRTUAL_HOST_MULTIPORTS: |-
         notskipped.nginx-proxy.tld:
 
   defaultport:
@@ -18,7 +18,7 @@ services:
       - "8080"
     environment:
       WEB_PORTS: "80 8080"
-      VIRTUAL_HOST_YAML: |-
+      VIRTUAL_HOST_MULTIPORTS: |-
         port80.a.nginx-proxy.tld:
         port80.b.nginx-proxy.tld:
         port80.c.nginx-proxy.tld:
@@ -31,7 +31,7 @@ services:
       - "9000"
     environment:
       WEB_PORTS: "8080 9000"
-      VIRTUAL_HOST_YAML: |-
+      VIRTUAL_HOST_MULTIPORTS: |-
         port8080.nginx-proxy.tld:
           "/":
             port: 8080
@@ -46,7 +46,7 @@ services:
       - "10002"
     environment:
       WEB_PORTS: "10001 10002"
-      VIRTUAL_HOST_YAML: |-
+      VIRTUAL_HOST_MULTIPORTS: |-
         virtualpaths.nginx-proxy.tld:
           "/rootdest":
             port: 10001

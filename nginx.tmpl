@@ -495,8 +495,8 @@ proxy_set_header X-Original-URI $request_uri;
 proxy_set_header Proxy "";
 {{- end }}
 
-{{- /* Precompute some information about vhost that use VIRTUAL_HOST_YAML. */}}
-{{- range $vhosts_yaml, $containers := groupBy $globals.containers "Env.VIRTUAL_HOST_YAML" }}
+{{- /* Precompute and store some information about vhost that use VIRTUAL_HOST_MULTIPORTS. */}}
+{{- range $vhosts_yaml, $containers := groupBy $globals.containers "Env.VIRTUAL_HOST_MULTIPORTS" }}
     {{- range $hostname, $vhost := (fromYaml $vhosts_yaml) }}
         {{- $vhost_data := when (hasKey $globals.vhosts $hostname) (get $globals.vhosts $hostname) (dict) }}
         {{- $paths := coalesce $vhost_data.paths (dict) }}
@@ -529,7 +529,7 @@ proxy_set_header Proxy "";
     {{- end }}
 {{- end }}
 
-{{- /* Precompute some information about vhost that use VIRTUAL_HOST. */}}
+{{- /* Precompute and store some information about vhost that use VIRTUAL_HOST. */}}
 {{- range $hostname, $containers := groupByMulti $globals.containers "Env.VIRTUAL_HOST" "," }}
     {{- /* Ignore containers with VIRTUAL_HOST set to the empty string. */}}
     {{- $hostname = trim $hostname }}
@@ -537,8 +537,10 @@ proxy_set_header Proxy "";
         {{- continue }}
     {{- end }}
 
-    {{/* Drop containers with VIRTUAL_HOST_YAML set (VIRTUAL_HOST_YAML takes precedence). */}}
-    {{- range $_, $containers_to_drop := groupBy $containers "Env.VIRTUAL_HOST_YAML" }}
+    {{- /* Drop containers with both VIRTUAL_HOST and VIRTUAL_HOST_MULTIPORTS set
+         * (VIRTUAL_HOST_MULTIPORTS takes precedence thanks to the previous loop).
+         */}}
+    {{- range $_, $containers_to_drop := groupBy $containers "Env.VIRTUAL_HOST_MULTIPORTS" }}
         {{- range $container := $containers_to_drop }}
             {{- $containers = without $containers $container }}
         {{- end }}
@@ -575,6 +577,7 @@ proxy_set_header Proxy "";
     {{- $_ := set $globals.vhosts $hostname $vhost_data }}
 {{- end }}
 
+{{- /* Loop over $globals.vhosts and update it with the remaining informations about each vhost. */}}
 {{- range $hostname, $vhost_data := $globals.vhosts }}
     {{- $vhost_containers := list }}
     {{- range $path, $vpath_data := $vhost_data.paths }}
