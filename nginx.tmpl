@@ -332,7 +332,7 @@ upstream {{ $vpath.upstream }} {
     server {{ $ip }}:{{ $args.port }};
             {{- end }}
             {{- if $ipv6 }}
-    server [{{ $ipv6 }}]:{{ $args.$port }};
+    server [{{ $ipv6 }}]:{{ $args.port }};
             {{- end }}
         {{- end }}
     {{- end }}
