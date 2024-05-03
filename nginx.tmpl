@@ -338,44 +338,6 @@ upstream {{ $vpath.upstream }} {
 }
 {{- end }}
 
-{{- /*
-     * Template used as a function to collect virtual path properties from
-     * the given containers.  These properties are "returned" by storing their
-     * values into the provided dot dict.
-     *
-     * The provided dot dict is expected to have the following entries:
-     *   - "Containers": List of container's RuntimeContainer struct.
-     *   - "Upstream_name"
-     *   - "Path"
-     *
-     * The return values will be added to the dot dict with keys:
-     * - "proto"
-     * - "network_tag"
-     * - "upstream"
-     * - "loadbalance"
-     * - "keepalive"
-     */}}
-{{- define "get_path_info" }}
-    {{- /* Get the VIRTUAL_PROTO defined by containers w/ the same vhost-vpath, falling back to "http". */}}
-    {{- $proto := trim (or (first (groupByKeys $.Containers "Env.VIRTUAL_PROTO")) "http") }}
-    {{- /* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external". */}}
-    {{- $network_tag := or (first (groupByKeys $.Containers "Env.NETWORK_ACCESS")) "external" }}
-
-    {{- $loadbalance := first (keys (groupByLabel $.Containers "com.github.nginx-proxy.nginx-proxy.loadbalance")) }}
-    {{- $keepalive := coalesce (first (keys (groupByLabel $.Containers "com.github.nginx-proxy.nginx-proxy.keepalive"))) "disabled" }}
-
-    {{- $upstream := $.Upstream_name }}
-    {{- if (not (eq $.Path "/")) }}
-        {{- $sum := sha1 $.Path }}
-        {{- $upstream = printf "%s-%s" $upstream $sum }}
-    {{- end }}
-    {{- $_ := set $ "proto" $proto }}
-    {{- $_ := set $ "network_tag" $network_tag }}
-    {{- $_ := set $ "upstream" $upstream }}
-    {{- $_ := set $ "loadbalance" $loadbalance }}
-    {{- $_ := set $ "keepalive" $keepalive }}
-{{- end }}
-
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
 map $http_x_forwarded_proto $proxy_x_forwarded_proto {
@@ -586,18 +548,25 @@ proxy_set_header Proxy "";
             {{ $vpath_containers = concat $vpath_containers $vport_containers }}
         {{- end }}
 
-        {{- $args := (dict 
-            "Containers" $vpath_containers
-            "Path" $path
-            "Upstream_name" $vhost_data.upstream_name
-        )}}
+        {{- /* Get the VIRTUAL_PROTO defined by containers w/ the same vhost-vpath, falling back to "http". */}}
+        {{- $proto := trim (or (first (groupByKeys $vpath_containers "Env.VIRTUAL_PROTO")) "http") }}
+        {{- /* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external". */}}
+        {{- $network_tag := or (first (groupByKeys $vpath_containers "Env.NETWORK_ACCESS")) "external" }}
 
-        {{- template "get_path_info" $args }}
-        {{- $_ := set $vpath_data "proto" $args.proto }}
-        {{- $_ := set $vpath_data "network_tag" $args.network_tag }}
-        {{- $_ := set $vpath_data "upstream" $args.upstream }}
-        {{- $_ := set $vpath_data "loadbalance" $args.loadbalance }}
-        {{- $_ := set $vpath_data "keepalive" $args.keepalive }}
+        {{- $loadbalance := first (keys (groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.loadbalance")) }}
+        {{- $keepalive := coalesce (first (keys (groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.keepalive"))) "disabled" }}
+
+        {{- $upstream := $vhost_data.upstream_name }}
+        {{- if (not (eq $path "/")) }}
+            {{- $sum := sha1 $path }}
+            {{- $upstream = printf "%s-%s" $upstream $sum }}
+        {{- end }}
+
+        {{- $_ := set $vpath_data "proto" $proto }}
+        {{- $_ := set $vpath_data "network_tag" $network_tag }}
+        {{- $_ := set $vpath_data "upstream" $upstream }}
+        {{- $_ := set $vpath_data "loadbalance" $loadbalance }}
+        {{- $_ := set $vpath_data "keepalive" $keepalive }}
         {{- $_ := set $vhost_data.paths $path $vpath_data }}
 
         {{ $vhost_containers = concat $vhost_containers $vpath_containers }}
