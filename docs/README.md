@@ -507,7 +507,7 @@ docker run -d -p 80:80 -e ENABLE_IPV6=true -v /var/run/docker.sock:/tmp/docker.s
 
 ### Scoped IPv6 Resolvers
 
-NginX does not support scoped IPv6 resolvers. In [docker-entrypoint.sh](https://github.com/nginx-proxy/nginx-proxy/tree/main/docker-entrypoint.sh) the resolvers are parsed from resolv.conf, but any scoped IPv6 addreses will be removed.
+Nginx does not support scoped IPv6 resolvers. In [docker-entrypoint.sh](https://github.com/nginx-proxy/nginx-proxy/blob/main/app/docker-entrypoint.sh) the resolvers are parsed from resolv.conf, but any scoped IPv6 addreses will be removed.
 
 ### IPv6 NAT
 
@@ -599,7 +599,7 @@ proxy_set_header X-Original-URI $request_uri;
 proxy_set_header Proxy "";
 ```
 
-**_NOTE_**: If you provide this file it will replace the defaults; you may want to check the .tmpl file to make sure you have all of the needed options.
+**_NOTE_**: If you provide this file it will replace the defaults; you may want to check the [nginx.tmpl](https://github.com/nginx-proxy/nginx-proxy/blob/main/nginx.tmpl) file to make sure you have all of the needed options.
 
 ### Proxy-wide
 
