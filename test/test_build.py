@@ -7,18 +7,18 @@ import re
 
 client = docker.from_env()
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope = "session")
 def docker_build(request):
     # Define Dockerfile path
     dockerfile_path = "requirements/"
-    dockerfile_name="Dockerfile-nginx-proxy-tester"
+    dockerfile_name = "Dockerfile-nginx-proxy-tester"
 
     # Build the Docker image
     image, logs = client.images.build(
-        path=dockerfile_path,
-        dockerfile=dockerfile_name,
-        rm=True,  # Remove intermediate containers
-        tag="nginx-proxy-tester-ci",  # Tag for the built image
+        path = dockerfile_path,
+        dockerfile = dockerfile_name,
+        rm = True,  # Remove intermediate containers
+        tag = "nginx-proxy-tester-ci",  # Tag for the built image
     )
 
     # Check for build success
@@ -43,9 +43,8 @@ def test_build_nginx_proxy_tester(docker_build):
 def test_run_nginx_proxy_tester(docker_build):
     # Run the container with 'pytest -v' command to output version info
     container = client.containers.run("nginx-proxy-tester-ci",
-    command="pytest -V",
-    detach=True,
- #   auto_remove=True
+    command = "pytest -V",
+    detach = True,
     )
 
     # Wait for the container to finish and get the exit code
