@@ -57,6 +57,7 @@
      */}}
 {{- define "container_ip" }}
     {{- $ip := "" }}
+    {{- $ipv6 := "" }}
     #     networks:
     {{- range sortObjectsByKeysAsc $.container.Networks "Name" }}
         {{- /*
@@ -104,13 +105,20 @@
         {{- if and . .IP }}
             {{- $ip = .IP }}
         {{- else }}
-    #             /!\ No IP for this network!
+    #             /!\ No IPv4 for this network!
+        {{- end }}
+        {{- if and . .GlobalIPv6Address }}
+            {{- $ipv6 = .GlobalIPv6Address }}
+        {{- else }}
+    #             /!\ No IPv6 for this network!
         {{- end }}
     {{- else }}
     #         (none)
     {{- end }}
-    #     IP address: {{ if $ip }}{{ $ip }}{{ else }}(none usable){{ end }}
+    #     IPv4 address: {{ if $ip }}{{ $ip }}{{ else }}(none usable){{ end }}
+    #     IPv6 address: {{ if $ipv6 }}{{ $ipv6 }}{{ else }}(none usable){{ end }}
     {{- $_ := set $ "ip" $ip }}
+    {{- $_ := set $ "ipv6" $ipv6 }}
 {{- end }}
 
 {{- /*
@@ -314,11 +322,17 @@ upstream {{ $vpath.upstream }} {
             {{- $args := dict "globals" $.globals "container" $container }}
             {{- template "container_ip" $args }}
             {{- $ip := $args.ip }}
+            {{- $ipv6 := $args.ipv6 }}
             {{- $args = dict "container" $container "path" $path "port" $port }}
             {{- template "container_port" $args }}
-            {{- if $ip }}
+            {{- if or $ip $ipv6 }}
                 {{- $servers = add1 $servers }}
+            {{- end }}
+            {{- if $ip }}
     server {{ $ip }}:{{ $args.port }};
+            {{- end }}
+            {{- if $ipv6 }}
+    server [{{ $ipv6 }}]:{{ $args.$port }};
             {{- end }}
         {{- end }}
     {{- end }}
