@@ -43,8 +43,8 @@ def test_build_nginx_proxy_tester(docker_build):
 def test_run_nginx_proxy_tester(docker_build):
     # Run the container with 'pytest -v' command to output version info
     container = client.containers.run("nginx-proxy-tester-ci",
-    command = "pytest -V",
-    detach = True,
+        command = "pytest -V",
+        detach = True,
     )
 
     # Wait for the container to finish and get the exit code
