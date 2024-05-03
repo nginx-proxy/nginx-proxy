@@ -1,0 +1,44 @@
+version: "2"
+
+services:
+  invalidsyntax:
+    image: web
+    container_name: invalidsyntax
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST_MULTIPORTS: |-
+        test1.nginx-proxy.tld
+        test2.nginx-proxy.tld:
+
+  hostnamerepeat:
+    image: web
+    container_name: hostnamerepeat
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST_MULTIPORTS: |-
+        test1.nginx-proxy.tld:
+        test1.nginx-proxy.tld:
+
+  pathrepeat:
+    image: web
+    container_name: pathrepeat
+    expose:
+      - "8080"
+      - "9000"
+    environment:
+      WEB_PORTS: "8080 9000"
+      VIRTUAL_HOST_MULTIPORTS: |-
+        test1.nginx-proxy.tld:
+          "/":
+            port: 8080
+          "/":
+            port: 9000
+
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro

@@ -459,7 +459,19 @@ proxy_set_header Proxy "";
 
 {{- /* Precompute and store some information about vhost that use VIRTUAL_HOST_MULTIPORTS. */}}
 {{- range $vhosts_yaml, $containers := groupBy $globals.containers "Env.VIRTUAL_HOST_MULTIPORTS" }}
-    {{- range $hostname, $vhost := (fromYaml $vhosts_yaml) }}
+    {{- /* Print a warning in the config if VIRTUAL_HOST_MULTIPORTS can't be parsed. */}}
+    {{- $parsedVhosts := fromYaml $vhosts_yaml }}
+    {{- if (empty $parsedVhosts) }}
+        {{- $containerNames := list }}
+        {{- range $container := $containers }}
+            {{- $containerNames = append $containerNames $container.Name }}
+        {{- end }}
+# /!\ WARNING: the VIRTUAL_HOST_MULTIPORTS environment variable used for {{ len $containerNames | plural "this container" "those containers" }} is not a valid YAML string:
+# {{ $containerNames | join ", " }}
+        {{- continue }}
+    {{- end }}
+
+    {{- range $hostname, $vhost := $parsedVhosts }}
         {{- $vhost_data := when (hasKey $globals.vhosts $hostname) (get $globals.vhosts $hostname) (dict) }}
         {{- $paths := coalesce $vhost_data.paths (dict) }}
         
