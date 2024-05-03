@@ -14,8 +14,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             response_body += self.headers.as_string()
         elif self.path == "/port":
             response_body += f"answer from port {PORT}\n"
-        elif re.match("/status/(\d+)", self.path):
-            result = re.match("/status/(\d+)", self.path)
+        elif re.match(r"/status/(\d+)", self.path):
+            result = re.match(r"/status/(\d+)", self.path)
             response_code = int(result.group(1))
             response_body += f"answer with response code {response_code}\n"
         elif self.path == "/":
