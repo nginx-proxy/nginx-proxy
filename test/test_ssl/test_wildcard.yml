@@ -14,3 +14,4 @@ services:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./certs:/etc/nginx/certs:ro
+      - ./acme_root:/usr/share/nginx/html:ro

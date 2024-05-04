@@ -14,3 +14,4 @@ services:
     image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./acme_root:/usr/share/nginx/html:ro

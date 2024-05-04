@@ -21,3 +21,13 @@ def test_web1_HSTS_policy_is_active(docker_compose, nginxproxy, subdomain):
     r = nginxproxy.get(f"https://{subdomain}.nginx-proxy.tld/port", allow_redirects=False)
     assert "answer from port 81\n" in r.text
     assert "Strict-Transport-Security" in r.headers
+
+
+@pytest.mark.parametrize("subdomain", ["foo", "bar"])
+def test_web1_acme_challenge_works(docker_compose, nginxproxy, acme_challenge_path, subdomain):
+    r = nginxproxy.get(
+        f"http://web3.nginx-proxy.tld/{acme_challenge_path}",
+        allow_redirects=False
+    )
+    assert r.status_code == 200
+    assert "challenge-teststring\n" in r.text

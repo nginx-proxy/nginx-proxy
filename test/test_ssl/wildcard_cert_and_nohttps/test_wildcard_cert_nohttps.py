@@ -1,5 +1,6 @@
 import pytest
 from ssl import CertificateError
+from requests import ConnectionError
 from requests.exceptions import SSLError
 
 
@@ -32,3 +33,25 @@ def test_https_request_to_nohttps_vhost_goes_to_fallback_server(docker_compose, 
 
     r = nginxproxy.get("https://3.web.nginx-proxy.tld/port", verify=False)
     assert r.status_code == 503
+
+
+@pytest.mark.parametrize("subdomain,acme_should_work", [
+    (1, True),
+    (2, True),
+    (3, False),
+])
+def test_acme_challenge_works(
+    docker_compose, nginxproxy, acme_challenge_path, subdomain, acme_should_work
+):
+    if acme_should_work:
+        r = nginxproxy.get(
+            f"https://{subdomain}.web.nginx-proxy.tld/{acme_challenge_path}",
+            allow_redirects=False
+        )
+        assert r.status_code == 404
+    else:
+        with pytest.raises(ConnectionError):
+            nginxproxy.get(
+                f"https://{subdomain}.web.nginx-proxy.tld/{acme_challenge_path}",
+                allow_redirects=False
+            )
