@@ -1,0 +1,10 @@
+version: "2"
+
+services:
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    environment:
+      TEST_VARIABLE: "FOOBARBAZ"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./test.conf.template:/etc/nginx/templates/test.conf.template:ro
