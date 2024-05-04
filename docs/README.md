@@ -57,6 +57,8 @@ For each host defined into `VIRTUAL_HOST`, the associated virtual port is retrie
 
 If your container expose more than one service on different ports and those services need to be proxied, you'll need to use the `VIRTUAL_HOST_MULTIPORTS` environment variable. This variable takes virtual host, path, port and dest definition in YAML (or JSON) form, and completely override the `VIRTUAL_HOST`, `VIRTUAL_PORT`, `VIRTUAL_PATH` and `VIRTUAL_DEST` environment variables on this container.
 
+The YAML syntax should be easier to write on Docker compose files, while the JSON syntax can be used for CLI invocation.
+
 The expected format is the following:
 
 ```yaml
@@ -72,7 +74,9 @@ For each hostname entry, `path`, `port` and `dest` are optionnal and are assigne
 - `port` = default port
 - `dest` = ""
 
-Docker compose example with an hypotetical container running services on port 80, 8000 and 9000:
+The following examples use an hypotetical container running services on port 80, 8000 and 9000:
+
+#### Multiple ports routed to different hostnames
 
 ```yaml
 services:
@@ -81,33 +85,72 @@ services:
     container_name: multiport-container
     environment:
       VIRTUAL_HOST_MULTIPORTS: |-
+        www.example.org:
         service1.example.org:
-        service2.example.org:
           "/":
             port: 8000
-          "/foo":
+        service2.example.org:
+          "/":
             port: 9000
-            dest: "/"
-        service3.example.org:
-          "/bar":
-            dest: "/somewhere"
-```
 
-Command line equivalent using JSON formatting:
+# There is no path dict specified for www.example.org, so it get the default values:
+# www.example.org:
+#   "/":
+#     port: 80 (default port)
+#     dest: ""
 
-```console
-docker run --detach \
-  --name multiport-container \
-  --env 'VIRTUAL_HOST_MULTIPORTS={"service1.example.org": {}, "service2.example.org": {"/": {"port": 8000}, "/somewhere": {"port": 9000, "dest": "/elsewhere"}}, "service3.example.org": {"/foo": {"dest": "/bar"}}}'
-  somerepo/somecontainer
+# JSON equivalent:
+#     VIRTUAL_HOST_MULTIPORTS: |-
+#       {
+#         "www.example.org": {},
+#         "service1.example.org": { "/": { "port": 8000, "dest": "" } },
+#         "service2.example.org": { "/": { "port": 9000, "dest": "" } }
+#       }
 ```
 
 This would result in the following proxy config:
 
-- `host1.example.org` -> `multiport-container:80`
-- `host2.example.org` -> `multiport-container:8000`
-- `host2.example.org/foo` -> `multiport-container:9000`
-- `host3.example.org/bar` -> `multiport-container:80/somewhere`
+- `www.example.org` -> `multiport-container:80`
+- `service1.example.org` -> `multiport-container:8000`
+- `service2.example.org` -> `multiport-container:9000`
+
+#### Multiple ports routed to same hostname and different paths
+
+```yaml
+services:
+  multiport-container:
+    image: somerepo/somecontainer
+    container_name: multiport-container
+    environment:
+      VIRTUAL_HOST_MULTIPORTS: |-
+        www.example.org:
+          "/":
+          "/service1":
+            port: 8000
+            dest: "/"
+          "/service2":
+            port: 9000
+            dest: "/"
+
+# port and dest are not specified on the / path, so this path is routed
+# to the default port with the default dest value (empty string)
+
+# JSON equivalent:
+#     VIRTUAL_HOST_MULTIPORTS: |-
+#       {
+#         "www.example.org": {
+#           "/": {},
+#           "/service1": { "port": 8000, "dest": "/" },
+#           "/service2": { "port": 9000, "dest": "/" }
+#         }
+#       }
+```
+
+This would result in the following proxy config:
+
+- `www.example.org` -> `multiport-container:80`
+- `www.example.org/service1` -> `multiport-container:8000`
+- `www.example.org/service2` -> `multiport-container:9000`
 
 ⬆️ [back to table of contents](#table-of-contents)
 
