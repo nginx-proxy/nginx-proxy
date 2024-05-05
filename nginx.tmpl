@@ -526,10 +526,7 @@ proxy_set_header Proxy "";
     {{- $vhost_data := when (hasKey $globals.vhosts $hostname) (get $globals.vhosts $hostname) (dict) }}
     {{- $paths := coalesce $vhost_data.paths (dict) }}
 
-    {{- $tmp_paths := groupBy $containers "Env.VIRTUAL_PATH" }}
-    {{- if not (gt (len $tmp_paths) 0) }}
-        {{- $tmp_paths = dict "/" $containers }}
-    {{- end }}
+    {{- $tmp_paths := groupByWithDefault $containers "Env.VIRTUAL_PATH" "/" }}
 
     {{- range $path, $containers := $tmp_paths }}
         {{- $dest := or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "" }}
