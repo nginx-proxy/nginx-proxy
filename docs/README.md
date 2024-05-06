@@ -74,7 +74,7 @@ For each hostname entry, `path`, `port` and `dest` are optionnal and are assigne
 - `port` = default port
 - `dest` = ""
 
-The following examples use an hypotetical container running services on port 80, 8000 and 9000:
+The following examples use an hypothetical container running services on port 80, 8000 and 9000:
 
 #### Multiple ports routed to different hostnames
 
