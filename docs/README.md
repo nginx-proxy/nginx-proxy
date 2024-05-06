@@ -68,7 +68,7 @@ hostname:
     dest: string
 ```
 
-For each hostname entry, `path`, `port` and `dest` are optionnal and are assigned default values when missing:
+For each hostname entry, `path`, `port` and `dest` are optional and are assigned default values when missing:
 
 - `path` = "/"
 - `port` = default port
