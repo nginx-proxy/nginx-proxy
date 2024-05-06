@@ -510,6 +510,13 @@ def nginxproxy():
     yield requests_for_docker()
 
 
+@pytest.fixture()
+def acme_challenge_path():
+    """
+    Provides fake Let's Encrypt ACME challenge path used in certain tests
+    """
+    return ".well-known/acme-challenge/test-filename"
+
 ###############################################################################
 #
 # Py.test hooks
