@@ -288,17 +288,13 @@ def remove_all_containers():
 
 def get_nginx_conf_from_container(container):
     """
-    return the nginx /etc/nginx/conf.d/default.conf file content from a container
+    return the full nginx config from a container
     """
-    import tarfile
     from io import BytesIO
 
-    strm_generator, stat = container.get_archive('/etc/nginx/conf.d/default.conf')
+    _, strm_generator = container.exec_run("nginx -T", stream = True)
     strm_fileobj = BytesIO(b"".join(strm_generator))
-
-    with tarfile.open(fileobj=strm_fileobj) as tf:
-        conffile = tf.extractfile('default.conf')
-        return conffile.read()
+    return strm_fileobj.read()
 
 
 def docker_compose_up(compose_file='docker-compose.yml'):
