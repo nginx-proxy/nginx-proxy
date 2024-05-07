@@ -84,10 +84,17 @@ class requests_for_docker(object):
 
     def get_conf(self):
         """
-        Return the nginx config file
+        Return the generated nginx config file
         """
         nginx_proxy_containers = self.get_nginx_proxy_containers()
         return get_nginx_conf_from_container(nginx_proxy_containers[0])
+    
+    def get_toplevel_conf(self):
+        """
+        Return the top level nginx config file
+        """
+        nginx_proxy_containers = self.get_nginx_proxy_containers()
+        return get_nginx_toplevel_conf_from_container(nginx_proxy_containers[0])
 
     def get_ip(self) -> str:
         """
@@ -288,13 +295,32 @@ def remove_all_containers():
 
 def get_nginx_conf_from_container(container):
     """
-    return the full nginx config from a container
+    return the nginx /etc/nginx/conf.d/default.conf file content from a container
     """
+    import tarfile
     from io import BytesIO
 
-    _, strm_generator = container.exec_run("nginx -T", stream = True)
+    strm_generator, stat = container.get_archive('/etc/nginx/conf.d/default.conf')
     strm_fileobj = BytesIO(b"".join(strm_generator))
-    return strm_fileobj.read()
+
+    with tarfile.open(fileobj=strm_fileobj) as tf:
+        conffile = tf.extractfile('default.conf')
+        return conffile.read()
+   
+
+def get_nginx_toplevel_conf_from_container(container):
+    """
+    return the nginx /etc/nginx/nginx.conf file content from a container
+    """
+    import tarfile
+    from io import BytesIO
+
+    strm_generator, stat = container.get_archive('/etc/nginx/nginx.conf')
+    strm_fileobj = BytesIO(b"".join(strm_generator))
+
+    with tarfile.open(fileobj=strm_fileobj) as tf:
+        conffile = tf.extractfile('nginx.conf')
+        return conffile.read()
 
 
 def docker_compose_up(compose_file='docker-compose.yml'):
