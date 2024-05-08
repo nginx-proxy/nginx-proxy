@@ -4,13 +4,14 @@ Test that nginx-proxy-tester can build successfully
 import pytest
 import docker
 import re
+import os
 
 client = docker.from_env()
 
 @pytest.fixture(scope = "session")
 def docker_build(request):
     # Define Dockerfile path
-    dockerfile_path = "requirements/"
+    dockerfile_path = os.path.join(os.path.dirname(__file__), "requirements/")
     dockerfile_name = "Dockerfile-nginx-proxy-tester"
 
     # Build the Docker image
