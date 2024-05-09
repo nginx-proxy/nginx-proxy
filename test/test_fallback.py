@@ -44,7 +44,7 @@ CONNECTION_REFUSED_RE = re.compile("Connection refused")
     ("withdefault.yml", "https://https-only.nginx-proxy.test/", 200, None),
     ("withdefault.yml", "http://http-only.nginx-proxy.test/", 200, None),
     ("withdefault.yml", "https://http-only.nginx-proxy.test/", 503, None),
-    ("withdefault.yml", "http://missing-cert.nginx-proxy.test/", 200, None),
+    ("withdefault.yml", "http://missing-cert.nginx-proxy.test/", 301, None),
     ("withdefault.yml", "https://missing-cert.nginx-proxy.test/", 500, None),
     ("withdefault.yml", "http://unknown.nginx-proxy.test/", 503, None),
     ("withdefault.yml", "https://unknown.nginx-proxy.test/", 503, None),
@@ -69,15 +69,13 @@ CONNECTION_REFUSED_RE = re.compile("Connection refused")
     ("nohttp-on-app.yml", "https://https-only.nginx-proxy.test/", 200, None),
     ("nohttp-on-app.yml", "http://unknown.nginx-proxy.test/", None, CONNECTION_REFUSED_RE),
     ("nohttp-on-app.yml", "https://unknown.nginx-proxy.test/", 503, None),
-    # Same as nohttp.yml, except there is a vhost with a missing cert.  This causes its
-    # HTTPS_METHOD=nohttp setting to effectively become HTTPS_METHOD=noredirect.  This means that
-    # there will be a plain http server solely to support that vhost, so http requests to other
-    # vhosts get a 503, not a connection refused error.
-    ("nohttp-with-missing-cert.yml", "http://https-only.nginx-proxy.test/", 503, None),
+    # Same as nohttp.yml, except there is a vhost with a missing cert.
+    # nohttp should be enforced in this case as well.
+    ("nohttp-with-missing-cert.yml", "http://https-only.nginx-proxy.test/", None, CONNECTION_REFUSED_RE),
     ("nohttp-with-missing-cert.yml", "https://https-only.nginx-proxy.test/", 200, None),
-    ("nohttp-with-missing-cert.yml", "http://missing-cert.nginx-proxy.test/", 200, None),
+    ("nohttp-with-missing-cert.yml", "http://missing-cert.nginx-proxy.test/", None, CONNECTION_REFUSED_RE),
     ("nohttp-with-missing-cert.yml", "https://missing-cert.nginx-proxy.test/", 500, None),
-    ("nohttp-with-missing-cert.yml", "http://unknown.nginx-proxy.test/", 503, None),
+    ("nohttp-with-missing-cert.yml", "http://unknown.nginx-proxy.test/", None, CONNECTION_REFUSED_RE),
     ("nohttp-with-missing-cert.yml", "https://unknown.nginx-proxy.test/", 503, None),
     # HTTPS_METHOD=nohttps on nginx-proxy, HTTPS_METHOD unset on the app container.
     ("nohttps.yml", "http://http-only.nginx-proxy.test/", 200, None),
