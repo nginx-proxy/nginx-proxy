@@ -762,6 +762,16 @@ server {
         {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_http_port }} {{ $default_server }};
         {{- end }}
+
+        {{- if (eq $vhost.https_method "noredirect") }}
+    location /.well-known/acme-challenge/ {
+        auth_basic off;
+        allow all;
+        root /usr/share/nginx/html;
+        try_files $uri =404;
+        break;
+    }
+        {{- end }}
     {{- end }}
     {{- if ne $vhost.https_method "nohttps" }}
     listen {{ $globals.external_https_port }} ssl {{ $default_server }};
