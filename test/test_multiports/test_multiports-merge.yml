@@ -1,0 +1,41 @@
+version: "2"
+
+services:
+  merged-singleport:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: merged.nginx-proxy.tld
+
+  merged-singleport-virtual-path:
+    image: web
+    expose:
+      - "9090"
+    environment:
+      WEB_PORTS: "9090"
+      VIRTUAL_HOST: merged.nginx-proxy.tld
+      VIRTUAL_PORT: "9090"
+      VIRTUAL_PATH: "/foo"
+      VIRTUAL_DEST: "/"
+
+  merged-multiports:
+    image: web
+    expose:
+      - "81"
+      - "9191"
+    environment:
+      WEB_PORTS: "81 9191"
+      VIRTUAL_HOST_MULTIPORTS: |-
+        merged.nginx-proxy.tld:
+          "/":
+            port: 81
+          "/foo":
+            port: 9191
+            dest: "/"
+
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
