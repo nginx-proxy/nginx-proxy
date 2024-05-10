@@ -1,0 +1,47 @@
+version: "2"
+
+services:
+  web1:
+    image: web
+    expose:
+      - "81"
+    environment:
+      WEB_PORTS: "81"
+      VIRTUAL_HOST: "web1.nginx-proxy.tld"
+
+  web2:
+    image: web
+    expose:
+      - "82"
+    environment:
+      WEB_PORTS: "82"
+      VIRTUAL_HOST: "web2.nginx-proxy.tld"
+      ACME_HTTP_CHALLENGE_LOCATION: "true"
+
+  web3:
+    image: web
+    expose:
+      - "83"
+    environment:
+      WEB_PORTS: "83"
+      VIRTUAL_HOST: "web3.nginx-proxy.tld"
+      HTTPS_METHOD: noredirect
+
+  web4:
+    image: web
+    expose:
+      - "84"
+    environment:
+      WEB_PORTS: "84"
+      VIRTUAL_HOST: "web4.nginx-proxy.tld"
+      HTTPS_METHOD: noredirect
+      ACME_HTTP_CHALLENGE_LOCATION: "true"
+
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    environment:
+      ACME_HTTP_CHALLENGE_LOCATION: "false"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./acme_root:/usr/share/nginx/html:ro
