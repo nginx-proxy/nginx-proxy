@@ -592,6 +592,12 @@ proxy_set_header Proxy "";
     {{- $https_method := or (first (groupByKeys $vhost_containers "Env.HTTPS_METHOD")) $globals.Env.HTTPS_METHOD "redirect" }}
     {{- $http2_enabled := parseBool (or (first (keys (groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http2.enable"))) $globals.Env.ENABLE_HTTP2 "true")}}
     {{- $http3_enabled := parseBool (or (first (keys (groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http3.enable"))) $globals.Env.ENABLE_HTTP3 "false")}}
+    {{- $acme_http_challenge := or (first (groupByKeys $vhost_containers "Env.ACME_HTTP_CHALLENGE")) $globals.Env.ACME_HTTP_CHALLENGE "legacy" }}
+    {{- $acme_http_challenge_legacy := eq $acme_http_challenge "legacy" }}
+    {{- $acme_http_challenge_enabled := false }}
+    {{- if (not $acme_http_challenge_legacy) }}
+        {{- $acme_http_challenge_enabled = parseBool $acme_http_challenge }}
+    {{- end }}
 
     {{- /* Get the SERVER_TOKENS defined by containers w/ the same vhost, falling back to "". */}}
     {{- $server_tokens := trim (or (first (groupByKeys $vhost_containers "Env.SERVER_TOKENS")) "") }}
@@ -613,6 +619,8 @@ proxy_set_header Proxy "";
         "https_method" $https_method
         "http2_enabled" $http2_enabled
         "http3_enabled" $http3_enabled
+        "acme_http_challenge_legacy" $acme_http_challenge_legacy
+        "acme_http_challenge_enabled" $acme_http_challenge_enabled
         "server_tokens" $server_tokens
         "ssl_policy" $ssl_policy
         "vhost_root" $vhost_root
@@ -728,6 +736,7 @@ server {
     listen [::]:{{ $globals.external_http_port }} {{ $default_server }};
         {{- end }}
 
+        {{- if (or $vhost.acme_http_challenge_legacy $vhost.acme_http_challenge_enabled) }}
     # Do not HTTPS redirect Let's Encrypt ACME challenge
     location ^~ /.well-known/acme-challenge/ {
         auth_basic off;
@@ -737,6 +746,7 @@ server {
         try_files $uri =404;
         break;
     }
+        {{- end }}
 
     location / {
         {{- if eq $globals.external_https_port "443" }}
@@ -763,7 +773,7 @@ server {
     listen [::]:{{ $globals.external_http_port }} {{ $default_server }};
         {{- end }}
 
-        {{- if (eq $vhost.https_method "noredirect") }}
+        {{- if (and (eq $vhost.https_method "noredirect") $vhost.acme_http_challenge_enabled) }}
     location /.well-known/acme-challenge/ {
         auth_basic off;
         allow all;
