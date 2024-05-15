@@ -3,15 +3,15 @@ import requests
 
 
 def test_web2_http_is_connection_refused(docker_compose, nginxproxy):
-    with pytest.raises(requests.exceptions.RequestException, match="Connection refused"):
-        nginxproxy.get("http://web2.nginx-proxy.tld/")
+    r = nginxproxy.get("http://web2.nginx-proxy.tld/", allow_redirects=False)
+    assert r.status_code == 503
 
 
 def test_web2_http_is_connection_refused_for_acme_challenge(
     docker_compose, nginxproxy, acme_challenge_path
 ):
-    with pytest.raises(requests.exceptions.RequestException, match="Connection refused"):
-        nginxproxy.get(f"http://web2.nginx-proxy.tld/{acme_challenge_path}")
+    r = nginxproxy.get(f"http://web2.nginx-proxy.tld/{acme_challenge_path}", allow_redirects=False)
+    assert r.status_code == 503
 
 
 def test_web2_https_is_forwarded(docker_compose, nginxproxy):

@@ -650,7 +650,7 @@ proxy_set_header Proxy "";
         {{- $default_https_exists = or $default_https_exists (and $https $vhost.default) }}
         {{- $http3_enabled = or $http3_enabled $vhost.http3_enabled }}
     {{- end }}
-    {{- $fallback_http := and $http_exists (not $default_http_exists) }}
+    {{- $fallback_http := not $default_http_exists }}
     {{- $fallback_https := and $https_exists (not $default_https_exists) }}
     {{- /*
          * If there are no vhosts at all, create fallbacks for both plain http
@@ -658,7 +658,6 @@ proxy_set_header Proxy "";
          * refused error.
          */}}
     {{- if and (not $http_exists) (not $https_exists) }}
-        {{- $fallback_http = true }}
         {{- $fallback_https = true }}
     {{- end }}
     {{- if or $fallback_http $fallback_https }}
