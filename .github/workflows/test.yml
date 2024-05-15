@@ -36,6 +36,9 @@ jobs:
           pip install -r python-requirements.txt
         working-directory: test/requirements
 
+      - name: Pull nginx:alpine image
+        run: docker pull nginx:alpine
+
       - name: Build Docker web server image
         run: make build-webserver
 
