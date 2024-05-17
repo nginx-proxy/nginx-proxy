@@ -265,7 +265,7 @@
         uwsgi_pass {{ trim $proto }}://{{ trim $upstream }};
         {{- else if eq $proto "fastcgi" }}
         root {{ trim .VhostRoot }};
-        include fastcgi_params;
+        include fastcgi.conf;
         fastcgi_pass {{ trim $upstream }};
             {{- if ne $keepalive "disabled" }}
         fastcgi_keep_conn on;
