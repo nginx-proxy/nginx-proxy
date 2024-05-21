@@ -5,4 +5,4 @@ services:
     image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./50x.html:/usr/share/nginx/html/50x.html:ro
+      - ./50x.html:/usr/share/nginx/html/errors/50x.html:ro

@@ -19,7 +19,8 @@ RUN echo "\ninclude /etc/nginx/toplevel.conf.d/*.conf;" >> /etc/nginx/nginx.conf
    && sed -i -e '/^\}$/{s//\}\nworker_rlimit_nofile 20480;/;:a' -e '$!N;$!ba' -e '}' /etc/nginx/nginx.conf \
    && mkdir -p '/etc/nginx/toplevel.conf.d' \
    && mkdir -p '/etc/nginx/dhparam' \
-   && mkdir -p '/etc/nginx/certs'
+   && mkdir -p '/etc/nginx/certs' \
+   && mkdir -p '/usr/share/nginx/html/errors'
 
 # Install Forego + docker-gen
 COPY --from=forego /usr/local/bin/forego /usr/local/bin/forego
