@@ -1,0 +1,8 @@
+version: "2"
+
+services:
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./50x.html:/usr/share/nginx/html/errors/50x.html:ro

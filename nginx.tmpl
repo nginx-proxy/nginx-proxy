@@ -702,7 +702,17 @@ server {
         return 444;
     }
         {{- end }}
-    return 503;
+
+        {{- if (exists "/usr/share/nginx/html/errors/50x.html") }}
+    error_page 500 502 503 504 /50x.html;
+    location /50x.html {
+        root /usr/share/nginx/html/errors;
+        internal;
+    }
+        {{- end }}
+    location ^~ / {
+        return 503;
+    }
 }
     {{- end }}
 {{- end }}

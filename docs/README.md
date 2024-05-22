@@ -797,6 +797,21 @@ location / {
 
 Per virtual-host `servers_tokens` directive can be configured by passing appropriate value to the `SERVER_TOKENS` environment variable. Please see the [nginx http_core module configuration](https://nginx.org/en/docs/http/ngx_http_core_module.html#server_tokens) for more details.
 
+### Custom error page
+
+To override the default error page displayed on 50x errors, mount your custom HTML error page inside the container at `/usr/share/nginx/html/errors/50x.html`:
+
+```console
+docker run --detach \
+    --name nginx-proxy \
+    --publish 80:80 \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    --volume /path/to/error.html:/usr/share/nginx/html/errors/50x.html:ro \
+    nginxproxy/nginx-proxy:1.5
+```
+
+Note that this will not replace your own services error pages.
+
 ⬆️ [back to table of contents](#table-of-contents)
 
 ## TCP and UDP stream
