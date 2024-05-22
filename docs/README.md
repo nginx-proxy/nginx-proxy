@@ -799,7 +799,7 @@ Per virtual-host `servers_tokens` directive can be configured by passing appropr
 
 ### Custom error page
 
-To override the default (nginx provided) error page displayed on 50x errors, mount your custom HTML error page inside the container at `/usr/share/nginx/html/errors/50x.html`:
+To override the default error page displayed on 50x errors, mount your custom HTML error page inside the container at `/usr/share/nginx/html/errors/50x.html`:
 
 ```console
 docker run --detach \
