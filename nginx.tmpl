@@ -590,8 +590,9 @@ proxy_set_header Proxy "";
 
     {{- $default := eq $globals.Env.DEFAULT_HOST $hostname }}
     {{- $https_method := or (first (groupByKeys $vhost_containers "Env.HTTPS_METHOD")) $globals.Env.HTTPS_METHOD "redirect" }}
+    {{- $enable_http_on_missing_cert := parseBool (or (first (groupByKeys $vhost_containers "Env.ENABLE_HTTP_ON_MISSING_CERT")) $globals.Env.ENABLE_HTTP_ON_MISSING_CERT "true") }}
     {{- /* When the certificate is missing we want to ensure that HTTP is enabled; hence switching from 'nohttp' or 'redirect' to 'noredirect' */}}
-    {{- if (and (not $cert_ok) (or (eq $https_method "nohttp") (eq $https_method "redirect"))) }}
+    {{- if (and $enable_http_on_missing_cert (not $cert_ok) (or (eq $https_method "nohttp") (eq $https_method "redirect"))) }}
         {{- $https_method = "noredirect" }}
     {{- end }}
     {{- $http2_enabled := parseBool (or (first (keys (groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http2.enable"))) $globals.Env.ENABLE_HTTP2 "true")}}
