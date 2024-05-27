@@ -590,6 +590,10 @@ proxy_set_header Proxy "";
 
     {{- $default := eq $globals.Env.DEFAULT_HOST $hostname }}
     {{- $https_method := or (first (groupByKeys $vhost_containers "Env.HTTPS_METHOD")) $globals.Env.HTTPS_METHOD "redirect" }}
+    {{- /* When the certificate is missing we want to ensure that HTTP is enabled; hence switching from 'nohttp' or 'redirect' to 'noredirect' */}}
+    {{- if (and (not $cert_ok) (or (eq $https_method "nohttp") (eq $https_method "redirect"))) }}
+        {{- $https_method = "noredirect" }}
+    {{- end }}
     {{- $http2_enabled := parseBool (or (first (keys (groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http2.enable"))) $globals.Env.ENABLE_HTTP2 "true")}}
     {{- $http3_enabled := parseBool (or (first (keys (groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http3.enable"))) $globals.Env.ENABLE_HTTP3 "false")}}
 
@@ -642,7 +646,7 @@ proxy_set_header Proxy "";
     {{- $default_https_exists := false }}
     {{- $http3_enabled := false }}
     {{- range $vhost := $globals.vhosts }}
-        {{- $http := or (ne $vhost.https_method "nohttp") (not $vhost.cert_ok) }}
+        {{- $http := ne $vhost.https_method "nohttp" }}
         {{- $https := ne $vhost.https_method "nohttps" }}
         {{- $http_exists = or $http_exists $http }}
         {{- $https_exists = or $https_exists $https }}
@@ -725,7 +729,7 @@ server {
         {{ template "upstream" (dict "globals" $globals "Path" $path "VPath" $vpath) }}
     {{- end }}
 
-    {{- if and $vhost.cert_ok (eq $vhost.https_method "redirect") }}
+    {{- if (eq $vhost.https_method "redirect") }}
 server {
     server_name {{ $hostname }};
         {{- if $vhost.server_tokens }}
@@ -766,7 +770,7 @@ server {
     {{- if $vhost.http2_enabled }}
     http2 on;
     {{- end }}
-    {{- if or (eq $vhost.https_method "nohttps") (not $vhost.cert_ok) (eq $vhost.https_method "noredirect") }}
+    {{- if or (eq $vhost.https_method "nohttps") (eq $vhost.https_method "noredirect") }}
     listen {{ $globals.external_http_port }} {{ $default_server }};
         {{- if $globals.enable_ipv6 }}
     listen [::]:{{ $globals.external_http_port }} {{ $default_server }};
