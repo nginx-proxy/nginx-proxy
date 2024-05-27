@@ -572,7 +572,7 @@ _WARNING_: HSTS will force your users to visit the HTTPS version of your site fo
 
 ### Missing Certificate
 
-If no matching certificate is found for a given virtual, nginx-proxy will:
+If no matching certificate is found for a given virtual host, nginx-proxy will:
 * configure nginx to use the default certificate (`default.crt` with `default.key`) and return a 500 error for HTTPS,
 * force enable HTTP; i.e. `HTTPS_METHOD` will switch to `noredirect` if it was set to `nohttp` or `redirect`.
 
