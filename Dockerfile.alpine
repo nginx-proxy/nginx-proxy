@@ -3,7 +3,7 @@ FROM docker.io/nginxproxy/docker-gen:0.14.0 AS docker-gen
 FROM docker.io/nginxproxy/forego:0.18.1 AS forego
 
 # Build the final image
-FROM docker.io/library/nginx:1.26.0-alpine
+FROM docker.io/library/nginx:1.27.0-alpine
 
 ARG NGINX_PROXY_VERSION
 # Add DOCKER_GEN_VERSION environment variable because 
