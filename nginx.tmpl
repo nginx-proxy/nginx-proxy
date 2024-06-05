@@ -596,7 +596,7 @@ proxy_set_header Proxy "";
     {{- end }}
     {{- $http2_enabled := parseBool (or (first (keys (groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http2.enable"))) $globals.Env.ENABLE_HTTP2 "true")}}
     {{- $http3_enabled := parseBool (or (first (keys (groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http3.enable"))) $globals.Env.ENABLE_HTTP3 "false")}}
-    {{- $acme_http_challenge := or (first (groupByKeys $vhost_containers "Env.ACME_HTTP_CHALLENGE_LOCATION")) $globals.Env.ACME_HTTP_CHALLENGE_LOCATION "legacy" }}
+    {{- $acme_http_challenge := or (first (groupByKeys $vhost_containers "Env.ACME_HTTP_CHALLENGE_LOCATION")) $globals.Env.ACME_HTTP_CHALLENGE_LOCATION "true" }}
     {{- $acme_http_challenge_legacy := eq $acme_http_challenge "legacy" }}
     {{- $acme_http_challenge_enabled := false }}
     {{- if (not $acme_http_challenge_legacy) }}
