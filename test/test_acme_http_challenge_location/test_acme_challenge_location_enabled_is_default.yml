@@ -39,8 +39,6 @@ services:
 
   sut:
     image: nginxproxy/nginx-proxy:test
-    environment:
-      ACME_HTTP_CHALLENGE_LOCATION: "true"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./certs:/etc/nginx/certs:ro
