@@ -582,6 +582,7 @@ If no matching certificate is found for a given virtual host, nginx-proxy will:
 
 - configure nginx to use the default certificate (`default.crt` with `default.key`) and return a 500 error for HTTPS,
 - force enable HTTP; i.e. `HTTPS_METHOD` will switch to `noredirect` if it was set to `nohttp` or `redirect`.
+  If this switch to HTTP is not wanted set `ENABLE_HTTP_ON_MISSING_CERT=false` (default is `true`).
 
 If the default certificate is also missing, nginx-proxy will configure nginx to accept HTTPS connections but fail the TLS negotiation. Client browsers will render a TLS error page. As of March 2023, web browsers display the following error messages:
 
