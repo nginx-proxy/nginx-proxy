@@ -664,7 +664,7 @@ proxy_set_header Proxy "";
         {{- $http3_enabled = or $http3_enabled $vhost.http3_enabled }}
     {{- end }}
     {{- $fallback_http := not $default_http_exists }}
-    {{- $fallback_https := and $https_exists (not $default_https_exists) }}
+    {{- $fallback_https := not $default_https_exists }}
     {{- /*
          * If there are no vhosts at all, create fallbacks for both plain http
          * and https so that clients get something more useful than a connection
