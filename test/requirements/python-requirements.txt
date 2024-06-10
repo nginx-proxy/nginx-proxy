@@ -1,4 +1,4 @@
 backoff==2.2.1
 docker==7.1.0
-pytest==8.2.1
+pytest==8.2.2
 requests==2.32.3
