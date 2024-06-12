@@ -817,7 +817,7 @@ docker run --detach \
     --publish 80:80 \
     --volume /var/run/docker.sock:/tmp/docker.sock:ro \
     --volume /path/to/error.html:/usr/share/nginx/html/errors/50x.html:ro \
-    nginxproxy/nginx-proxy:1.5
+    nginxproxy/nginx-proxy
 ```
 
 Note that this will not replace your own services error pages.
@@ -872,7 +872,7 @@ docker run --detach \
     --publish 53:53:udp \
     --volume /var/run/docker.sock:/tmp/docker.sock:ro \
     --volume ./stream.conf:/etc/nginx/toplevel.conf.d/stream.conf:ro \
-    nginxproxy/nginx-proxy:1.5
+    nginxproxy/nginx-proxy
 ```
 
 Please note that TCP and UDP stream are not core features of nginx-proxy, so the above is provided as an example only, without any guarantee.
