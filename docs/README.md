@@ -32,13 +32,13 @@ You can also use wildcards at the beginning and the end of host name, like `*.ba
 
 To set the default host for nginx use the env var `DEFAULT_HOST=foo.bar.com` for example
 
-```console
+```sh
 docker run -d -p 80:80 -e DEFAULT_HOST=foo.bar.com -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
 ```
 
 nginx-proxy will then redirect all requests to a container where `VIRTUAL_HOST` is set to `DEFAULT_HOST`, if they don't match any (other) `VIRTUAL_HOST`. Using the example above requests without matching `VIRTUAL_HOST` will be redirected to a plain nginx instance after running the following command:
 
-```console
+```sh
 docker run -d -e VIRTUAL_HOST=foo.bar.com nginx
 ```
 
@@ -172,7 +172,7 @@ Make sure that your settings won't result in the slash missing or being doubled.
 If the application runs natively on this sub-path or has a setting to do so, `VIRTUAL_DEST` should not be set or empty.
 If the requests are expected to not contain a sub-path and the generated links contain the sub-path, `VIRTUAL_DEST=/` should be used.
 
-```console
+```sh
 $ docker run -d -e VIRTUAL_HOST=example.tld -e VIRTUAL_PATH=/app1/ -e VIRTUAL_DEST=/ --name app1 app
 ```
 
@@ -203,7 +203,7 @@ Examples (YAML syntax):
 Nginx variables such as `$scheme`, `$host`, and `$request_uri` can be used. However, care must be taken to make sure the `$` signs are escaped properly. For example, if you want to use `301 $scheme://$host/myapp1$request_uri` you should use:
 
 - Bash: `DEFAULT_ROOT='301 $scheme://$host/myapp1$request_uri'`
-- Docker Compose yaml: `- DEFAULT_ROOT: 301 $$scheme://$$host/myapp1$$request_uri`
+- Docker Compose yaml: `DEFAULT_ROOT: 301 $$scheme://$$host/myapp1$$request_uri`
 
 ⬆️ [back to table of contents](#table-of-contents)
 
@@ -213,7 +213,7 @@ Nginx variables such as `$scheme`, `$host`, and `$request_uri` can be used. Howe
 
 If you want to use `nginx-proxy` with different external ports that the default ones of `80` for `HTTP` traffic and `443` for `HTTPS` traffic, you'll have to use the environment variable(s) `HTTP_PORT` and/or `HTTPS_PORT` in addition to the changes to the Docker port mapping. If you change the `HTTPS` port, the redirect for `HTTPS` traffic will also be configured to redirect to the custom port. Typical usage, here with the custom ports `1080` and `10443`:
 
-```console
+```sh
 docker run -d -p 1080:1080 -p 10443:10443 -e HTTP_PORT=1080 -e HTTPS_PORT=10443 -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
 ```
 
@@ -223,7 +223,7 @@ With the addition of [overlay networking](https://docs.docker.com/engine/usergui
 
 If you want your `nginx-proxy` container to be attached to a different network, you must pass the `--net=my-network` option in your `docker create` or `docker run` command. At the time of this writing, only a single network can be specified at container creation time. To attach to other networks, you can use the `docker network connect` command after your container is created:
 
-```console
+```sh
 docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro \
     --name my-nginx-proxy --net my-network nginxproxy/nginx-proxy
 docker network connect my-other-network my-nginx-proxy
@@ -297,7 +297,7 @@ services:
   nginx-proxy:
     image: nginxproxy/nginx-proxy
     ports:
-      - "80:80"
+      - 80:80
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
     environment:
@@ -305,12 +305,12 @@ services:
   myapp:
     image: jwilder/whoami
     expose:
-      - "8000"
+      - 8000
     environment:
       VIRTUAL_HOST: myapp.example
-      VIRTUAL_PORT: "8000"
+      VIRTUAL_PORT: 8000
     labels:
-      com.github.nginx-proxy.nginx-proxy.loadbalance: "hash $$remote_addr;"
+      com.github.nginx-proxy.nginx-proxy.loadbalance: hash $$remote_addr
     deploy:
       replicas: 4
 ```
@@ -331,7 +331,7 @@ See the [nginx keepalive documentation](https://nginx.org/en/docs/http/ngx_http_
 In order to be able to secure your virtual host, you have to create a file named as its equivalent `VIRTUAL_HOST` variable in directory
 `/etc/nginx/htpasswd/{$VIRTUAL_HOST}`
 
-```console
+```sh
 docker run -d -p 80:80 -p 443:443 \
     -v /path/to/htpasswd:/etc/nginx/htpasswd \
     -v /path/to/certs:/etc/nginx/certs \
@@ -393,11 +393,9 @@ To disable nginx access logs entirely, set the `DISABLE_ACCESS_LOGS` environment
 
 To remove colors from the container log output, set the [`NO_COLOR` environment variable to any value other than an empty string](https://no-color.org/) on the nginx-proxy container.
 
-```console
-docker run --detach \
-  --publish 80:80 \
-  --env NO_COLOR=1 \
-  --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+```sh
+docker run -d -p 80:80 -e NO_COLOR=1 \
+  -v /var/run/docker.sock:/tmp/docker.sock:ro \
   nginxproxy/nginx-proxy
 ```
 
@@ -409,7 +407,7 @@ SSL is supported using single host, wildcard and SNI certificates using naming c
 
 To enable SSL:
 
-```console
+```sh
 docker run -d -p 80:80 -p 443:443 -v /path/to/certs:/etc/nginx/certs -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
 ```
 
@@ -439,7 +437,7 @@ In the separate container setup, no pre-generated key will be available and neit
 
 Set `DHPARAM_SKIP` environment variable to `true` to disable using default Diffie-Hellman parameters. The default value is `false`.
 
-```console
+```sh
 docker run -e DHPARAM_SKIP=true ....
 ```
 
@@ -644,7 +642,7 @@ More reading on the potential TCP head-of-line blocking issue with HTTP/2: [HTTP
 
 HTTP/3 use the QUIC protocol over UDP (unlike HTTP/1.1 and HTTP/2 which work over TCP), so if you want to use HTTP/3 you'll have to explicitely publish the 443/udp port of the proxy in addition to the 443/tcp port:
 
-```console
+```sh
 docker run -d -p 80:80 -p 443:443/tcp -p 443:443/udp \
     -v /var/run/docker.sock:/tmp/docker.sock:ro \
     nginxproxy/nginx-proxy
@@ -746,7 +744,7 @@ docker run -d -p 80:80 -p 443:443 -v /path/to/vhost.d:/etc/nginx/vhost.d:ro -v /
 
 If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=example.com,www.example.com`), the virtual host configuration file must exist for each hostname. If you would like to use the same configuration for multiple virtual host names, you can use a symlink:
 
-```console
+```sh
 { echo 'server_tokens off;'; echo 'client_max_body_size 100m;'; } > /path/to/vhost.d/www.example.com
 ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
 ```
@@ -761,14 +759,14 @@ To add settings to the "location" block on a per-`VIRTUAL_HOST` basis, add your 
 
 For example, if you have a virtual host named `app.example.com` and you have configured a proxy_cache `my-cache` in another custom file, you could tell it to use a proxy cache as follows:
 
-```console
+```sh
 docker run -d -p 80:80 -p 443:443 -v /path/to/vhost.d:/etc/nginx/vhost.d:ro -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
 { echo 'proxy_cache my-cache;'; echo 'proxy_cache_valid  200 302  60m;'; echo 'proxy_cache_valid  404 1m;' } > /path/to/vhost.d/app.example.com_location
 ```
 
 If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=example.com,www.example.com`), the virtual host configuration file must exist for each hostname. If you would like to use the same configuration for multiple virtual host names, you can use a symlink:
 
-```console
+```sh
 { echo 'proxy_cache my-cache;'; echo 'proxy_cache_valid  200 302  60m;'; echo 'proxy_cache_valid  404 1m;' } > /path/to/vhost.d/app.example.com_location
 ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
 ```
@@ -811,12 +809,11 @@ Per virtual-host `servers_tokens` directive can be configured by passing appropr
 
 To override the default error page displayed on 50x errors, mount your custom HTML error page inside the container at `/usr/share/nginx/html/errors/50x.html`:
 
-```console
-docker run --detach \
+```sh
+docker run -d -p 80:80
     --name nginx-proxy \
-    --publish 80:80 \
-    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
-    --volume /path/to/error.html:/usr/share/nginx/html/errors/50x.html:ro \
+    -v /var/run/docker.sock:/tmp/docker.sock:ro \
+    -v /path/to/error.html:/usr/share/nginx/html/errors/50x.html:ro \
     nginxproxy/nginx-proxy
 ```
 
@@ -863,15 +860,12 @@ stream {
 }
 ```
 
-```console
-docker run --detach \
+```sh
+docker run -d \
     --name nginx-proxy \
-    --publish 80:80 \
-    --publish 12345:12345 \
-    --publish 12346:12346 \
-    --publish 53:53:udp \
-    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
-    --volume ./stream.conf:/etc/nginx/toplevel.conf.d/stream.conf:ro \
+    --p 80:80 -p 12345:12345 -p 12346:12346 -p 53:53/udp \
+    -v /var/run/docker.sock:/tmp/docker.sock:ro \
+    -v ./stream.conf:/etc/nginx/toplevel.conf.d/stream.conf:ro \
     nginxproxy/nginx-proxy
 ```
 
@@ -895,8 +889,8 @@ You may want to do this to prevent having the docker socket bound to a publicly 
 
 You can demo this pattern with docker compose:
 
-```console
-docker compose --file docker-compose-separate-containers.yml up
+```sh
+docker compose -f compose.separate.yml up
 curl -H "Host: whoami.example" localhost
 ```
 
@@ -910,13 +904,13 @@ To run nginx proxy as a separate container you'll need to have [nginx.tmpl](http
 
 First start nginx with a volume:
 
-```console
-docker run -d -p 80:80 --name nginx -v /tmp/nginx:/etc/nginx/conf.d -t nginx
+```sh
+docker run -dt -p 80:80 --name nginx -v /tmp/nginx:/etc/nginx/conf.d nginx
 ```
 
 Then start the docker-gen container with the shared volume and template:
 
-```console
+```sh
 docker run --volumes-from nginx \
     -v /var/run/docker.sock:/tmp/docker.sock:ro \
     -v $(pwd):/etc/docker-gen/templates \
@@ -925,7 +919,7 @@ docker run --volumes-from nginx \
 
 Finally, start your containers with `VIRTUAL_HOST` environment variables.
 
-```console
+```sh
 docker run -e VIRTUAL_HOST=foo.bar.com  ...
 ```
 
@@ -934,26 +928,24 @@ docker run -e VIRTUAL_HOST=foo.bar.com  ...
 ## Docker Compose
 
 ```yaml
-version: "2"
-
 services:
   nginx-proxy:
     image: nginxproxy/nginx-proxy
     ports:
-      - "80:80"
+      - 80:80
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
 
   whoami:
     image: jwilder/whoami
     expose:
-      - "8000"
+      - 8000
     environment:
-      - VIRTUAL_HOST=whoami.example
-      - VIRTUAL_PORT=8000
+      VIRTUAL_HOST: whoami.example
+      VIRTUAL_PORT: 8000
 ```
 
-```console
+```sh
 docker compose up
 curl -H "Host: whoami.example" localhost
 ```
@@ -970,7 +962,7 @@ I'm 5b129ab83266
 
 If you can't access your `VIRTUAL_HOST`, inspect the generated nginx configuration:
 
-```console
+```sh
 docker exec <nginx-proxy-instance> nginx -T
 ```
 
@@ -1006,7 +998,7 @@ Before submitting pull requests or issues, please check github to make sure an e
 
 To run tests, you just need to run the command below:
 
-```console
+```sh
 make test
 ```
 
@@ -1014,7 +1006,7 @@ This commands run tests on two variants of the nginx-proxy docker image: Debian 
 
 You can run the tests for each of these images with their respective commands:
 
-```console
+```sh
 make test-debian
 make test-alpine
 ```

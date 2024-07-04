@@ -1,11 +1,9 @@
-version: "2"
-
 services:
   nginx:
     image: nginx
     container_name: nginx
     ports:
-      - "80:80"
+      - 80:80
     volumes:
       - /etc/nginx/conf.d
 
