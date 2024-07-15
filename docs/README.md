@@ -310,7 +310,7 @@ services:
       VIRTUAL_HOST: myapp.example
       VIRTUAL_PORT: 8000
     labels:
-      com.github.nginx-proxy.nginx-proxy.loadbalance: hash $$remote_addr
+      com.github.nginx-proxy.nginx-proxy.loadbalance: hash $$remote_addr;
     deploy:
       replicas: 4
 ```
@@ -350,7 +350,7 @@ You'll need apache2-utils on the machine where you plan to create the htpasswd f
 
 The default nginx access log format is
 
-```
+```log
 $host $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$upstream_addr"
 ```
 
@@ -609,7 +609,7 @@ If the default certificate is also missing, nginx-proxy will configure nginx to 
 
 You can activate the IPv6 support for the nginx-proxy container by passing the value `true` to the `ENABLE_IPV6` environment variable:
 
-```console
+```sh
 docker run -d -p 80:80 -e ENABLE_IPV6=true -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
 ```
 
@@ -725,7 +725,7 @@ RUN { \
 
 Or it can be done by mounting in your custom configuration in your `docker run` command:
 
-```console
+```sh
 docker run -d -p 80:80 -p 443:443 -v /path/to/my_proxy.conf:/etc/nginx/conf.d/my_proxy.conf:ro -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
 ```
 
@@ -737,7 +737,7 @@ In order to allow virtual hosts to be dynamically configured as backends are add
 
 For example, if you have a virtual host named `app.example.com`, you could provide a custom configuration for that host as follows:
 
-```console
+```sh
 docker run -d -p 80:80 -p 443:443 -v /path/to/vhost.d:/etc/nginx/vhost.d:ro -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
 { echo 'server_tokens off;'; echo 'client_max_body_size 100m;'; } > /path/to/vhost.d/app.example.com
 ```
@@ -795,7 +795,7 @@ When an override file exists, the `location` block that is normally created by `
 
 You are responsible for providing a suitable `location` block in your override file as required for your service. By default, `nginx-proxy` uses the `VIRTUAL_HOST` name as the upstream name for your application's Docker container; see [here](#unhashed-vs-sha1-upstream-names) for details. As an example, if your container has a `VIRTUAL_HOST` value of `app.example.com`, then to override the location block for `/` you would create a file named `/etc/nginx/vhost.d/app.example.com_location_override` that contains something like this:
 
-```
+```Nginx
 location / {
     proxy_pass http://app.example.com;
 }
@@ -825,7 +825,7 @@ Note that this will not replace your own services error pages.
 
 If you want to proxy non-HTTP traffic, you can use nginx's stream module. Write a configuration file and mount it inside `/etc/nginx/toplevel.conf.d`.
 
-```nginx
+```Nginx
 # stream.conf
 stream {
     upstream stream_backend {
