@@ -750,6 +750,8 @@ If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=e
 { echo 'server_tokens off;'; echo 'client_max_body_size 100m;'; } > /path/to/vhost.d/www.example.com
 ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
 ```
+#### Per-VIRTUAL_HOST http location
+To add settings on a per-`VIRTUAL_HOST` basis but for the http part, add your configuration file under `/etc/nginx/vhost.d` just like the previous section except with the suffix `_http`. This allow you to add configuration before the https redirection like the acme challenge. This is mostly usefull for all others 'not supporting https redirect' `.well-known` URIs.
 
 ### Per-VIRTUAL_HOST default configuration
 
