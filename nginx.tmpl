@@ -317,8 +317,13 @@ upstream {{ $vpath.upstream }} {
             {{- $args = dict "container" $container "path" $path "port" $port }}
             {{- template "container_port" $args }}
             {{- if $ip }}
-                {{- $servers = add1 $servers }}
+                {{- $backup := parseBool (coalesce $container.Env.BACKUP_SERVER "false") }}
+                {{- if not $backup }}
+                    {{- $servers = add1 $servers }}
     server {{ $ip }}:{{ $args.port }};
+                {{- else }}
+    server {{ $ip }}:{{ $args.port }} backup;
+                {{- end }}
             {{- end }}
         {{- end }}
     {{- end }}
