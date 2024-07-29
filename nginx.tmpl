@@ -264,8 +264,14 @@
         include uwsgi_params;
         uwsgi_pass {{ trim $proto }}://{{ trim $upstream }};
         {{- else if eq $proto "fastcgi" }}
-        root {{ trim .VhostRoot }};
+            {{- if (exists "/etc/nginx/fastcgi.conf") }}
         include fastcgi.conf;
+            {{- else if (exists "/etc/nginx/fastcgi_params") }}
+        include fastcgi_params;
+            {{- else }}
+        # neither /etc/nginx/fastcgi.conf nor /etc/nginx/fastcgi_params found, fastcgi won't work
+            {{- end }}
+        root {{ trim .VhostRoot }};
         fastcgi_pass {{ trim $upstream }};
             {{- if ne $keepalive "disabled" }}
         fastcgi_keep_conn on;
