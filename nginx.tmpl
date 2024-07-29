@@ -125,7 +125,7 @@
      */}}
 {{- define "container_port" }}
     {{- /* If only 1 port exposed, use that as a default, else 80. */}}
-    #     exposed ports:{{ range sortObjectsByKeysAsc $.container.Addresses "Port" }} {{ .Port }}/{{ .Proto }}{{ else }} (none){{ end }}
+    #     exposed ports (first ten):{{ range $index, $address := (sortObjectsByKeysAsc $.container.Addresses "Port") }}{{ if lt $index 10 }} {{ $address.Port }}/{{ $address.Proto }}{{ end }}{{ else }} (none){{ end }}
     {{- $default_port := when (eq (len $.container.Addresses) 1) (first $.container.Addresses).Port "80" }}
     #     default port: {{ $default_port }}
     {{- $port := when (eq $.port "default") $default_port (when (eq $.port "legacy") (or $.container.Env.VIRTUAL_PORT $default_port) $.port) }}
@@ -480,7 +480,7 @@ proxy_set_header Proxy "";
     {{- range $hostname, $vhost := $parsedVhosts }}
         {{- $vhost_data := when (hasKey $globals.vhosts $hostname) (get $globals.vhosts $hostname) (dict) }}
         {{- $paths := coalesce $vhost_data.paths (dict) }}
-        
+
         {{- if (empty $vhost) }}
             {{ $vhost = dict "/" (dict) }}
         {{- end }}
