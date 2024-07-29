@@ -125,7 +125,7 @@
      */}}
 {{- define "container_port" }}
     {{- /* If only 1 port exposed, use that as a default, else 80. */}}
-    #     exposed ports:{{ $maxPorts := 10 }}{{ $count := 0 }}{{ range sortObjectsByKeysAsc $.container.Addresses "Port" }}{{ if lt $count $maxPorts }} {{ .Port }}/{{ .Proto }}{{ $count = add $count 1 }}{{ end }}{{ else }} (none){{ end }}
+    #     exposed ports:{{ range $index, $address := (sortObjectsByKeysAsc $.container.Addresses "Port") }}{{ if lt $index 10 }} {{ $address.Port }}/{{ $address.Proto }}{{ end }}{{ else }} (none){{ end }}
     {{- $default_port := when (eq (len $.container.Addresses) 1) (first $.container.Addresses).Port "80" }}
     #     default port: {{ $default_port }}
     {{- $port := when (eq $.port "default") $default_port (when (eq $.port "legacy") (or $.container.Env.VIRTUAL_PORT $default_port) $.port) }}
