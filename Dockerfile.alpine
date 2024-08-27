@@ -1,6 +1,6 @@
 FROM docker.io/nginxproxy/docker-gen:0.14.1 AS docker-gen
 
-FROM docker.io/nginxproxy/forego:0.18.1 AS forego
+FROM docker.io/nginxproxy/forego:0.18.2 AS forego
 
 # Build the final image
 FROM docker.io/library/nginx:1.27.0-alpine
