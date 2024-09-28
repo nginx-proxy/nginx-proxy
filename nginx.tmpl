@@ -436,7 +436,21 @@ log_format vhost {{ $logEscape }} '{{ or $globals.Env.LOG_FORMAT $logFormat }}';
 
 access_log off;
 
-{{- template "ssl_policy" (dict "ssl_policy" $globals.ssl_policy) }}
+{{- /* Lower the SSL policy of the http context
+    * if at least one vhost use a TLSv1 or TLSv1.1 policy
+    * so TLSv1 and TLSv1.1 can be enabled on those vhosts
+    */}}
+{{- $httpContextSslPolicy := $globals.ssl_policy }}
+{{- $inUseSslPolicies := groupByKeys $globals.containers "Env.SSL_POLICY" }}
+{{- range $tls1Policy := list "AWS-TLS13-1-1-2021-06" "AWS-TLS13-1-0-2021-06" "AWS-FS-1-1-2019-08" "AWS-FS-2018-06" "AWS-TLS-1-1-2017-01" "AWS-2016-08" "AWS-2015-05" "AWS-2015-03" "AWS-2015-02" "Mozilla-Old" }}
+    {{- if has $tls1Policy $inUseSslPolicies }}
+# Using Mozilla-Old SSL policy on the http context to allow TLSv1 and TLSv1.1
+        {{- $httpContextSslPolicy = "Mozilla-Old" }}
+        {{- break }}
+    {{- end }}
+{{- end }}
+
+{{- template "ssl_policy" (dict "ssl_policy" $httpContextSslPolicy) }}
 error_log /dev/stderr;
 
 {{- if $globals.Env.RESOLVERS }}
