@@ -710,16 +710,8 @@ server {
     ssl_certificate /etc/nginx/certs/default.crt;
     ssl_certificate_key /etc/nginx/certs/default.key;
         {{- else }}
-    # No default.crt certificate found for this vhost, so force nginx to emit a
-    # TLS error if the client connects via https.
-    {{- /* See the comment in the main `server` directive for rationale. */}}
-    ssl_ciphers aNULL;
-    set $empty "";
-    ssl_certificate data:$empty;
-    ssl_certificate_key data:$empty;
-    if ($https) {
-        return 444;
-    }
+    # No default certificate found, so reject SSL handshake;
+    ssl_reject_handshake on;
         {{- end }}
 
         {{- if (exists "/usr/share/nginx/html/errors/50x.html") }}
@@ -854,24 +846,8 @@ server {
         return 500;
     }
         {{- else }}
-    # No certificate found for this vhost, so force nginx to emit a TLS error if
-    # the client connects via https.
-            {{- /*
-                 * The alternative is to not provide an https server for this
-                 * vhost, which would either cause the user to see the wrong
-                 * vhost (if there is another vhost with a certificate) or a
-                 * connection refused error (if there is no other vhost with a
-                 * certificate).  A TLS error is easier to troubleshoot, and is
-                 * safer than serving the wrong vhost.  Also see
-                 * <https://serverfault.com/a/1044022>.
-                 */}}
-    ssl_ciphers aNULL;
-    set $empty "";
-    ssl_certificate data:$empty;
-    ssl_certificate_key data:$empty;
-    if ($https) {
-        return 444;
-    }
+    # No certificate for this vhost nor default certificate found, so reject SSL handshake.
+    ssl_reject_handshake on;
         {{- end }}
     {{- end }}
 
