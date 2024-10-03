@@ -21,7 +21,7 @@ def get(docker_compose, nginxproxy, want_err_re):
 
     @backoff.on_exception(
         backoff.constant,
-        requests.exceptions.RequestException,
+        requests.exceptions.SSLError,
         giveup=lambda e: want_err_re and want_err_re.search(str(e)),
         interval=.3,
         max_tries=30,
@@ -32,7 +32,7 @@ def get(docker_compose, nginxproxy, want_err_re):
     return _get
 
 
-INTERNAL_ERR_RE = re.compile("TLSV1_ALERT_INTERNAL_ERROR")
+INTERNAL_ERR_RE = re.compile("TLSV1_UNRECOGNIZED_NAME")
 
 
 @pytest.mark.parametrize("compose_file,url,want_code,want_err_re", [
@@ -97,5 +97,5 @@ def test_fallback(get, url, want_code, want_err_re):
         r = get(url)
         assert r.status_code == want_code
     else:
-        with pytest.raises(requests.exceptions.RequestException, match=want_err_re):
+        with pytest.raises(requests.exceptions.SSLError, match=want_err_re):
             get(url)

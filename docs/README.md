@@ -568,7 +568,7 @@ The default behavior for the proxy when port 80 and 443 are exposed is as follow
 
 - If a virtual host has a usable cert, port 80 will redirect to 443 for that virtual host so that HTTPS is always preferred when available.
 - If the virtual host does not have a usable cert, but `default.crt` and `default.key` exist, those will be used as the virtual host's certificate and the client browser will receive a 500 error.
-- If the virtual host does not have a usable cert, and `default.crt` and `default.key` do not exist, TLS negotiation will fail (see [Missing Certificate](#missing-certificate) below).
+- If the virtual host does not have a usable cert, and `default.crt` and `default.key` do not exist, SSL handshake will be rejected (see [Missing Certificate](#missing-certificate) below).
 
 To serve traffic in both SSL and non-SSL modes without redirecting to SSL, you can include the environment variable `HTTPS_METHOD=noredirect` (the default is `HTTPS_METHOD=redirect`). You can also disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`, or disable the HTTPS site with `HTTPS_METHOD=nohttps`. `HTTPS_METHOD` can be specified on each container for which you want to override the default behavior or on the proxy container to set it globally. If `HTTPS_METHOD=noredirect` is used, Strict Transport Security (HSTS) is disabled to prevent HTTPS users from being redirected by the client. If you cannot get to the HTTP site after changing this setting, your browser has probably cached the HSTS policy and is automatically redirecting you back to HTTPS. You will need to clear your browser's HSTS cache or use an incognito window / different browser.
 
@@ -584,26 +584,32 @@ If no matching certificate is found for a given virtual host, nginx-proxy will:
 - force enable HTTP; i.e. `HTTPS_METHOD` will switch to `noredirect` if it was set to `nohttp` or `redirect`.
   If this switch to HTTP is not wanted set `ENABLE_HTTP_ON_MISSING_CERT=false` (default is `true`).
 
-If the default certificate is also missing, nginx-proxy will configure nginx to accept HTTPS connections but fail the TLS negotiation. Client browsers will render a TLS error page. As of March 2023, web browsers display the following error messages:
+If the default certificate is also missing, nginx-proxy will configure nginx to reject the SSL handshake. Client browsers will render a TLS error page. As of October 2024, web browsers display the following error messages:
 
-- Chrome:
+#### Chrome:
 
-  > This site can't provide a secure connection
-  >
-  > example.test sent an invalid response.
-  >
-  > Try running Connectivity Diagnostics.
-  >
-  > `ERR_SSL_PROTOCOL_ERROR`
+> This site can’t be reached
+>
+> The web page at https://example.test/ might be temporarily down or it may have moved permanently to a new web address.
+>
+> `ERR_SSL_UNRECOGNIZED_NAME_ALERT`
 
-- Firefox:
+#### Firefox:
 
-  > Secure Connection Failed
-  >
-  > An error occurred during a connection to example.test.
-  > Peer reports it experienced an internal error.
-  >
-  > Error code: `SSL_ERROR_INTERNAL_ERROR_ALERT` "TLS error".
+> Secure Connection Failed
+>
+> An error occurred during a connection to example.test. SSL peer has no certificate for the requested DNS name.
+>
+> Error code: `SSL_ERROR_UNRECOGNIZED_NAME_ALERT`
+>
+> - The page you are trying to view cannot be shown because the authenticity of the received data could not be verified.
+> - Please contact the website owners to inform them of this problem.
+
+#### Safari:
+  
+> Safari Can't Open the Page
+>
+> Safari can't open the page "https://example.test" because Safari can't establish a secure connection to the server "example.test".
 
 ⬆️ [back to table of contents](#table-of-contents)
 
