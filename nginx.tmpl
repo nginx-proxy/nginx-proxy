@@ -19,6 +19,7 @@
 {{- $_ := set $globals "trust_downstream_proxy" (parseBool (coalesce $globals.Env.TRUST_DOWNSTREAM_PROXY "true")) }}
 {{- $_ := set $globals "access_log" (or (and (not $globals.Env.DISABLE_ACCESS_LOGS) "access_log /var/log/nginx/access.log vhost;") "") }}
 {{- $_ := set $globals "enable_ipv6" (parseBool (coalesce $globals.Env.ENABLE_IPV6 "false")) }}
+{{- $_ := set $globals "prefer_ipv6_network" (parseBool (coalesce $globals.Env.PREFER_IPV6_NETWORK "false")) }}
 {{- $_ := set $globals "ssl_policy" (or ($globals.Env.SSL_POLICY) "Mozilla-Intermediate") }}
 {{- $_ := set $globals "vhosts" (dict) }}
 {{- $_ := set $globals "networks" (dict) }}
@@ -56,7 +57,8 @@
      * The return value will be added to the dot dict with key "ip".
      */}}
 {{- define "container_ip" }}
-    {{- $ip := "" }}
+    {{- $ipv4 := "" }}
+    {{- $ipv6 := "" }}
     #     networks:
     {{- range sortObjectsByKeysAsc $.container.Networks "Name" }}
         {{- /*
@@ -71,17 +73,17 @@
             {{- /* Handle containers in host nework mode */}}
             {{- if (index $.globals.networks "host") }}
     #         both container and proxy are in host network mode, using localhost IP
-                {{- $ip = "127.0.0.1" }}
+                {{- $ipv4 = "127.0.0.1" }}
                 {{- continue }}
             {{- end }}
             {{- range sortObjectsByKeysAsc $.globals.CurrentContainer.Networks "Name" }}
                 {{- if and . .Gateway (not .Internal) }}
     #         container is in host network mode, using {{ .Name }} gateway IP
-                    {{- $ip = .Gateway }}
+                    {{- $ipv4 = .Gateway }}
                     {{- break }}
                 {{- end }}
             {{- end }}
-            {{- if $ip }}
+            {{- if $ipv4 }}
                 {{- continue }}
             {{- end }}
         {{- end }}
@@ -91,26 +93,41 @@
         {{- end }}
         {{- /*
              * Do not emit multiple `server` directives for this container if it
-             * is reachable over multiple networks.  This avoids accidentally
-             * inflating the effective round-robin weight of a server due to the
-             * redundant upstream addresses that nginx sees as belonging to
+             * is reachable over multiple networks or multiple IP stacks. This avoids 
+             * accidentally inflating the effective round-robin weight of a server due
+             * to the redundant upstream addresses that nginx sees as belonging to
              * distinct servers.
              */}}
-        {{- if $ip }}
+        {{- if or $ipv4 $ipv6 }}
     #         {{ .Name }} (ignored; reachable but redundant)
             {{- continue }}
         {{- end }}
     #         {{ .Name }} (reachable)
         {{- if and . .IP }}
-            {{- $ip = .IP }}
-        {{- else }}
-    #             /!\ No IP for this network!
+            {{- $ipv4 = .IP }}
+        {{- end }}
+        {{- if and . .GlobalIPv6Address }}
+            {{- $ipv6 = .GlobalIPv6Address }}
+        {{- end }}
+        {{- if and (empty $ipv4) (empty $ipv6) }}
+    #             /!\ No IPv4 or IPv6 for this network!
         {{- end }}
     {{- else }}
     #         (none)
     {{- end }}
-    #     IP address: {{ if $ip }}{{ $ip }}{{ else }}(none usable){{ end }}
-    {{- $_ := set $ "ip" $ip }}
+    {{ if and $ipv6 $.globals.prefer_ipv6_network }}
+    #     IPv4 address: {{ if $ipv4 }}{{ $ipv4 }} (ignored; reachable but IPv6 prefered){{ else }}(none usable){{ end }}
+    #     IPv6 address: {{ $ipv6 }}
+        {{- $_ := set $ "ip" (printf "[%s]" $ipv6) }}
+    {{- else }}
+    #     IPv4 address: {{ if $ipv4 }}{{ $ipv4 }}{{ else }}(none usable){{ end }}
+    #     IPv6 address: {{ if $ipv6 }}{{ $ipv6 }}{{ if $ipv4 }} (ignored; reachable but IPv4 prefered){{ end }}{{ else }}(none usable){{ end }}
+        {{- if $ipv4 }}
+            {{- $_ := set $ "ip" $ipv4 }}
+        {{- else if $ipv6}}
+            {{- $_ := set $ "ip" (printf "[%s]" $ipv6) }}
+        {{- end }}
+    {{- end }}
 {{- end }}
 
 {{- /*
