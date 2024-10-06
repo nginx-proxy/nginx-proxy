@@ -480,6 +480,7 @@ Complete list of policies available through the `SSL_POLICY` environment variabl
       <a href="https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility" target="_blank">
         <code>Mozilla-Old</code>
       </a>
+      (this policy should use a 1024 bits DH key for compatibility but this container provides a 4096 bits key. The <a href="#diffie-hellman-groups">Diffie-Hellman Groups</a> section details different methods of bypassing this, either globally or per virtual-host.)
     </li>
   </ul>
 </details>
@@ -562,7 +563,7 @@ Complete list of policies available through the `SSL_POLICY` environment variabl
 </details>
 </br>
 
-Note that the `Mozilla-Old` policy should use a 1024 bits DH key for compatibility but this container provides a 4096 bits key. The [Diffie-Hellman Groups](#diffie-hellman-groups) section details different methods of bypassing this, either globally or per virtual-host.
+:warning: Please note that TLSv1 and TLSv1.1 are only available on the debian based image due to the way OpenSSL is configured on upstream Alpine images.
 
 The default behavior for the proxy when port 80 and 443 are exposed is as follows:
 
