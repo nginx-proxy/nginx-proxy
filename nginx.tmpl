@@ -11,15 +11,19 @@
 {{- $_ := set $globals "Env" $.Env }}
 {{- $_ := set $globals "Docker" $.Docker }}
 {{- $_ := set $globals "CurrentContainer" (where $globals.containers "ID" $globals.Docker.CurrentContainerID | first) }}
-{{- $_ := set $globals "default_cert_ok" (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
-{{- $_ := set $globals "external_http_port" (coalesce $globals.Env.HTTP_PORT "80") }}
-{{- $_ := set $globals "external_https_port" (coalesce $globals.Env.HTTPS_PORT "443") }}
-{{- $_ := set $globals "sha1_upstream_name" (parseBool (coalesce $globals.Env.SHA1_UPSTREAM_NAME "false")) }}
-{{- $_ := set $globals "default_root_response" (coalesce $globals.Env.DEFAULT_ROOT "404") }}
-{{- $_ := set $globals "trust_downstream_proxy" (parseBool (coalesce $globals.Env.TRUST_DOWNSTREAM_PROXY "true")) }}
-{{- $_ := set $globals "access_log" (or (and (not $globals.Env.DISABLE_ACCESS_LOGS) "access_log /var/log/nginx/access.log vhost;") "") }}
-{{- $_ := set $globals "enable_ipv6" (parseBool (coalesce $globals.Env.ENABLE_IPV6 "false")) }}
-{{- $_ := set $globals "ssl_policy" (or ($globals.Env.SSL_POLICY) "Mozilla-Intermediate") }}
+
+{{- $config := dict }}
+{{- $_ := set $config "default_cert_ok" (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
+{{- $_ := set $config "external_http_port" (coalesce $globals.Env.HTTP_PORT "80") }}
+{{- $_ := set $config "external_https_port" (coalesce $globals.Env.HTTPS_PORT "443") }}
+{{- $_ := set $config "sha1_upstream_name" (parseBool (coalesce $globals.Env.SHA1_UPSTREAM_NAME "false")) }}
+{{- $_ := set $config "default_root_response" (coalesce $globals.Env.DEFAULT_ROOT "404") }}
+{{- $_ := set $config "trust_downstream_proxy" (parseBool (coalesce $globals.Env.TRUST_DOWNSTREAM_PROXY "true")) }}
+{{- $_ := set $config "access_log" (or (and (not $globals.Env.DISABLE_ACCESS_LOGS) "access_log /var/log/nginx/access.log vhost;") "") }}
+{{- $_ := set $config "enable_ipv6" (parseBool (coalesce $globals.Env.ENABLE_IPV6 "false")) }}
+{{- $_ := set $config "ssl_policy" (or ($globals.Env.SSL_POLICY) "Mozilla-Intermediate") }}
+{{- $_ := set $globals "config" $config }}
+
 {{- $_ := set $globals "vhosts" (dict) }}
 {{- $_ := set $globals "networks" (dict) }}
 # Networks available to the container running docker-gen (which are assumed to
@@ -347,19 +351,19 @@ upstream {{ $vpath.upstream }} {
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
 map $http_x_forwarded_proto $proxy_x_forwarded_proto {
-    default {{ if $globals.trust_downstream_proxy }}$http_x_forwarded_proto{{ else }}$scheme{{ end }};
+    default {{ if $globals.config.trust_downstream_proxy }}$http_x_forwarded_proto{{ else }}$scheme{{ end }};
     '' $scheme;
 }
 
 map $http_x_forwarded_host $proxy_x_forwarded_host {
-    default {{ if $globals.trust_downstream_proxy }}$http_x_forwarded_host{{ else }}$host{{ end }};
+    default {{ if $globals.config.trust_downstream_proxy }}$http_x_forwarded_host{{ else }}$host{{ end }};
     '' $host;
 }
 
 # If we receive X-Forwarded-Port, pass it through; otherwise, pass along the
 # server port the client connected to
 map $http_x_forwarded_port $proxy_x_forwarded_port {
-    default {{ if $globals.trust_downstream_proxy }}$http_x_forwarded_port{{ else }}$server_port{{ end }};
+    default {{ if $globals.config.trust_downstream_proxy }}$http_x_forwarded_port{{ else }}$server_port{{ end }};
     '' $server_port;
 }
 
@@ -440,7 +444,7 @@ access_log off;
     * if at least one vhost use a TLSv1 or TLSv1.1 policy
     * so TLSv1 and TLSv1.1 can be enabled on those vhosts
     */}}
-{{- $httpContextSslPolicy := $globals.ssl_policy }}
+{{- $httpContextSslPolicy := $globals.config.ssl_policy }}
 {{- $inUseSslPolicies := groupByKeys $globals.containers "Env.SSL_POLICY" }}
 {{- range $tls1Policy := list "AWS-TLS13-1-1-2021-06" "AWS-TLS13-1-0-2021-06" "AWS-FS-1-1-2019-08" "AWS-FS-2018-06" "AWS-TLS-1-1-2017-01" "AWS-2016-08" "AWS-2015-05" "AWS-2015-03" "AWS-2015-02" "Mozilla-Old" }}
     {{- if has $tls1Policy $inUseSslPolicies }}
@@ -518,7 +522,7 @@ proxy_set_header Proxy "";
         {{- end }}
         {{- $_ := set $vhost_data "paths" $paths }}
         {{- $is_regexp := hasPrefix "~" $hostname }}
-        {{- $_ := set $vhost_data "upstream_name" (when (or $is_regexp $globals.sha1_upstream_name) (sha1 $hostname) $hostname) }}
+        {{- $_ := set $vhost_data "upstream_name" (when (or $is_regexp $globals.config.sha1_upstream_name) (sha1 $hostname) $hostname) }}
         {{- $_ := set $globals.vhosts $hostname $vhost_data }}
     {{- end }}
 {{- end }}
@@ -564,7 +568,7 @@ proxy_set_header Proxy "";
     {{- end }}
     {{- $_ := set $vhost_data "paths" $paths }}
     {{- $is_regexp := hasPrefix "~" $hostname }}
-    {{- $_ := set $vhost_data "upstream_name" (when (or $is_regexp $globals.sha1_upstream_name) (sha1 $hostname) $hostname) }}
+    {{- $_ := set $vhost_data "upstream_name" (when (or $is_regexp $globals.config.sha1_upstream_name) (sha1 $hostname) $hostname) }}
     {{- $_ := set $globals.vhosts $hostname $vhost_data }}
 {{- end }}
 
@@ -700,30 +704,30 @@ proxy_set_header Proxy "";
 server {
     server_name _; # This is just an invalid value which will never trigger on a real hostname.
     server_tokens off;
-    {{ $globals.access_log }}
+    {{ $globals.config.access_log }}
     http2 on;
         {{- if $fallback_http }}
-    listen {{ $globals.external_http_port }}; {{- /* Do not add `default_server` (see comment above). */}}
-                {{- if $globals.enable_ipv6 }}
-    listen [::]:{{ $globals.external_http_port }}; {{- /* Do not add `default_server` (see comment above). */}}
+    listen {{ $globals.config.external_http_port }}; {{- /* Do not add `default_server` (see comment above). */}}
+                {{- if $globals.config.enable_ipv6 }}
+    listen [::]:{{ $globals.config.external_http_port }}; {{- /* Do not add `default_server` (see comment above). */}}
                 {{- end }}
         {{- end }}
         {{- if $fallback_https }}
-    listen {{ $globals.external_https_port }} ssl; {{- /* Do not add `default_server` (see comment above). */}}
-            {{- if $globals.enable_ipv6 }}
-    listen [::]:{{ $globals.external_https_port }} ssl; {{- /* Do not add `default_server` (see comment above). */}}
+    listen {{ $globals.config.external_https_port }} ssl; {{- /* Do not add `default_server` (see comment above). */}}
+            {{- if $globals.config.enable_ipv6 }}
+    listen [::]:{{ $globals.config.external_https_port }} ssl; {{- /* Do not add `default_server` (see comment above). */}}
             {{- end }}
             {{- if $http3_enabled }}
     http3 on;
-    listen {{ $globals.external_https_port }} quic reuseport; {{- /* Do not add `default_server` (see comment above). */}}
-                {{- if $globals.enable_ipv6 }}
-    listen [::]:{{ $globals.external_https_port }} quic reuseport; {{- /* Do not add `default_server` (see comment above). */}}
+    listen {{ $globals.config.external_https_port }} quic reuseport; {{- /* Do not add `default_server` (see comment above). */}}
+                {{- if $globals.config.enable_ipv6 }}
+    listen [::]:{{ $globals.config.external_https_port }} quic reuseport; {{- /* Do not add `default_server` (see comment above). */}}
                 {{- end }}
             {{- end }}
     ssl_session_cache shared:SSL:50m;
     ssl_session_tickets off;
         {{- end }}
-        {{- if $globals.default_cert_ok }}
+        {{- if $globals.config.default_cert_ok }}
     ssl_certificate /etc/nginx/certs/default.crt;
     ssl_certificate_key /etc/nginx/certs/default.key;
         {{- else }}
@@ -759,10 +763,10 @@ server {
         {{- if $vhost.server_tokens }}
     server_tokens {{ $vhost.server_tokens }};
         {{- end }}
-    {{ $globals.access_log }}
-    listen {{ $globals.external_http_port }} {{ $default_server }};
-        {{- if $globals.enable_ipv6 }}
-    listen [::]:{{ $globals.external_http_port }} {{ $default_server }};
+    {{ $globals.config.access_log }}
+    listen {{ $globals.config.external_http_port }} {{ $default_server }};
+        {{- if $globals.config.enable_ipv6 }}
+    listen [::]:{{ $globals.config.external_http_port }} {{ $default_server }};
         {{- end }}
 
         {{- if (or $vhost.acme_http_challenge_legacy $vhost.acme_http_challenge_enabled) }}
@@ -778,10 +782,10 @@ server {
         {{- end }}
 
     location / {
-        {{- if eq $globals.external_https_port "443" }}
+        {{- if eq $globals.config.external_https_port "443" }}
         return 301 https://$host$request_uri;
         {{- else }}
-        return 301 https://$host:{{ $globals.external_https_port }}$request_uri;
+        return 301 https://$host:{{ $globals.config.external_https_port }}$request_uri;
         {{- end }}
     }
 }
@@ -809,14 +813,14 @@ server {
     {{- if $vhost.server_tokens }}
     server_tokens {{ $vhost.server_tokens }};
     {{- end }}
-    {{ $globals.access_log }}
+    {{ $globals.config.access_log }}
     {{- if $vhost.http2_enabled }}
     http2 on;
     {{- end }}
     {{- if or (eq $vhost.https_method "nohttps") (eq $vhost.https_method "noredirect") }}
-    listen {{ $globals.external_http_port }} {{ $default_server }};
-        {{- if $globals.enable_ipv6 }}
-    listen [::]:{{ $globals.external_http_port }} {{ $default_server }};
+    listen {{ $globals.config.external_http_port }} {{ $default_server }};
+        {{- if $globals.config.enable_ipv6 }}
+    listen [::]:{{ $globals.config.external_http_port }} {{ $default_server }};
         {{- end }}
 
         {{- if (and (eq $vhost.https_method "noredirect") $vhost.acme_http_challenge_enabled) }}
@@ -830,17 +834,17 @@ server {
         {{- end }}
     {{- end }}
     {{- if ne $vhost.https_method "nohttps" }}
-    listen {{ $globals.external_https_port }} ssl {{ $default_server }};
-        {{- if $globals.enable_ipv6 }}
-    listen [::]:{{ $globals.external_https_port }} ssl {{ $default_server }};
+    listen {{ $globals.config.external_https_port }} ssl {{ $default_server }};
+        {{- if $globals.config.enable_ipv6 }}
+    listen [::]:{{ $globals.config.external_https_port }} ssl {{ $default_server }};
         {{- end }}
 
         {{- if $vhost.http3_enabled }}
     http3 on;
-    add_header alt-svc 'h3=":{{ $globals.external_https_port }}"; ma=86400;';
-    listen {{ $globals.external_https_port }} quic {{ $default_server }};
-            {{- if $globals.enable_ipv6 }}
-    listen [::]:{{ $globals.external_https_port }} quic {{ $default_server }};
+    add_header alt-svc 'h3=":{{ $globals.config.external_https_port }}"; ma=86400;';
+    listen {{ $globals.config.external_https_port }} quic {{ $default_server }};
+            {{- if $globals.config.enable_ipv6 }}
+    listen [::]:{{ $globals.config.external_https_port }} quic {{ $default_server }};
             {{- end }}
         {{- end }}
 
@@ -871,7 +875,7 @@ server {
     }
     add_header Strict-Transport-Security $sts_header always;
             {{- end }}
-        {{- else if $globals.default_cert_ok }}
+        {{- else if $globals.config.default_cert_ok }}
     # No certificate found for this vhost, so use the default certificate and
     # return an error code if the user connects via https.
     ssl_certificate /etc/nginx/certs/default.crt;
@@ -903,9 +907,9 @@ server {
         ) }}
     {{- end }}
 
-    {{- if and (not (contains $vhost.paths "/")) (ne $globals.default_root_response "none")}}
+    {{- if and (not (contains $vhost.paths "/")) (ne $globals.config.default_root_response "none")}}
     location / {
-        return {{ $globals.default_root_response }};
+        return {{ $globals.config.default_root_response }};
     }
     {{- end }}
 }
