@@ -563,8 +563,6 @@ Complete list of policies available through the `SSL_POLICY` environment variabl
 </details>
 </br>
 
-:warning: Please note that TLSv1 and TLSv1.1 are only available on the debian based image due to the way OpenSSL is configured on upstream Alpine images.
-
 The default behavior for the proxy when port 80 and 443 are exposed is as follows:
 
 - If a virtual host has a usable cert, port 80 will redirect to 443 for that virtual host so that HTTPS is always preferred when available.
