@@ -13,6 +13,7 @@
 {{- $_ := set $globals "CurrentContainer" (where $globals.containers "ID" $globals.Docker.CurrentContainerID | first) }}
 
 {{- $config := dict }}
+{{- $_ := set $config "nginx_proxy_version" $.Env.NGINX_PROXY_VERSION }}
 {{- $_ := set $config "default_cert_ok" (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 {{- $_ := set $config "external_http_port" (coalesce $globals.Env.HTTP_PORT "80") }}
 {{- $_ := set $config "external_https_port" (coalesce $globals.Env.HTTPS_PORT "443") }}
@@ -22,6 +23,7 @@
 {{- $_ := set $config "access_log" (or (and (not $globals.Env.DISABLE_ACCESS_LOGS) "access_log /var/log/nginx/access.log vhost;") "") }}
 {{- $_ := set $config "enable_ipv6" (parseBool (coalesce $globals.Env.ENABLE_IPV6 "false")) }}
 {{- $_ := set $config "ssl_policy" (or ($globals.Env.SSL_POLICY) "Mozilla-Intermediate") }}
+{{- $_ := set $config "enable_debug_endpoint" ($globals.Env.DEBUG_ENDPOINT | default "false") }}
 {{- $_ := set $globals "config" $config }}
 
 {{- $_ := set $globals "vhosts" (dict) }}
@@ -348,6 +350,42 @@ upstream {{ $vpath.upstream }} {
 }
 {{- end }}
 
+{{- /* debug "endpoint" response template */}}
+{{- define "debug_response" }}
+    {{- $debug_paths := dict }}
+    {{- range $path, $vpath := .VHost.paths }}
+        {{- $tmp_port := dict }}
+        {{- range $port, $containers := $vpath.ports }}
+            {{- $tmp_containers := list }}
+            {{- range $container := $containers }}
+                {{- $tmp_containers = dict "Name" $container.Name | append $tmp_containers }}
+            {{- end }}
+            {{- $_ := dict $port $tmp_containers | set $tmp_port "ports" }}
+            {{- $tmp_port = deepCopy $vpath | merge $tmp_port }}
+        {{- end }}
+        {{- $_ := set $debug_paths $path $tmp_port }}
+    {{- end }}
+    
+    {{- $debug_vhost := deepCopy .VHost }}
+    {{- $_ := set $debug_vhost "paths" $debug_paths }}
+
+    {{- $debug_response := dict
+        "global" .GlobalConfig
+        "hostname" .Hostname
+        "request" (dict
+            "host" "$host"
+            "https" "$https"
+            "http2" "$http2"
+            "http3" "$http3"
+            "ssl_cipher" "$ssl_cipher"
+            "ssl_protocol" "$ssl_protocol"
+        )
+        "vhost" $debug_vhost
+    }}
+    
+    {{- toJson $debug_response }}
+{{- end }}
+
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
 map $http_x_forwarded_proto $proxy_x_forwarded_proto {
@@ -614,6 +652,7 @@ proxy_set_header Proxy "";
     {{- $cert := or $certName $vhostCert }}
     {{- $cert_ok := and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)) }}
 
+    {{- $enable_debug_endpoint := coalesce (groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.debug-endpoint" | keys | first) $globals.config.enable_debug_endpoint | parseBool }}
     {{- $default := eq $globals.Env.DEFAULT_HOST $hostname }}
     {{- $https_method := or (first (groupByKeys $vhost_containers "Env.HTTPS_METHOD")) $globals.Env.HTTPS_METHOD "redirect" }}
     {{- $enable_http_on_missing_cert := parseBool (or (first (groupByKeys $vhost_containers "Env.ENABLE_HTTP_ON_MISSING_CERT")) $globals.Env.ENABLE_HTTP_ON_MISSING_CERT "true") }}
@@ -645,6 +684,7 @@ proxy_set_header Proxy "";
     {{- $vhost_data = merge $vhost_data (dict
         "cert" $cert
         "cert_ok" $cert_ok
+        "enable_debug_endpoint" $enable_debug_endpoint
         "default" $default
         "hsts" $hsts
         "https_method" $https_method
@@ -780,6 +820,13 @@ server {
         break;
     }
         {{- end }}
+    
+        {{- if $vhost.enable_debug_endpoint }}
+    location  /nginx-proxy-debug {
+        default_type application/json;
+        return 200 '{{- template "debug_response" (dict "GlobalConfig" $globals.config "Hostname" $hostname "VHost" $vhost) }}';
+    }
+        {{- end }}
 
     location / {
         {{- if eq $globals.config.external_https_port "443" }}
@@ -895,6 +942,13 @@ server {
     include {{ printf "/etc/nginx/vhost.d/%s" $vhostFileName }};
     {{- else if (exists "/etc/nginx/vhost.d/default") }}
     include /etc/nginx/vhost.d/default;
+    {{- end }}
+
+    {{- if $vhost.enable_debug_endpoint }}
+    location  /nginx-proxy-debug {
+        default_type application/json;
+        return 200 '{{- template "debug_response" (dict "GlobalConfig" $globals.config "Hostname" $hostname "VHost" $vhost) }}';
+    }
     {{- end }}
 
     {{- range $path, $vpath := $vhost.paths }}
