@@ -350,8 +350,8 @@ upstream {{ $vpath.upstream }} {
 }
 {{- end }}
 
-{{- /* debug "endpoint" response template */}}
-{{- define "debug_response" }}
+{{- /* debug "endpoint" location template */}}
+{{- define "debug_location" }}
     {{- $debug_paths := dict }}
     {{- range $path, $vpath := .VHost.paths }}
         {{- $tmp_port := dict }}
@@ -382,8 +382,11 @@ upstream {{ $vpath.upstream }} {
         )
         "vhost" $debug_vhost
     }}
-    
-    {{- toJson $debug_response }}
+
+    location  /nginx-proxy-debug {
+        default_type application/json;
+        return 200 '{{ toJson $debug_response }}';
+    }
 {{- end }}
 
 {{- define "access_log" }}
@@ -826,10 +829,7 @@ server {
         {{- end }}
     
         {{- if $vhost.enable_debug_endpoint }}
-    location  /nginx-proxy-debug {
-        default_type application/json;
-        return 200 '{{- template "debug_response" (dict "GlobalConfig" $globals.config "Hostname" $hostname "VHost" $vhost) }}';
-    }
+            {{ template "debug_location" (dict "GlobalConfig" $globals.config "Hostname" $hostname "VHost" $vhost) }}
         {{- end }}
 
     location / {
@@ -949,10 +949,7 @@ server {
     {{- end }}
 
     {{- if $vhost.enable_debug_endpoint }}
-    location  /nginx-proxy-debug {
-        default_type application/json;
-        return 200 '{{- template "debug_response" (dict "GlobalConfig" $globals.config "Hostname" $hostname "VHost" $vhost) }}';
-    }
+        {{ template "debug_location" (dict "GlobalConfig" $globals.config "Hostname" $hostname "VHost" $vhost) }}
     {{- end }}
 
     {{- range $path, $vpath := $vhost.paths }}
