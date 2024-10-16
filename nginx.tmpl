@@ -20,7 +20,7 @@
 {{- $_ := set $config "sha1_upstream_name" (parseBool (coalesce $globals.Env.SHA1_UPSTREAM_NAME "false")) }}
 {{- $_ := set $config "default_root_response" (coalesce $globals.Env.DEFAULT_ROOT "404") }}
 {{- $_ := set $config "trust_downstream_proxy" (parseBool (coalesce $globals.Env.TRUST_DOWNSTREAM_PROXY "true")) }}
-{{- $_ := set $config "access_log" (or (and (not $globals.Env.DISABLE_ACCESS_LOGS) "access_log /var/log/nginx/access.log vhost;") "") }}
+{{- $_ := set $config "enable_access_log" ($globals.Env.DISABLE_ACCESS_LOGS | default "false" | parseBool | not) }}
 {{- $_ := set $config "enable_ipv6" (parseBool (coalesce $globals.Env.ENABLE_IPV6 "false")) }}
 {{- $_ := set $config "ssl_policy" (or ($globals.Env.SSL_POLICY) "Mozilla-Intermediate") }}
 {{- $_ := set $config "enable_debug_endpoint" ($globals.Env.DEBUG_ENDPOINT | default "false") }}
@@ -386,6 +386,10 @@ upstream {{ $vpath.upstream }} {
     {{- toJson $debug_response }}
 {{- end }}
 
+{{- define "access_log" }}
+    {{- when .Enable "access_log /var/log/nginx/access.log vhost;" "" }}
+{{- end }}
+
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
 map $http_x_forwarded_proto $proxy_x_forwarded_proto {
@@ -744,7 +748,7 @@ proxy_set_header Proxy "";
 server {
     server_name _; # This is just an invalid value which will never trigger on a real hostname.
     server_tokens off;
-    {{ $globals.config.access_log }}
+    {{ template "access_log" (dict "Enable" $globals.config.enable_access_log) }}
     http2 on;
         {{- if $fallback_http }}
     listen {{ $globals.config.external_http_port }}; {{- /* Do not add `default_server` (see comment above). */}}
@@ -803,7 +807,7 @@ server {
         {{- if $vhost.server_tokens }}
     server_tokens {{ $vhost.server_tokens }};
         {{- end }}
-    {{ $globals.config.access_log }}
+    {{ template "access_log" (dict "Enable" $globals.config.enable_access_log) }}
     listen {{ $globals.config.external_http_port }} {{ $default_server }};
         {{- if $globals.config.enable_ipv6 }}
     listen [::]:{{ $globals.config.external_http_port }} {{ $default_server }};
@@ -860,7 +864,7 @@ server {
     {{- if $vhost.server_tokens }}
     server_tokens {{ $vhost.server_tokens }};
     {{- end }}
-    {{ $globals.config.access_log }}
+    {{ template "access_log" (dict "Enable" $globals.config.enable_access_log) }}
     {{- if $vhost.http2_enabled }}
     http2 on;
     {{- end }}
