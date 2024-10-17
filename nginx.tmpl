@@ -383,6 +383,16 @@ upstream {{ $vpath.upstream }} {
         "vhost" $debug_vhost
     }}
 
+    {{- /*
+         * The maximum line length in an nginx config is 4096 characters.
+         * If we're nearing this limit (with headroom for the rest
+         * of the directive), strip vhost.paths from the response.
+         */}}
+    {{- if gt (toJson $debug_response | len) 4000 }}
+        {{- $_ := unset $debug_vhost "paths" }}
+        {{- $_ := set $debug_response "warning" "Virtual paths configuration for this hostname is too large and has been stripped from response." }}
+    {{- end }}
+
     location  /nginx-proxy-debug {
         default_type application/json;
         return 200 '{{ toJson $debug_response }}';

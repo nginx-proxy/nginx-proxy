@@ -1094,7 +1094,7 @@ curl -s -H "Host: test.nginx-proxy.tld" localhost/nginx-proxy-debug | jq
 }
 ```
 
-:warning: please be aware that the debug endpoint work by rendering the response straight to the nginx configuration, which might result in an unparseable configuration if it exceeds nginx line character limit. Only activate it when needed.
+:warning: please be aware that the debug endpoint work by rendering the JSON response straight to the nginx configuration in plaintext. nginx has an upper limit on the size of the configuration files it can parse, so only activate it when needed, and preferably on a per container basis if your setup has a large number of virtual hosts.
 
 
 ⬆️ [back to table of contents](#table-of-contents)
