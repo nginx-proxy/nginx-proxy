@@ -982,7 +982,7 @@ docker exec <nginx-proxy-instance> nginx -T
 
 Pay attention to the `upstream` definition blocks, which should look like this:
 
-```Nginx
+```nginx
 # foo.example.com
 upstream foo.example.com {
 	## Can be connected with "my_network" network
@@ -1001,6 +1001,101 @@ The effective `Port` is retrieved by order of precedence:
 1. From the `VIRTUAL_PORT` environment variable
 1. From the container's exposed port if there is only one
 1. From the default port 80 when none of the above methods apply
+
+### Debug endpoint
+
+The debug endpoint can be enabled:
+- globally by setting the `DEBUG_ENDPOINT` environment variable to `true` on the nginx-proxy container.
+- per container by setting the `com.github.nginx-proxy.nginx-proxy.debug-endpoint` label to `true` on a proxied container.
+
+Enabling it will expose the endpoint at `<your.domain.tld>/nginx-proxy-debug`.
+
+Querying the debug endpoint will show the global config, along with the virtual host and per path configs in JSON format.
+
+```yaml
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    environment:
+      DEBUG_ENDPOINT: "true"
+
+  test:
+    image: nginx
+    environment:
+      VIRTUAL_HOST: test.nginx-proxy.tld
+```
+
+(on the CLI, using [`jq`](https://jqlang.github.io/jq/) to format the output of `curl` is recommended)
+
+```console
+curl -s -H "Host: test.nginx-proxy.tld" localhost/nginx-proxy-debug | jq
+```
+
+```json
+{
+  "global": {
+    "default_cert_ok": false,
+    "default_root_response": "404",
+    "enable_access_log": true,
+    "enable_debug_endpoint": "true",
+    "enable_ipv6": false,
+    "external_http_port": "80",
+    "external_https_port": "443",
+    "nginx_proxy_version": "local",
+    "sha1_upstream_name": false,
+    "ssl_policy": "Mozilla-Intermediate",
+    "trust_downstream_proxy": true
+  },
+  "hostname": "test.nginx-proxy.tld",
+  "request": {
+    "host": "test.nginx-proxy.tld",
+    "http2": "",
+    "http3": "",
+    "https": "",
+    "ssl_cipher": "",
+    "ssl_protocol": ""
+  },
+  "vhost": {
+    "acme_http_challenge_enabled": true,
+    "acme_http_challenge_legacy": false,
+    "cert": "",
+    "cert_ok": false,
+    "default": false,
+    "enable_debug_endpoint": true,
+    "hsts": "max-age=31536000",
+    "http2_enabled": true,
+    "http3_enabled": false,
+    "https_method": "noredirect",
+    "paths": {
+      "/": {
+        "dest": "",
+        "keepalive": "disabled",
+        "network_tag": "external",
+        "ports": {
+          "legacy": [
+            {
+              "Name": "wip-test-1"
+            }
+          ]
+        },
+        "proto": "http",
+        "upstream": "test.nginx-proxy.tld"
+      }
+    },
+    "server_tokens": "",
+    "ssl_policy": "",
+    "upstream_name": "test.nginx-proxy.tld",
+    "vhost_root": "/var/www/public"
+  }
+}
+```
+
+:warning: please be aware that the debug endpoint work by rendering the response straight to the nginx configuration, which might result in an unparseable configuration if it exceeds nginx line character limit. Only activate it when needed.
+
 
 ⬆️ [back to table of contents](#table-of-contents)
 
