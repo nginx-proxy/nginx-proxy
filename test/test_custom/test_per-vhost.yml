@@ -5,7 +5,7 @@ services:
     image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./my_custom_proxy_settings.conf:/etc/nginx/vhost.d/web1.nginx-proxy.example:ro
+      - ./my_custom_proxy_settings_f00.conf:/etc/nginx/vhost.d/web1.nginx-proxy.example:ro
       - ./my_custom_proxy_settings_bar.conf:/etc/nginx/vhost.d/561032515ede3ab3a015edfb244608b72409c430:ro
 
   web1:
