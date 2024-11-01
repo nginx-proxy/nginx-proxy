@@ -181,8 +181,9 @@ In this example, the incoming request `http://example.tld/app1/foo` will be prox
 ### Per-VIRTUAL_PATH location configuration
 
 The same options as from [Per-VIRTUAL_HOST location configuration](#Per-VIRTUAL_HOST-location-configuration) are available on a `VIRTUAL_PATH` basis.
-The only difference is that the filename gets an additional block `HASH=$(echo -n $VIRTUAL_PATH | sha1sum | awk '{ print $1 }')`. This is the sha1-hash of the `VIRTUAL_PATH` (no newline). This is done filename sanitization purposes.
-The used filename is `${VIRTUAL_HOST}_${HASH}_location`
+The only difference is that the filename gets an additional block `HASH=$(echo -n $VIRTUAL_PATH | sha1sum | awk '{ print $1 }')`. This is the sha1-hash of the `VIRTUAL_PATH` (no newline). This is done for filename sanitization purposes.
+
+The used filename is `${VIRTUAL_HOST}_${PATH_HASH}_location`, or when `VIRTUAL_HOST` is a regex, `${VIRTUAL_HOST_HASH}_${PATH_HASH}_location`.
 
 The filename of the previous example would be `example.tld_8610f6c344b4096614eab6e09d58885349f42faf_location`.
 
@@ -328,7 +329,7 @@ See the [nginx keepalive documentation](https://nginx.org/en/docs/http/ngx_http_
 
 ## Basic Authentication Support
 
-In order to be able to secure your virtual host, you have to create a file named as its equivalent `VIRTUAL_HOST` variable in directory
+In order to be able to secure your virtual host, you have to create a file named as its equivalent `VIRTUAL_HOST` variable (or if using a regex `VIRTUAL_HOST`, as the sha1 hash of the regex) in directory
 `/etc/nginx/htpasswd/{$VIRTUAL_HOST}`
 
 ```console
@@ -738,7 +739,7 @@ docker run -d -p 80:80 -p 443:443 -v /path/to/my_proxy.conf:/etc/nginx/conf.d/my
 
 ### Per-VIRTUAL_HOST
 
-To add settings on a per-`VIRTUAL_HOST` basis, add your configuration file under `/etc/nginx/vhost.d`. Unlike in the proxy-wide case, which allows multiple config files with any name ending in `.conf`, the per-`VIRTUAL_HOST` file must be named exactly after the `VIRTUAL_HOST`.
+To add settings on a per-`VIRTUAL_HOST` basis, add your configuration file under `/etc/nginx/vhost.d`. Unlike in the proxy-wide case, which allows multiple config files with any name ending in `.conf`, the per-`VIRTUAL_HOST` file must be named exactly after the `VIRTUAL_HOST`, or if `VIRTUAL_HOST` is a regex, after the sha1 hash of the regex.
 
 In order to allow virtual hosts to be dynamically configured as backends are added and removed, it makes the most sense to mount an external directory as `/etc/nginx/vhost.d` as opposed to using derived images or mounting individual configuration files.
 
@@ -762,7 +763,7 @@ If you want most of your virtual hosts to use a default single configuration and
 
 ### Per-VIRTUAL_HOST location configuration
 
-To add settings to the "location" block on a per-`VIRTUAL_HOST` basis, add your configuration file under `/etc/nginx/vhost.d` just like the previous section except with the suffix `_location`.
+To add settings to the "location" block on a per-`VIRTUAL_HOST` basis, add your configuration file under `/etc/nginx/vhost.d` just like the per-`VIRTUAL_HOST` section except with the suffix `_location` (like this section, if your `VIRTUAl_HOST` is a regex, use the sha1 hash of the regex instead, with the suffix `_location` appended).
 
 For example, if you have a virtual host named `app.example.com` and you have configured a proxy_cache `my-cache` in another custom file, you could tell it to use a proxy cache as follows:
 
@@ -790,7 +791,7 @@ The `${VIRTUAL_HOST}_${PATH_HASH}_location`, `${VIRTUAL_HOST}_location`, and `de
 /etc/nginx/vhost.d/${VIRTUAL_HOST}_${PATH_HASH}_location_override
 ```
 
-where `${VIRTUAL_HOST}` is the name of the virtual host (the `VIRTUAL_HOST` environment variable) and `${PATH_HASH}` is the SHA-1 hash of the path, as [described above](#per-virtual_path-location-configuration).
+where `${VIRTUAL_HOST}` is the name of the virtual host (the `VIRTUAL_HOST` environment variable), or the sha1 hash of `VIRTUAL_HOST` when it's a regex, and `${PATH_HASH}` is the SHA-1 hash of the path, as [described above](#per-virtual_path-location-configuration).
 
 For convenience, the `_${PATH_HASH}` part can be omitted if the path is `/`:
 
