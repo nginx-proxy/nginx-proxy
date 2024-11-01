@@ -6,6 +6,7 @@ services:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./my_custom_proxy_settings.conf:/etc/nginx/vhost.d/web1.nginx-proxy.example_location:ro
+      - ./my_custom_proxy_settings_bar.conf:/etc/nginx/vhost.d/561032515ede3ab3a015edfb244608b72409c430_location:ro
 
   web1:
     image: web
@@ -22,3 +23,11 @@ services:
     environment:
       WEB_PORTS: 82
       VIRTUAL_HOST: web2.nginx-proxy.example
+  
+  regex:
+    image: web
+    expose:
+      - "83"
+    environment:
+      WEB_PORTS: 83
+      VIRTUAL_HOST: ~^regex.*\.nginx-proxy\.example$

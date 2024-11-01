@@ -12,6 +12,13 @@ def test_custom_conf_applies_to_web1(docker_compose, nginxproxy):
     assert "X-test" in r.headers
     assert "f00" == r.headers["X-test"]
 
+def test_custom_conf_applies_to_regex(docker_compose, nginxproxy):
+    r = nginxproxy.get("http://regex.foo.nginx-proxy.example/port")
+    assert r.status_code == 200   
+    assert r.text == "answer from port 83\n"
+    assert "X-test" in r.headers
+    assert "bar" == r.headers["X-test"]
+
 def test_custom_conf_does_not_apply_to_web2(docker_compose, nginxproxy):
     r = nginxproxy.get("http://web2.nginx-proxy.example/port")
     assert r.status_code == 200   
