@@ -24,6 +24,7 @@
 {{- $_ := set $config "enable_ipv6" (parseBool (coalesce $globals.Env.ENABLE_IPV6 "false")) }}
 {{- $_ := set $config "ssl_policy" (or ($globals.Env.SSL_POLICY) "Mozilla-Intermediate") }}
 {{- $_ := set $config "enable_debug_endpoint" ($globals.Env.DEBUG_ENDPOINT | default "false") }}
+{{- $_ := set $config "hsts" ($globals.Env.HSTS | default "max-age=31536000") }}
 {{- $_ := set $globals "config" $config }}
 
 {{- $_ := set $globals "vhosts" (dict) }}
@@ -693,7 +694,7 @@ proxy_set_header Proxy "";
     {{- $ssl_policy := or (first (groupByKeys $vhost_containers "Env.SSL_POLICY")) "" }}
 
     {{- /* Get the HSTS defined by containers w/ the same vhost, falling back to "max-age=31536000". */}}
-    {{- $hsts := or (first (groupByKeys $vhost_containers "Env.HSTS")) (or $globals.Env.HSTS "max-age=31536000") }}
+    {{- $hsts := groupByKeys $vhost_containers "Env.HSTS" | first | default $globals.config.hsts }}
 
     {{- /* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
     {{- $vhost_root := or (first (groupByKeys $vhost_containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
