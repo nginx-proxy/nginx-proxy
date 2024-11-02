@@ -32,6 +32,11 @@
 {{- $_ := set $config "https_method" ($globals.Env.HTTPS_METHOD | default "redirect") }}
 {{- $_ := set $config "default_host" $globals.Env.DEFAULT_HOST }}
 {{- $_ := set $config "resolvers" $globals.Env.RESOLVERS }}
+{{- /* LOG_JSON is a shorthand that sets logging defaults to JSON format */}}
+{{- $_ := set $config "enable_json_logs" ($globals.Env.LOG_JSON | default "false" | parseBool) }}
+{{- $_ := set $config "log_format" $globals.Env.LOG_FORMAT }}
+{{- $_ := set $config "log_format_escape" $globals.Env.LOG_FORMAT_ESCAPE }}
+
 {{- $_ := set $globals "config" $config }}
 
 {{- $_ := set $globals "vhosts" (dict) }}
@@ -487,19 +492,16 @@ gzip_types text/plain text/css application/javascript application/json applicati
      * LOG_FORMAT_ESCAPE sets the escape part of the log format
      * LOG_FORMAT        sets the log format
      */}}
-{{- $logEscape := printf "escape=%s" (or $globals.Env.LOG_FORMAT_ESCAPE "default") }}
-{{- $logFormat := or $globals.Env.LOG_FORMAT `$host $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$upstream_addr"` }}
+{{- $logEscape := $globals.config.log_format_escape | default "default" | printf "escape=%s" }}
+{{- $logFormat := $globals.config.log_format | default `$host $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$upstream_addr"` }}
 
-{{- if parseBool (or $globals.Env.LOG_JSON "false") }}
-    {{- /* LOG_JSON is a shorthand
-        * that sets logging defaults to JSON format
-        */}}
+{{- if $globals.config.enable_json_logs }}
 # JSON Logging enabled (via LOG_JSON env variable)
-    {{- $logEscape = printf "escape=%s" (or $globals.Env.LOG_FORMAT_ESCAPE "json") }}
-    {{- $logFormat = or $globals.Env.LOG_FORMAT `{"time_local":"$time_iso8601","client_ip":"$http_x_forwarded_for","remote_addr":"$remote_addr","request":"$request","status":"$status","body_bytes_sent":"$body_bytes_sent","request_time":"$request_time","upstream_response_time":"$upstream_response_time","upstream_addr":"$upstream_addr","http_referrer":"$http_referer","http_user_agent":"$http_user_agent","request_id":"$request_id"}` }}
+    {{- $logEscape = $globals.config.log_format_escape | default "json" | printf "escape=%s" }}
+    {{- $logFormat = $globals.config.log_format | default `{"time_local":"$time_iso8601","client_ip":"$http_x_forwarded_for","remote_addr":"$remote_addr","request":"$request","status":"$status","body_bytes_sent":"$body_bytes_sent","request_time":"$request_time","upstream_response_time":"$upstream_response_time","upstream_addr":"$upstream_addr","http_referrer":"$http_referer","http_user_agent":"$http_user_agent","request_id":"$request_id"}` }}
 {{- end }}
 
-log_format vhost {{ $logEscape }} '{{ or $globals.Env.LOG_FORMAT $logFormat }}';
+log_format vhost {{ $logEscape }} '{{ $logFormat }}';
 
 access_log off;
 
