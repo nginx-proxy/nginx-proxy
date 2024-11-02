@@ -6,21 +6,42 @@ services:
     environment:
       DEBUG_ENDPOINT: "true"
 
-  debug_enabled1:
+  debug_enabled:
     image: web
     expose:
       - "81"
     environment:
       WEB_PORTS: 81
-      VIRTUAL_HOST: enabled1.debug.nginx-proxy.example
+      VIRTUAL_HOST: enabled.debug.nginx-proxy.example
   
-  debug_enabled2:
+  debug_stripped:
     image: web
     expose:
       - "82"
     environment:
       WEB_PORTS: 82
-      VIRTUAL_HOST: enabled2.debug.nginx-proxy.example
+      VIRTUAL_HOST_MULTIPORTS: |-
+        stripped.debug.nginx-proxy.example:
+          "/1":
+          "/2":
+          "/3":
+          "/4":
+          "/5":
+          "/6":
+          "/7":
+          "/8":
+          "/9":
+          "/10":
+          "/11":
+          "/12":
+          "/13":
+          "/14":
+          "/15":
+          "/16":
+          "/17":
+          "/18":
+          "/19":
+          "/20":
 
   debug_disabled:
     image: web

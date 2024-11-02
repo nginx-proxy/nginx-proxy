@@ -19,6 +19,6 @@ def test_debug_endpoint_response_contains_expected_values(docker_compose, nginxp
     try:
         jsonResponse = json.loads(r.text)
     except ValueError as err:
-        pytest.fail("Failed to parse JSON response: %s" % err, pytrace=False)
+        pytest.fail("Failed to parse debug endpoint response as JSON:: %s" % err, pytrace=False)
     assert jsonResponse["global"]["enable_debug_endpoint"] == "false"
     assert jsonResponse["vhost"]["enable_debug_endpoint"] == True
