@@ -562,7 +562,7 @@ proxy_set_header Proxy "";
 
     {{- range $hostname, $vhost := $parsedVhosts }}
         {{- $vhost_data := when (hasKey $globals.vhosts $hostname) (get $globals.vhosts $hostname) (dict) }}
-        {{- $paths := coalesce $vhost_data.paths (dict) }}
+        {{- $paths := $vhost_data.paths | default (dict) }}
 
         {{- if (empty $vhost) }}
             {{ $vhost = dict "/" (dict) }}
@@ -572,7 +572,7 @@ proxy_set_header Proxy "";
             {{- if (empty $vpath) }}
                 {{- $vpath = dict "dest" "" "port" "default" }}
             {{- end }}
-            {{- $dest := coalesce $vpath.dest "" }}
+            {{- $dest := $vpath.dest | default "" }}
             {{- $port := when (hasKey $vpath "port") (toString $vpath.port) "default" }}
             {{- $path_data := when (hasKey $paths $path) (get $paths $path) (dict) }}
             {{- $path_ports := when (hasKey $path_data "ports") (get $path_data "ports") (dict) }}
@@ -613,12 +613,12 @@ proxy_set_header Proxy "";
     {{- end }}
 
     {{- $vhost_data := when (hasKey $globals.vhosts $hostname) (get $globals.vhosts $hostname) (dict) }}
-    {{- $paths := coalesce $vhost_data.paths (dict) }}
+    {{- $paths := $vhost_data.paths | default (dict) }}
 
     {{- $tmp_paths := groupByWithDefault $containers "Env.VIRTUAL_PATH" "/" }}
 
     {{- range $path, $containers := $tmp_paths }}
-        {{- $dest := or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "" }}
+        {{- $dest := groupByKeys $containers "Env.VIRTUAL_DEST" | first | default "" }}
         {{- $port := "legacy" }}
         {{- $path_data := when (hasKey $paths $path) (get $paths $path) (dict) }}
         {{- $path_ports := when (hasKey $path_data "ports") (get $path_data "ports") (dict) }}
@@ -649,12 +649,12 @@ proxy_set_header Proxy "";
         {{- end }}
 
         {{- /* Get the VIRTUAL_PROTO defined by containers w/ the same vhost-vpath, falling back to "http". */}}
-        {{- $proto := trim (or (first (groupByKeys $vpath_containers "Env.VIRTUAL_PROTO")) "http") }}
+        {{- $proto := groupByKeys $vpath_containers "Env.VIRTUAL_PROTO" | first | default "http" | trim }}
         {{- /* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external". */}}
-        {{- $network_tag := or (first (groupByKeys $vpath_containers "Env.NETWORK_ACCESS")) "external" }}
+        {{- $network_tag := groupByKeys $vpath_containers "Env.NETWORK_ACCESS" | first | default "external" }}
 
-        {{- $loadbalance := first (keys (groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.loadbalance")) }}
-        {{- $keepalive := coalesce (first (keys (groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.keepalive"))) "disabled" }}
+        {{- $loadbalance := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.loadbalance" | keys | first }}
+        {{- $keepalive := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.keepalive" | keys | first | default "disabled" }}
 
         {{- $upstream := $vhost_data.upstream_name }}
         {{- if (not (eq $path "/")) }}
@@ -672,14 +672,14 @@ proxy_set_header Proxy "";
         {{ $vhost_containers = concat $vhost_containers $vpath_containers }}
     {{- end }}
 
-    {{- $certName := first (groupByKeys $vhost_containers "Env.CERT_NAME") }}
+    {{- $certName := groupByKeys $vhost_containers "Env.CERT_NAME" | first }}
     {{- $vhostCert := closest (dir "/etc/nginx/certs") (printf "%s.crt" $hostname) }}
     {{- $vhostCert = trimSuffix ".crt" $vhostCert }}
     {{- $vhostCert = trimSuffix ".key" $vhostCert }}
     {{- $cert := or $certName $vhostCert }}
     {{- $cert_ok := and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)) }}
 
-    {{- $enable_debug_endpoint := coalesce (groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.debug-endpoint" | keys | first) $globals.config.enable_debug_endpoint | parseBool }}
+    {{- $enable_debug_endpoint := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.debug-endpoint" | keys | first | default $globals.config.enable_debug_endpoint | parseBool }}
     {{- $default := eq $globals.config.default_host $hostname }}
     {{- $https_method := groupByKeys $vhost_containers "Env.HTTPS_METHOD" | first | default $globals.config.https_method }}
     {{- $enable_http_on_missing_cert := groupByKeys $vhost_containers "Env.ENABLE_HTTP_ON_MISSING_CERT" | first | default $globals.config.enable_http_on_missing_cert | parseBool }}
@@ -697,16 +697,16 @@ proxy_set_header Proxy "";
     {{- end }}
 
     {{- /* Get the SERVER_TOKENS defined by containers w/ the same vhost, falling back to "". */}}
-    {{- $server_tokens := trim (or (first (groupByKeys $vhost_containers "Env.SERVER_TOKENS")) "") }}
+    {{- $server_tokens := groupByKeys $vhost_containers "Env.SERVER_TOKENS" | first | default "" | trim }}
 
     {{- /* Get the SSL_POLICY defined by containers w/ the same vhost, falling back to empty string (use default). */}}
-    {{- $ssl_policy := or (first (groupByKeys $vhost_containers "Env.SSL_POLICY")) "" }}
+    {{- $ssl_policy := groupByKeys $vhost_containers "Env.SSL_POLICY" | first | default "" }}
 
     {{- /* Get the HSTS defined by containers w/ the same vhost, falling back to "max-age=31536000". */}}
     {{- $hsts := groupByKeys $vhost_containers "Env.HSTS" | first | default $globals.config.hsts }}
 
     {{- /* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
-    {{- $vhost_root := or (first (groupByKeys $vhost_containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
+    {{- $vhost_root := groupByKeys $vhost_containers "Env.VIRTUAL_ROOT" | first | default "/var/www/public" }}
 
     {{- $vhost_data = merge $vhost_data (dict
         "cert" $cert
