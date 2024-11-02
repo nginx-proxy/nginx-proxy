@@ -31,6 +31,7 @@
 {{- $_ := set $config "enable_http_on_missing_cert" ($globals.Env.ENABLE_HTTP_ON_MISSING_CERT | default "true") }}
 {{- $_ := set $config "https_method" ($globals.Env.HTTPS_METHOD | default "redirect") }}
 {{- $_ := set $config "default_host" $globals.Env.DEFAULT_HOST }}
+{{- $_ := set $config "resolvers" $globals.Env.RESOLVERS }}
 {{- $_ := set $globals "config" $config }}
 
 {{- $_ := set $globals "vhosts" (dict) }}
@@ -519,8 +520,8 @@ access_log off;
 {{- template "ssl_policy" (dict "ssl_policy" $httpContextSslPolicy) }}
 error_log /dev/stderr;
 
-{{- if $globals.Env.RESOLVERS }}
-resolver {{ $globals.Env.RESOLVERS }};
+{{- if $globals.config.resolvers }}
+resolver {{ $globals.config.resolvers }};
 {{- end }}
 
 {{- if (exists "/etc/nginx/proxy.conf") }}
