@@ -289,7 +289,7 @@
         auth_basic "Restricted {{ .Host }}{{ .Path }}";
         auth_basic_user_file {{ (printf "/etc/nginx/htpasswd/%s_%s" .Host (sha1 .Path)) }};
         {{- else if (exists (printf "/etc/nginx/htpasswd/%s" .Host)) }}
-        auth_basic "Restricted {{ .Host }}";
+        auth_basic "Restricted {{ .HostIsRegexp | ternary "access" .Host }}";
         auth_basic_user_file {{ (printf "/etc/nginx/htpasswd/%s" .Host) }};
         {{- end }}
 
@@ -570,7 +570,9 @@ proxy_set_header Proxy "";
 
 {{- /* Loop over $globals.vhosts and update it with the remaining informations about each vhost. */}}
 {{- range $hostname, $vhost_data := $globals.vhosts }}
+    {{- $is_regexp := hasPrefix "~" $hostname }}
     {{- $vhost_containers := list }}
+
     {{- range $path, $vpath_data := $vhost_data.paths }}
         {{- $vpath_containers := list }}
         {{- range $port, $vport_containers := $vpath_data.ports }}
@@ -644,6 +646,7 @@ proxy_set_header Proxy "";
         "https_method" $https_method
         "http2_enabled" $http2_enabled
         "http3_enabled" $http3_enabled
+        "is_regexp" $is_regexp
         "acme_http_challenge_legacy" $acme_http_challenge_legacy
         "acme_http_challenge_enabled" $acme_http_challenge_enabled
         "server_tokens" $server_tokens
@@ -785,6 +788,23 @@ server {
     {{- end }}
 
 server {
+    {{- if $vhost.is_regexp }}
+        {{- if or
+            (printf "/etc/nginx/vhost.d/%s" $hostname | exists)
+            (printf "/etc/nginx/vhost.d/%s_location" $hostname | exists)
+            (printf "/etc/nginx/vhost.d/%s_location_override" $hostname | exists)
+            (printf "/etc/nginx/htpasswd/%s" $hostname | exists)
+        }}
+    # https://github.com/nginx-proxy/nginx-proxy/issues/2529#issuecomment-2437609249
+    # Support for vhost config file(s) named like a regexp ({{ $hostname }}) has been removed from nginx-proxy.
+    # Please name your vhost config file(s) with the sha1 of the regexp instead ({{ $hostname }} -> {{ sha1 $hostname }}) :
+    # - /etc/nginx/vhost.d/{{ sha1 $hostname }}
+    # - /etc/nginx/vhost.d/{{ sha1 $hostname }}_location
+    # - /etc/nginx/vhost.d/{{ sha1 $hostname }}_location_override
+    # - /etc/nginx/htpasswd/{{ sha1 $hostname }}
+        {{- end }}
+    {{- end }}
+
     server_name {{ $hostname }};
     {{- if $vhost.server_tokens }}
     server_tokens {{ $vhost.server_tokens }};
@@ -865,8 +885,10 @@ server {
         {{- end }}
     {{- end }}
 
-    {{- if (exists (printf "/etc/nginx/vhost.d/%s" $hostname)) }}
-    include {{ printf "/etc/nginx/vhost.d/%s" $hostname }};
+    {{- $vhostFileName :=  $vhost.is_regexp | ternary (sha1 $hostname) $hostname }}
+
+    {{- if (exists (printf "/etc/nginx/vhost.d/%s" $vhostFileName)) }}
+    include {{ printf "/etc/nginx/vhost.d/%s" $vhostFileName }};
     {{- else if (exists "/etc/nginx/vhost.d/default") }}
     include /etc/nginx/vhost.d/default;
     {{- end }}
@@ -874,7 +896,8 @@ server {
     {{- range $path, $vpath := $vhost.paths }}
         {{- template "location" (dict
             "Path" $path
-            "Host" $hostname
+            "Host" $vhostFileName
+            "HostIsRegexp" $vhost.is_regexp
             "VhostRoot" $vhost.vhost_root
             "VPath" $vpath
         ) }}
