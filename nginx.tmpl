@@ -30,6 +30,7 @@
 {{- $_ := set $config "enable_http3" ($globals.Env.ENABLE_HTTP3 | default "false") }}
 {{- $_ := set $config "enable_http_on_missing_cert" ($globals.Env.ENABLE_HTTP_ON_MISSING_CERT | default "true") }}
 {{- $_ := set $config "https_method" ($globals.Env.HTTPS_METHOD | default "redirect") }}
+{{- $_ := set $config "default_host" $globals.Env.DEFAULT_HOST }}
 {{- $_ := set $globals "config" $config }}
 
 {{- $_ := set $globals "vhosts" (dict) }}
@@ -676,7 +677,7 @@ proxy_set_header Proxy "";
     {{- $cert_ok := and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)) }}
 
     {{- $enable_debug_endpoint := coalesce (groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.debug-endpoint" | keys | first) $globals.config.enable_debug_endpoint | parseBool }}
-    {{- $default := eq $globals.Env.DEFAULT_HOST $hostname }}
+    {{- $default := eq $globals.config.default_host $hostname }}
     {{- $https_method := groupByKeys $vhost_containers "Env.HTTPS_METHOD" | first | default $globals.config.https_method }}
     {{- $enable_http_on_missing_cert := groupByKeys $vhost_containers "Env.ENABLE_HTTP_ON_MISSING_CERT" | first | default $globals.config.enable_http_on_missing_cert | parseBool }}
     {{- /* When the certificate is missing we want to ensure that HTTP is enabled; hence switching from 'nohttp' or 'redirect' to 'noredirect' */}}
