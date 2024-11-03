@@ -681,8 +681,10 @@ proxy_set_header Proxy "";
     {{- $default := eq $globals.config.default_host $hostname }}
     {{- $https_method := groupByKeys $vhost_containers "Env.HTTPS_METHOD" | first | default $globals.config.https_method }}
     {{- $enable_http_on_missing_cert := groupByKeys $vhost_containers "Env.ENABLE_HTTP_ON_MISSING_CERT" | first | default $globals.config.enable_http_on_missing_cert | parseBool }}
-    {{- /* When the certificate is missing we want to ensure that HTTP is enabled; hence switching from 'nohttp' or 'redirect' to 'noredirect' */}}
-    {{- if (and $enable_http_on_missing_cert (not $cert_ok) (or (eq $https_method "nohttp") (eq $https_method "redirect"))) }}
+    {{- /* When both the vhost and default certificates are missing we want to ensure that HTTP is enabled; hence switching from 'nohttp' or 'redirect' to 'noredirect' */}}
+    {{- $https_method_disable_http := list "nohttp" "redirect" | has $https_method }}
+    {{- $no_vhost_or_default_cert := or $cert_ok $globals.config.default_cert_ok | not }}
+    {{- if and $https_method_disable_http $no_vhost_or_default_cert $enable_http_on_missing_cert }}
         {{- $https_method = "noredirect" }}
     {{- end }}
     {{- $http2_enabled := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http2.enable" | keys | first | default $globals.config.enable_http2 | parseBool }}
