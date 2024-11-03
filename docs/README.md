@@ -582,7 +582,7 @@ By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.or
 
 If no matching certificate is found for a given virtual host, nginx-proxy will:
 
-- configure nginx to use the default certificate (`default.crt` with `default.key`) and return a 500 error for HTTPS,
+- configure nginx to use the default certificate (`default.crt` with `default.key`),
 - force enable HTTP; i.e. `HTTPS_METHOD` will switch to `noredirect` if it was set to `nohttp` or `redirect`.
   If this switch to HTTP is not wanted set `ENABLE_HTTP_ON_MISSING_CERT=false` (default is `true`).
 

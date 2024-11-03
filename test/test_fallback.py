@@ -44,7 +44,7 @@ INTERNAL_ERR_RE = re.compile("TLSV1_UNRECOGNIZED_NAME")
     ("withdefault.yml", "http://http-only.nginx-proxy.test/", 200, None),
     ("withdefault.yml", "https://http-only.nginx-proxy.test/", 503, None),
     ("withdefault.yml", "http://missing-cert.nginx-proxy.test/", 200, None),
-    ("withdefault.yml", "https://missing-cert.nginx-proxy.test/", 500, None),
+    ("withdefault.yml", "https://missing-cert.nginx-proxy.test/", 200, None),
     ("withdefault.yml", "http://unknown.nginx-proxy.test/", 503, None),
     ("withdefault.yml", "https://unknown.nginx-proxy.test/", 503, None),
     # Same as withdefault.yml, except there is no default.crt.
@@ -73,7 +73,7 @@ INTERNAL_ERR_RE = re.compile("TLSV1_UNRECOGNIZED_NAME")
     ("nohttp-with-missing-cert.yml", "http://https-only.nginx-proxy.test/", 503, None),
     ("nohttp-with-missing-cert.yml", "https://https-only.nginx-proxy.test/", 200, None),
     ("nohttp-with-missing-cert.yml", "http://missing-cert.nginx-proxy.test/", 200, None),
-    ("nohttp-with-missing-cert.yml", "https://missing-cert.nginx-proxy.test/", 500, None),
+    ("nohttp-with-missing-cert.yml", "https://missing-cert.nginx-proxy.test/", 200, None),
     ("nohttp-with-missing-cert.yml", "http://unknown.nginx-proxy.test/", 503, None),
     ("nohttp-with-missing-cert.yml", "https://unknown.nginx-proxy.test/", 503, None),
     # HTTPS_METHOD=nohttps on nginx-proxy, HTTPS_METHOD unset on the app container.

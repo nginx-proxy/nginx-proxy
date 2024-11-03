@@ -918,15 +918,21 @@ server {
             {{- end }}
         {{- end }}
 
-        {{- if $vhost.cert_ok }}
+        {{- if or $vhost.cert_ok $globals.config.default_cert_ok }}
             {{- template "ssl_policy" (dict "ssl_policy" $vhost.ssl_policy) }}
 
     ssl_session_timeout 5m;
     ssl_session_cache shared:SSL:50m;
     ssl_session_tickets off;
 
+            {{- if $vhost.cert_ok }}
     ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $vhost.cert) }};
     ssl_certificate_key /etc/nginx/certs/{{ (printf "%s.key" $vhost.cert) }};
+            {{- else }}
+    # No vhost certificate found, using the default certificate.
+    ssl_certificate /etc/nginx/certs/default.crt;
+    ssl_certificate_key /etc/nginx/certs/default.key;
+            {{- end }}
 
             {{- if (exists (printf "/etc/nginx/certs/%s.dhparam.pem" $vhost.cert)) }}
     ssl_dhparam {{ printf "/etc/nginx/certs/%s.dhparam.pem" $vhost.cert }};
@@ -945,14 +951,6 @@ server {
     }
     add_header Strict-Transport-Security $sts_header always;
             {{- end }}
-        {{- else if $globals.config.default_cert_ok }}
-    # No certificate found for this vhost, so use the default certificate and
-    # return an error code if the user connects via https.
-    ssl_certificate /etc/nginx/certs/default.crt;
-    ssl_certificate_key /etc/nginx/certs/default.key;
-    if ($https) {
-        return 500;
-    }
         {{- else }}
     # No certificate for this vhost nor default certificate found, so reject SSL handshake.
     ssl_reject_handshake on;
