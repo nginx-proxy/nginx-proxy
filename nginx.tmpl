@@ -1,10 +1,10 @@
 # nginx-proxy{{ if $.Env.NGINX_PROXY_VERSION }} version : {{ $.Env.NGINX_PROXY_VERSION }}{{ end }}
 
 {{- /*
-     * Global values.  Values are stored in this map rather than in individual
+     * Global values. Values are stored in this map rather than in individual
      * global variables so that the values can be easily passed to embedded
-     * templates.  (Go templates cannot access variables outside of their own
-     * scope.)
+     * templates (Go templates cannot access variables outside of their own
+     * scope) and displayed in the debug endpoint output.
      */}}
 {{- $globals := dict }}
 {{- $_ := set $globals "containers" $ }}
