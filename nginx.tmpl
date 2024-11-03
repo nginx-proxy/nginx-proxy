@@ -380,11 +380,11 @@ upstream {{ $vpath.upstream }} {
     {{- end }}
     
     {{- $debug_vhost := deepCopy .VHost }}
+    {{- $_ := set $debug_vhost "hostname" .Hostname }}
     {{- $_ := set $debug_vhost "paths" $debug_paths }}
 
     {{- $debug_response := dict
         "global" .GlobalConfig
-        "hostname" .Hostname
         "request" (dict
             "host" "$host"
             "https" "$https"
