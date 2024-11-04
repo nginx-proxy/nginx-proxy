@@ -1,10 +1,10 @@
 # nginx-proxy{{ if $.Env.NGINX_PROXY_VERSION }} version : {{ $.Env.NGINX_PROXY_VERSION }}{{ end }}
 
 {{- /*
-     * Global values.  Values are stored in this map rather than in individual
+     * Global values. Values are stored in this map rather than in individual
      * global variables so that the values can be easily passed to embedded
-     * templates.  (Go templates cannot access variables outside of their own
-     * scope.)
+     * templates (Go templates cannot access variables outside of their own
+     * scope) and displayed in the debug endpoint output.
      */}}
 {{- $globals := dict }}
 {{- $_ := set $globals "containers" $ }}
@@ -15,15 +15,28 @@
 {{- $config := dict }}
 {{- $_ := set $config "nginx_proxy_version" $.Env.NGINX_PROXY_VERSION }}
 {{- $_ := set $config "default_cert_ok" (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
-{{- $_ := set $config "external_http_port" (coalesce $globals.Env.HTTP_PORT "80") }}
-{{- $_ := set $config "external_https_port" (coalesce $globals.Env.HTTPS_PORT "443") }}
-{{- $_ := set $config "sha1_upstream_name" (parseBool (coalesce $globals.Env.SHA1_UPSTREAM_NAME "false")) }}
-{{- $_ := set $config "default_root_response" (coalesce $globals.Env.DEFAULT_ROOT "404") }}
-{{- $_ := set $config "trust_downstream_proxy" (parseBool (coalesce $globals.Env.TRUST_DOWNSTREAM_PROXY "true")) }}
+{{- $_ := set $config "external_http_port" ($globals.Env.HTTP_PORT | default "80") }}
+{{- $_ := set $config "external_https_port" ($globals.Env.HTTPS_PORT | default "443") }}
+{{- $_ := set $config "sha1_upstream_name" ($globals.Env.SHA1_UPSTREAM_NAME | default "false" | parseBool) }}
+{{- $_ := set $config "default_root_response" ($globals.Env.DEFAULT_ROOT | default "404") }}
+{{- $_ := set $config "trust_downstream_proxy" ($globals.Env.TRUST_DOWNSTREAM_PROXY | default "true" | parseBool) }}
 {{- $_ := set $config "enable_access_log" ($globals.Env.DISABLE_ACCESS_LOGS | default "false" | parseBool | not) }}
-{{- $_ := set $config "enable_ipv6" (parseBool (coalesce $globals.Env.ENABLE_IPV6 "false")) }}
-{{- $_ := set $config "ssl_policy" (or ($globals.Env.SSL_POLICY) "Mozilla-Intermediate") }}
+{{- $_ := set $config "enable_ipv6" ($globals.Env.ENABLE_IPV6 | default "false" | parseBool) }}
+{{- $_ := set $config "ssl_policy" ($globals.Env.SSL_POLICY | default "Mozilla-Intermediate") }}
 {{- $_ := set $config "enable_debug_endpoint" ($globals.Env.DEBUG_ENDPOINT | default "false") }}
+{{- $_ := set $config "hsts" ($globals.Env.HSTS | default "max-age=31536000") }}
+{{- $_ := set $config "acme_http_challenge" ($globals.Env.ACME_HTTP_CHALLENGE_LOCATION | default "true") }}
+{{- $_ := set $config "enable_http2" ($globals.Env.ENABLE_HTTP2 | default "true") }}
+{{- $_ := set $config "enable_http3" ($globals.Env.ENABLE_HTTP3 | default "false") }}
+{{- $_ := set $config "enable_http_on_missing_cert" ($globals.Env.ENABLE_HTTP_ON_MISSING_CERT | default "true") }}
+{{- $_ := set $config "https_method" ($globals.Env.HTTPS_METHOD | default "redirect") }}
+{{- $_ := set $config "default_host" $globals.Env.DEFAULT_HOST }}
+{{- $_ := set $config "resolvers" $globals.Env.RESOLVERS }}
+{{- /* LOG_JSON is a shorthand that sets logging defaults to JSON format */}}
+{{- $_ := set $config "enable_json_logs" ($globals.Env.LOG_JSON | default "false" | parseBool) }}
+{{- $_ := set $config "log_format" $globals.Env.LOG_FORMAT }}
+{{- $_ := set $config "log_format_escape" $globals.Env.LOG_FORMAT_ESCAPE }}
+
 {{- $_ := set $globals "config" $config }}
 
 {{- $_ := set $globals "vhosts" (dict) }}
@@ -367,11 +380,11 @@ upstream {{ $vpath.upstream }} {
     {{- end }}
     
     {{- $debug_vhost := deepCopy .VHost }}
+    {{- $_ := set $debug_vhost "hostname" .Hostname }}
     {{- $_ := set $debug_vhost "paths" $debug_paths }}
 
     {{- $debug_response := dict
         "global" .GlobalConfig
-        "hostname" .Hostname
         "request" (dict
             "host" "$host"
             "https" "$https"
@@ -479,19 +492,16 @@ gzip_types text/plain text/css application/javascript application/json applicati
      * LOG_FORMAT_ESCAPE sets the escape part of the log format
      * LOG_FORMAT        sets the log format
      */}}
-{{- $logEscape := printf "escape=%s" (or $globals.Env.LOG_FORMAT_ESCAPE "default") }}
-{{- $logFormat := or $globals.Env.LOG_FORMAT `$host $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$upstream_addr"` }}
+{{- $logEscape := $globals.config.log_format_escape | default "default" | printf "escape=%s" }}
+{{- $logFormat := $globals.config.log_format | default `$host $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$upstream_addr"` }}
 
-{{- if parseBool (or $globals.Env.LOG_JSON "false") }}
-    {{- /* LOG_JSON is a shorthand
-        * that sets logging defaults to JSON format
-        */}}
+{{- if $globals.config.enable_json_logs }}
 # JSON Logging enabled (via LOG_JSON env variable)
-    {{- $logEscape = printf "escape=%s" (or $globals.Env.LOG_FORMAT_ESCAPE "json") }}
-    {{- $logFormat = or $globals.Env.LOG_FORMAT `{"time_local":"$time_iso8601","client_ip":"$http_x_forwarded_for","remote_addr":"$remote_addr","request":"$request","status":"$status","body_bytes_sent":"$body_bytes_sent","request_time":"$request_time","upstream_response_time":"$upstream_response_time","upstream_addr":"$upstream_addr","http_referrer":"$http_referer","http_user_agent":"$http_user_agent","request_id":"$request_id"}` }}
+    {{- $logEscape = $globals.config.log_format_escape | default "json" | printf "escape=%s" }}
+    {{- $logFormat = $globals.config.log_format | default `{"time_local":"$time_iso8601","client_ip":"$http_x_forwarded_for","remote_addr":"$remote_addr","request":"$request","status":"$status","body_bytes_sent":"$body_bytes_sent","request_time":"$request_time","upstream_response_time":"$upstream_response_time","upstream_addr":"$upstream_addr","http_referrer":"$http_referer","http_user_agent":"$http_user_agent","request_id":"$request_id"}` }}
 {{- end }}
 
-log_format vhost {{ $logEscape }} '{{ or $globals.Env.LOG_FORMAT $logFormat }}';
+log_format vhost {{ $logEscape }} '{{ $logFormat }}';
 
 access_log off;
 
@@ -512,8 +522,8 @@ access_log off;
 {{- template "ssl_policy" (dict "ssl_policy" $httpContextSslPolicy) }}
 error_log /dev/stderr;
 
-{{- if $globals.Env.RESOLVERS }}
-resolver {{ $globals.Env.RESOLVERS }};
+{{- if $globals.config.resolvers }}
+resolver {{ $globals.config.resolvers }};
 {{- end }}
 
 {{- if (exists "/etc/nginx/proxy.conf") }}
@@ -552,7 +562,7 @@ proxy_set_header Proxy "";
 
     {{- range $hostname, $vhost := $parsedVhosts }}
         {{- $vhost_data := when (hasKey $globals.vhosts $hostname) (get $globals.vhosts $hostname) (dict) }}
-        {{- $paths := coalesce $vhost_data.paths (dict) }}
+        {{- $paths := $vhost_data.paths | default (dict) }}
 
         {{- if (empty $vhost) }}
             {{ $vhost = dict "/" (dict) }}
@@ -562,7 +572,7 @@ proxy_set_header Proxy "";
             {{- if (empty $vpath) }}
                 {{- $vpath = dict "dest" "" "port" "default" }}
             {{- end }}
-            {{- $dest := coalesce $vpath.dest "" }}
+            {{- $dest := $vpath.dest | default "" }}
             {{- $port := when (hasKey $vpath "port") (toString $vpath.port) "default" }}
             {{- $path_data := when (hasKey $paths $path) (get $paths $path) (dict) }}
             {{- $path_ports := when (hasKey $path_data "ports") (get $path_data "ports") (dict) }}
@@ -603,12 +613,12 @@ proxy_set_header Proxy "";
     {{- end }}
 
     {{- $vhost_data := when (hasKey $globals.vhosts $hostname) (get $globals.vhosts $hostname) (dict) }}
-    {{- $paths := coalesce $vhost_data.paths (dict) }}
+    {{- $paths := $vhost_data.paths | default (dict) }}
 
     {{- $tmp_paths := groupByWithDefault $containers "Env.VIRTUAL_PATH" "/" }}
 
     {{- range $path, $containers := $tmp_paths }}
-        {{- $dest := or (first (groupByKeys $containers "Env.VIRTUAL_DEST")) "" }}
+        {{- $dest := groupByKeys $containers "Env.VIRTUAL_DEST" | first | default "" }}
         {{- $port := "legacy" }}
         {{- $path_data := when (hasKey $paths $path) (get $paths $path) (dict) }}
         {{- $path_ports := when (hasKey $path_data "ports") (get $path_data "ports") (dict) }}
@@ -639,12 +649,12 @@ proxy_set_header Proxy "";
         {{- end }}
 
         {{- /* Get the VIRTUAL_PROTO defined by containers w/ the same vhost-vpath, falling back to "http". */}}
-        {{- $proto := trim (or (first (groupByKeys $vpath_containers "Env.VIRTUAL_PROTO")) "http") }}
+        {{- $proto := groupByKeys $vpath_containers "Env.VIRTUAL_PROTO" | first | default "http" | trim }}
         {{- /* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external". */}}
-        {{- $network_tag := or (first (groupByKeys $vpath_containers "Env.NETWORK_ACCESS")) "external" }}
+        {{- $network_tag := groupByKeys $vpath_containers "Env.NETWORK_ACCESS" | first | default "external" }}
 
-        {{- $loadbalance := first (keys (groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.loadbalance")) }}
-        {{- $keepalive := coalesce (first (keys (groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.keepalive"))) "disabled" }}
+        {{- $loadbalance := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.loadbalance" | keys | first }}
+        {{- $keepalive := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.keepalive" | keys | first | default "disabled" }}
 
         {{- $upstream := $vhost_data.upstream_name }}
         {{- if (not (eq $path "/")) }}
@@ -662,24 +672,24 @@ proxy_set_header Proxy "";
         {{ $vhost_containers = concat $vhost_containers $vpath_containers }}
     {{- end }}
 
-    {{- $certName := first (groupByKeys $vhost_containers "Env.CERT_NAME") }}
+    {{- $certName := groupByKeys $vhost_containers "Env.CERT_NAME" | first }}
     {{- $vhostCert := closest (dir "/etc/nginx/certs") (printf "%s.crt" $hostname) }}
     {{- $vhostCert = trimSuffix ".crt" $vhostCert }}
     {{- $vhostCert = trimSuffix ".key" $vhostCert }}
     {{- $cert := or $certName $vhostCert }}
     {{- $cert_ok := and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)) }}
 
-    {{- $enable_debug_endpoint := coalesce (groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.debug-endpoint" | keys | first) $globals.config.enable_debug_endpoint | parseBool }}
-    {{- $default := eq $globals.Env.DEFAULT_HOST $hostname }}
-    {{- $https_method := or (first (groupByKeys $vhost_containers "Env.HTTPS_METHOD")) $globals.Env.HTTPS_METHOD "redirect" }}
-    {{- $enable_http_on_missing_cert := parseBool (or (first (groupByKeys $vhost_containers "Env.ENABLE_HTTP_ON_MISSING_CERT")) $globals.Env.ENABLE_HTTP_ON_MISSING_CERT "true") }}
+    {{- $enable_debug_endpoint := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.debug-endpoint" | keys | first | default $globals.config.enable_debug_endpoint | parseBool }}
+    {{- $default := eq $globals.config.default_host $hostname }}
+    {{- $https_method := groupByKeys $vhost_containers "Env.HTTPS_METHOD" | first | default $globals.config.https_method }}
+    {{- $enable_http_on_missing_cert := groupByKeys $vhost_containers "Env.ENABLE_HTTP_ON_MISSING_CERT" | first | default $globals.config.enable_http_on_missing_cert | parseBool }}
     {{- /* When the certificate is missing we want to ensure that HTTP is enabled; hence switching from 'nohttp' or 'redirect' to 'noredirect' */}}
     {{- if (and $enable_http_on_missing_cert (not $cert_ok) (or (eq $https_method "nohttp") (eq $https_method "redirect"))) }}
         {{- $https_method = "noredirect" }}
     {{- end }}
-    {{- $http2_enabled := parseBool (or (first (keys (groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http2.enable"))) $globals.Env.ENABLE_HTTP2 "true")}}
-    {{- $http3_enabled := parseBool (or (first (keys (groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http3.enable"))) $globals.Env.ENABLE_HTTP3 "false")}}
-    {{- $acme_http_challenge := or (first (groupByKeys $vhost_containers "Env.ACME_HTTP_CHALLENGE_LOCATION")) $globals.Env.ACME_HTTP_CHALLENGE_LOCATION "true" }}
+    {{- $http2_enabled := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http2.enable" | keys | first | default $globals.config.enable_http2 | parseBool }}
+    {{- $http3_enabled := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http3.enable" | keys | first | default $globals.config.enable_http3 | parseBool }}
+    {{- $acme_http_challenge := groupByKeys $vhost_containers "Env.ACME_HTTP_CHALLENGE_LOCATION" | first | default $globals.config.acme_http_challenge }}
     {{- $acme_http_challenge_legacy := eq $acme_http_challenge "legacy" }}
     {{- $acme_http_challenge_enabled := false }}
     {{- if (not $acme_http_challenge_legacy) }}
@@ -687,16 +697,16 @@ proxy_set_header Proxy "";
     {{- end }}
 
     {{- /* Get the SERVER_TOKENS defined by containers w/ the same vhost, falling back to "". */}}
-    {{- $server_tokens := trim (or (first (groupByKeys $vhost_containers "Env.SERVER_TOKENS")) "") }}
+    {{- $server_tokens := groupByKeys $vhost_containers "Env.SERVER_TOKENS" | first | default "" | trim }}
 
     {{- /* Get the SSL_POLICY defined by containers w/ the same vhost, falling back to empty string (use default). */}}
-    {{- $ssl_policy := or (first (groupByKeys $vhost_containers "Env.SSL_POLICY")) "" }}
+    {{- $ssl_policy := groupByKeys $vhost_containers "Env.SSL_POLICY" | first | default "" }}
 
     {{- /* Get the HSTS defined by containers w/ the same vhost, falling back to "max-age=31536000". */}}
-    {{- $hsts := or (first (groupByKeys $vhost_containers "Env.HSTS")) (or $globals.Env.HSTS "max-age=31536000") }}
+    {{- $hsts := groupByKeys $vhost_containers "Env.HSTS" | first | default $globals.config.hsts }}
 
     {{- /* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
-    {{- $vhost_root := or (first (groupByKeys $vhost_containers "Env.VIRTUAL_ROOT")) "/var/www/public" }}
+    {{- $vhost_root := groupByKeys $vhost_containers "Env.VIRTUAL_ROOT" | first | default "/var/www/public" }}
 
     {{- $vhost_data = merge $vhost_data (dict
         "cert" $cert

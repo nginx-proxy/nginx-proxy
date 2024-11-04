@@ -1038,19 +1038,29 @@ curl -s -H "Host: test.nginx-proxy.tld" localhost/nginx-proxy-debug | jq
 ```json
 {
   "global": {
+    "acme_http_challenge": "true",
     "default_cert_ok": false,
+    "default_host": null,
     "default_root_response": "404",
     "enable_access_log": true,
     "enable_debug_endpoint": "true",
+    "enable_http2": "true",
+    "enable_http3": "false",
+    "enable_http_on_missing_cert": "true",
     "enable_ipv6": false,
+    "enable_json_logs": false,
     "external_http_port": "80",
     "external_https_port": "443",
-    "nginx_proxy_version": "local",
+    "hsts": "max-age=31536000",
+    "https_method": "redirect",
+    "log_format": null,
+    "log_format_escape": null,
+    "nginx_proxy_version": "1.6.3",
+    "resolvers": "127.0.0.11",
     "sha1_upstream_name": false,
     "ssl_policy": "Mozilla-Intermediate",
     "trust_downstream_proxy": true
   },
-  "hostname": "test.nginx-proxy.tld",
   "request": {
     "host": "test.nginx-proxy.tld",
     "http2": "",
@@ -1066,10 +1076,12 @@ curl -s -H "Host: test.nginx-proxy.tld" localhost/nginx-proxy-debug | jq
     "cert_ok": false,
     "default": false,
     "enable_debug_endpoint": true,
+    "hostname": "test.nginx-proxy.tld",
     "hsts": "max-age=31536000",
     "http2_enabled": true,
     "http3_enabled": false,
     "https_method": "noredirect",
+    "is_regexp": false,
     "paths": {
       "/": {
         "dest": "",
