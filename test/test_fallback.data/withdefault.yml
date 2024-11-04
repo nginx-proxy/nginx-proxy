@@ -40,3 +40,13 @@ services:
     environment:
       WEB_PORTS: "84"
       VIRTUAL_HOST: missing-cert.nginx-proxy.test
+  
+  missing-cert-default-untrusted:
+    image: web
+    expose:
+      - "85"
+    environment:
+      WEB_PORTS: "85"
+      VIRTUAL_HOST: missing-cert.default-untrusted.nginx-proxy.test
+    labels:
+      com.github.nginx-proxy.nginx-proxy.trust-default-cert: "false"
