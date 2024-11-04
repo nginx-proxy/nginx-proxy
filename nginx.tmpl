@@ -380,7 +380,8 @@ upstream {{ $vpath.upstream }} {
     {{- end }}
     
     {{- $debug_vhost := deepCopy .VHost }}
-    {{- $_ := set $debug_vhost "hostname" .Hostname }}
+    {{- /* If it's a regexp, do not render the Hostname to the response to avoid rendering config breaking characters */}}
+    {{- $_ := set $debug_vhost "hostname" (.VHost.is_regexp | ternary "Hostname is a regexp and unsafe to include in the debug response." .Hostname) }}
     {{- $_ := set $debug_vhost "paths" $debug_paths }}
 
     {{- $debug_response := dict
