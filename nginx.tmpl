@@ -655,7 +655,7 @@ proxy_set_header Proxy "";
         {{- $network_tag := groupByKeys $vpath_containers "Env.NETWORK_ACCESS" | first | default "external" }}
 
         {{- $loadbalance := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.loadbalance" | keys | first }}
-        {{- $keepalive := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.keepalive" | keys | first | default "disabled" }}
+        {{- $keepalive := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.keepalive" | keys | first | default "auto" }}
 
         {{- $upstream := $vhost_data.upstream_name }}
         {{- if (not (eq $path "/")) }}

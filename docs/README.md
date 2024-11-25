@@ -317,11 +317,7 @@ services:
 ```
 
 ### Upstream Server HTTP Keep-Alive Support
-
-> **Warning**
-> This feature is experimental. The behavior may change (or the feature may be removed entirely) without warning in a future release, even if the release is not a new major version. If you use this feature, or if you would like to use this feature but you require changes to it first, please [provide feedback in #2194](https://github.com/nginx-proxy/nginx-proxy/discussions/2194). Once we have collected enough feedback we will promote this feature to officially supported.
-
-To enable HTTP keep-alive between `nginx-proxy` and backend server(s), set the `com.github.nginx-proxy.nginx-proxy.keepalive` label on the server's container either to `auto` or to the desired maximum number of idle connections. The `auto` setting will dynamically set the maximum number of idle connections to twice the number of servers listed in the corresponding `upstream{}` block, [per nginx recommendation](https://www.nginx.com/blog/avoiding-top-10-nginx-configuration-mistakes/#no-keepalives).
+By default `nginx-proxy` will enable HTTP keep-alive between itself and backend server(s) and set the maximum number of idle connections to twice the number of servers listed in the corresponding `upstream{}` block, [per nginx recommendation](https://www.nginx.com/blog/avoiding-top-10-nginx-configuration-mistakes/#no-keepalives). To manually set the maximum number of idle connections or disable HTTP keep-alive entirely, use the `com.github.nginx-proxy.nginx-proxy.keepalive` label on the server's container (setting it to `disabled` will disable HTTP keep-alive).
 
 See the [nginx keepalive documentation](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#keepalive) and the [Docker label documentation](https://docs.docker.com/config/labels-custom-metadata/) for details.
 
