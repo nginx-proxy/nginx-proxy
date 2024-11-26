@@ -147,7 +147,7 @@
     #     exposed ports (first ten):{{ range $index, $address := (sortObjectsByKeysAsc $.container.Addresses "Port") }}{{ if lt $index 10 }} {{ $address.Port }}/{{ $address.Proto }}{{ end }}{{ else }} (none){{ end }}
     {{- $default_port := when (eq (len $.container.Addresses) 1) (first $.container.Addresses).Port "80" }}
     #     default port: {{ $default_port }}
-    {{- $port := when (eq $.port "default") $default_port (when (eq $.port "legacy") (or $.container.Env.VIRTUAL_PORT $default_port) $.port) }}
+    {{- $port := eq $.port "default" | ternary $default_port $.port }}
     #     using port: {{ $port }}
     {{- $addr_obj := where $.container.Addresses "Port" $port | first }}
     {{- if and $addr_obj $addr_obj.HostPort }}
@@ -617,11 +617,12 @@ proxy_set_header Proxy "";
 
     {{- range $path, $containers := $tmp_paths }}
         {{- $dest := groupByKeys $containers "Env.VIRTUAL_DEST" | first | default "" }}
-        {{- $port := "legacy" }}
         {{- $path_data := get $paths $path | default (dict) }}
         {{- $path_ports := $path_data.ports | default (dict) }}
-        {{- $path_port_containers := get $path_ports $port | default (list) | concat $containers }}
-        {{- $_ := set $path_ports $port $path_port_containers }}
+        {{- range $port, $containers := groupByWithDefault $containers "Env.VIRTUAL_PORT" "default" }}
+            {{- $path_port_containers := get $path_ports $port | default (list) | concat $containers }}
+            {{- $_ := set $path_ports $port $path_port_containers }}
+        {{- end }}
         {{- $_ := set $path_data "ports" $path_ports }}
         {{- if (not (hasKey $path_data "dest")) }}
             {{- $_ := set $path_data "dest" $dest }}
