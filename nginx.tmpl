@@ -587,8 +587,6 @@ proxy_set_header Proxy "";
             {{- $_ := set $paths $path $path_data }}
         {{- end }}
         {{- $_ := set $vhost_data "paths" $paths }}
-        {{- $is_regexp := hasPrefix "~" $hostname }}
-        {{- $_ := set $vhost_data "upstream_name" (when (or $is_regexp $globals.config.sha1_upstream_name) (sha1 $hostname) $hostname) }}
         {{- $_ := set $globals.vhosts $hostname $vhost_data }}
     {{- end }}
 {{- end }}
@@ -633,14 +631,14 @@ proxy_set_header Proxy "";
         {{- $_ := set $paths $path $path_data }}
     {{- end }}
     {{- $_ := set $vhost_data "paths" $paths }}
-    {{- $is_regexp := hasPrefix "~" $hostname }}
-    {{- $_ := set $vhost_data "upstream_name" (when (or $is_regexp $globals.config.sha1_upstream_name) (sha1 $hostname) $hostname) }}
     {{- $_ := set $globals.vhosts $hostname $vhost_data }}
 {{- end }}
 
 {{- /* Loop over $globals.vhosts and update it with the remaining informations about each vhost. */}}
 {{- range $hostname, $vhost_data := $globals.vhosts }}
     {{- $is_regexp := hasPrefix "~" $hostname }}
+    {{- $upstream_name := or $is_regexp $globals.config.sha1_upstream_name | ternary (sha1 $hostname) $hostname }}
+
     {{- $vhost_containers := list }}
 
     {{- range $path, $vpath_data := $vhost_data.paths }}
@@ -657,7 +655,7 @@ proxy_set_header Proxy "";
         {{- $loadbalance := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.loadbalance" | keys | first }}
         {{- $keepalive := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.keepalive" | keys | first | default "auto" }}
 
-        {{- $upstream := $vhost_data.upstream_name }}
+        {{- $upstream := $upstream_name }}
         {{- if (not (eq $path "/")) }}
             {{- $sum := sha1 $path }}
             {{- $upstream = printf "%s-%s" $upstream $sum }}
@@ -723,6 +721,7 @@ proxy_set_header Proxy "";
         "acme_http_challenge_enabled" $acme_http_challenge_enabled
         "server_tokens" $server_tokens
         "ssl_policy" $ssl_policy
+        "upstream_name" $upstream_name
         "vhost_root" $vhost_root
     ) }}
     {{- $_ := set $globals.vhosts $hostname $vhost_data }}
