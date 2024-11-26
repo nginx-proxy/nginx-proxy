@@ -367,16 +367,16 @@ upstream {{ $vpath.upstream }} {
 {{- define "debug_location" }}
     {{- $debug_paths := dict }}
     {{- range $path, $vpath := .VHost.paths }}
-        {{- $tmp_port := dict }}
+        {{- $tmp_ports := dict }}
         {{- range $port, $containers := $vpath.ports }}
             {{- $tmp_containers := list }}
             {{- range $container := $containers }}
                 {{- $tmp_containers = dict "Name" $container.Name | append $tmp_containers }}
             {{- end }}
-            {{- $_ := dict $port $tmp_containers | set $tmp_port "ports" }}
-            {{- $tmp_port = deepCopy $vpath | merge $tmp_port }}
+            {{- $_ := set $tmp_ports $port $tmp_containers }}
         {{- end }}
-        {{- $_ := set $debug_paths $path $tmp_port }}
+        {{- $debug_vpath := deepCopy $vpath | merge (dict "ports" $tmp_ports) }}
+        {{- $_ := set $debug_paths $path $debug_vpath }}
     {{- end }}
     
     {{- $debug_vhost := deepCopy .VHost }}
@@ -409,7 +409,7 @@ upstream {{ $vpath.upstream }} {
 
     location  /nginx-proxy-debug {
         default_type application/json;
-        return 200 '{{ toJson $debug_response }}';
+        return 200 '{{ toJson $debug_response }}{{ "\\n" }}';
     }
 {{- end }}
 
