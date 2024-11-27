@@ -281,13 +281,9 @@ If you use fastcgi,you can set `VIRTUAL_ROOT=xxx` for your root directory
 
 ### Upstream Server HTTP Load Balancing Support
 
-> **Warning**
-> This feature is experimental. The behavior may change (or the feature may be removed entirely) without warning in a future release, even if the release is not a new major version. If you use this feature, or if you would like to use this feature but you require changes to it first, please [provide feedback in #2195](https://github.com/nginx-proxy/nginx-proxy/discussions/2195). Once we have collected enough feedback we will promote this feature to officially supported.
-
 If you have multiple containers with the same `VIRTUAL_HOST` and `VIRTUAL_PATH` settings, nginx will spread the load across all of them. To change the load balancing algorithm from nginx's default (round-robin), set the `com.github.nginx-proxy.nginx-proxy.loadbalance` label on one or more of your application containers to the desired load balancing directive. See the [`ngx_http_upstream_module` documentation](https://nginx.org/en/docs/http/ngx_http_upstream_module.html) for available directives.
 
-> **Note**
->
+> [!NOTE]
 > - Don't forget the terminating semicolon (`;`).
 > - If you are using Docker Compose, remember to escape any dollar sign (`$`) characters (`$` becomes `$$`).
 
