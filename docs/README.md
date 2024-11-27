@@ -162,7 +162,8 @@ It is also possible to specify multiple paths with regex locations like `VIRTUAL
 
 The full request URI will be forwarded to the serving container in the `X-Original-URI` header.
 
-**NOTE**: Your application needs to be able to generate links starting with `VIRTUAL_PATH`. This can be achieved by it being natively on this path or having an option to prepend this path. The application does not need to expect this path in the request.
+> [!NOTE]
+> Your application needs to be able to generate links starting with `VIRTUAL_PATH`. This can be achieved by it being natively on this path or having an option to prepend this path. The application does not need to expect this path in the request.
 
 ### VIRTUAL_DEST
 
@@ -255,6 +256,7 @@ deny all;
 
 When internal-only access is enabled, external clients will be denied with an `HTTP 403 Forbidden`
 
+> [!NOTE]
 > If there is a load-balancer / reverse proxy in front of `nginx-proxy` that hides the client IP (example: AWS Application/Elastic Load Balancer), you will need to use the nginx `realip` module (already installed) to extract the client's IP from the HTTP request headers. Please see the [nginx realip module configuration](http://nginx.org/en/docs/http/ngx_http_realip_module.html) for more details. This configuration can be added to a new config file and mounted in `/etc/nginx/conf.d/`.
 
 ⬆️ [back to table of contents](#table-of-contents)
@@ -265,7 +267,8 @@ When internal-only access is enabled, external clients will be denied with an `H
 
 If you would like the reverse proxy to connect to your backend using HTTPS instead of HTTP, set `VIRTUAL_PROTO=https` on the backend container.
 
-> Note: If you use `VIRTUAL_PROTO=https` and your backend container exposes port 80 and 443, `nginx-proxy` will use HTTPS on port 80. This is almost certainly not what you want, so you should also include `VIRTUAL_PORT=443`.
+> [!NOTE]
+> If you use `VIRTUAL_PROTO=https` and your backend container exposes port 80 and 443, `nginx-proxy` will use HTTPS on port 80. This is almost certainly not what you want, so you should also include `VIRTUAL_PORT=443`.
 
 ### uWSGI Upstream
 
@@ -426,7 +429,8 @@ By default nginx-proxy generates location blocks to handle ACME HTTP Challenge. 
 
 To use custom `dhparam.pem` files per-virtual-host, the files should be named after the virtual host with a `dhparam` suffix and `.pem` extension. For example, a container with `VIRTUAL_HOST=foo.bar.com` should have a `foo.bar.com.dhparam.pem` file in the `/etc/nginx/certs` directory.
 
-> COMPATIBILITY WARNING: The default generated `dhparam.pem` key is 4096 bits for A+ security. Some older clients (like Java 6 and 7) do not support DH keys with over 1024 bits. In order to support these clients, you must provide your own `dhparam.pem`.
+> [!WARNING]
+> The default generated `dhparam.pem` key is 4096 bits for A+ security. Some older clients (like Java 6 and 7) do not support DH keys with over 1024 bits. In order to support these clients, you must provide your own `dhparam.pem`.
 
 In the separate container setup, no pre-generated key will be available and neither the [nginxproxy/docker-gen](https://hub.docker.com/r/nginxproxy/docker-gen) image, nor the offical [nginx](https://registry.hub.docker.com/_/nginx/) image will provide one. If you still want A+ security in a separate container setup, you should mount an RFC7919 DH key file to the nginx container at `/etc/nginx/dhparam/dhparam.pem`.
 
@@ -452,7 +456,10 @@ To enable OCSP Stapling for a domain, `nginx-proxy` looks for a PEM certificate 
 
 The default SSL cipher configuration is based on the [Mozilla intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29) version 5.0 which should provide compatibility with clients back to Firefox 27, Android 4.4.2, Chrome 31, Edge, IE 11 on Windows 7, Java 8u31, OpenSSL 1.0.1, Opera 20, and Safari 9. Note that the DES-based TLS ciphers were removed for security. The configuration also enables HSTS, PFS, OCSP stapling and SSL session caches. Currently TLS 1.2 and 1.3 are supported.
 
-If you don't require backward compatibility, you can use the [Mozilla modern profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility) profile instead by including the environment variable `SSL_POLICY=Mozilla-Modern` to the nginx-proxy container or to your container. This profile is compatible with clients back to Firefox 63, Android 10.0, Chrome 70, Edge 75, Java 11, OpenSSL 1.1.1, Opera 57, and Safari 12.1. Note that this profile is **not** compatible with any version of Internet Explorer.
+If you don't require backward compatibility, you can use the [Mozilla modern profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility) profile instead by including the environment variable `SSL_POLICY=Mozilla-Modern` to the nginx-proxy container or to your container. This profile is compatible with clients back to Firefox 63, Android 10.0, Chrome 70, Edge 75, Java 11, OpenSSL 1.1.1, Opera 57, and Safari 12.1. 
+
+> [!NOTE]
+> This profile is **not** compatible with any version of Internet Explorer.
 
 Complete list of policies available through the `SSL_POLICY` environment variable, including the [AWS ELB Security Policies](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html#describe-ssl-policies) and [AWS Classic ELB security policies](https://docs.aws.amazon.com/fr_fr/elasticloadbalancing/latest/classic/elb-security-policy-table.html):
 
@@ -566,7 +573,8 @@ To serve traffic in both SSL and non-SSL modes without redirecting to SSL, you c
 
 By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security) is enabled with `max-age=31536000` for HTTPS sites. You can disable HSTS with the environment variable `HSTS=off` or use a custom HSTS configuration like `HSTS=max-age=31536000; includeSubDomains; preload`.
 
-_WARNING_: HSTS will force your users to visit the HTTPS version of your site for the `max-age` time - even if they type in `http://` manually. The only way to get to an HTTP site after receiving an HSTS response is to clear your browser's HSTS cache.
+> [!WARNING]
+> HSTS will force your users to visit the HTTPS version of your site for the max-age time - even if they type in http:// manually. The only way to get to an HTTP site after receiving an HSTS response is to clear your browser's HSTS cache.
 
 ### Missing Certificate
 
@@ -637,7 +645,7 @@ More reading on the potential TCP head-of-line blocking issue with HTTP/2: [HTTP
 
 ### HTTP/3 support
 
-> **Warning**
+> [!WARNING]
 > HTTP/3 support [is still considered experimental in nginx](https://www.nginx.com/blog/binary-packages-for-preview-nginx-quic-http3-implementation/) and as such is considered experimental in nginx-proxy too and is disabled by default. [Feedbacks for the HTTP/3 support are welcome in #2271.](https://github.com/nginx-proxy/nginx-proxy/discussions/2271)
 
 HTTP/3 use the QUIC protocol over UDP (unlike HTTP/1.1 and HTTP/2 which work over TCP), so if you want to use HTTP/3 you'll have to explicitely publish the 443/udp port of the proxy in addition to the 443/tcp port:
@@ -707,7 +715,8 @@ proxy_set_header X-Original-URI $request_uri;
 proxy_set_header Proxy "";
 ```
 
-**_NOTE_**: If you provide this file it will replace the defaults; you may want to check the [nginx.tmpl](https://github.com/nginx-proxy/nginx-proxy/blob/main/nginx.tmpl) file to make sure you have all of the needed options.
+> [!IMPORTANT]
+> If you provide this file it will replace the defaults; you may want to check the [nginx.tmpl](https://github.com/nginx-proxy/nginx-proxy/blob/main/nginx.tmpl) file to make sure you have all of the needed options.
 
 ### Proxy-wide
 
@@ -818,7 +827,8 @@ docker run --detach \
     nginxproxy/nginx-proxy
 ```
 
-Note that this will not replace your own services error pages.
+> [!NOTE]
+> This will not replace your own services error pages.
 
 ⬆️ [back to table of contents](#table-of-contents)
 
@@ -873,7 +883,8 @@ docker run --detach \
     nginxproxy/nginx-proxy
 ```
 
-Please note that TCP and UDP stream are not core features of nginx-proxy, so the above is provided as an example only, without any guarantee.
+> [!NOTE]
+> TCP and UDP stream are not core features of nginx-proxy, so the above is provided as an example only, without any guarantee.
 
 ⬆️ [back to table of contents](#table-of-contents)
 
@@ -881,7 +892,8 @@ Please note that TCP and UDP stream are not core features of nginx-proxy, so the
 
 By default the nginx configuration `upstream` blocks will use this block's corresponding hostname as a predictable name. However, this can cause issues in some setups (see [this issue](https://github.com/nginx-proxy/nginx-proxy/issues/1162)). In those cases you might want to switch to SHA1 names for the `upstream` blocks by setting the `SHA1_UPSTREAM_NAME` environment variable to `true` on the nginx-proxy container.
 
-Please note that using regular expressions in `VIRTUAL_HOST` will always result in a corresponding `upstream` block with an SHA1 name.
+> [!NOTE]
+> Using regular expressions in `VIRTUAL_HOST` will always result in a corresponding `upstream` block with an SHA1 name.
 
 ⬆️ [back to table of contents](#table-of-contents)
 
@@ -1098,8 +1110,8 @@ curl -s -H "Host: test.nginx-proxy.tld" localhost/nginx-proxy-debug | jq
 }
 ```
 
-:warning: please be aware that the debug endpoint work by rendering the JSON response straight to the nginx configuration in plaintext. nginx has an upper limit on the size of the configuration files it can parse, so only activate it when needed, and preferably on a per container basis if your setup has a large number of virtual hosts.
-
+> [!WARNING]
+> Please be aware that the debug endpoint work by rendering the JSON response straight to the nginx configuration in plaintext. nginx has an upper limit on the size of the configuration files it can parse, so only activate it when needed, and preferably on a per container basis if your setup has a large number of virtual hosts.
 
 ⬆️ [back to table of contents](#table-of-contents)
 
