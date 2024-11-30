@@ -147,7 +147,7 @@
     #     exposed ports (first ten):{{ range $index, $address := (sortObjectsByKeysAsc $.container.Addresses "Port") }}{{ if lt $index 10 }} {{ $address.Port }}/{{ $address.Proto }}{{ end }}{{ else }} (none){{ end }}
     {{- $default_port := when (eq (len $.container.Addresses) 1) (first $.container.Addresses).Port "80" }}
     #     default port: {{ $default_port }}
-    {{- $port := when (eq $.port "default") $default_port (when (eq $.port "legacy") (or $.container.Env.VIRTUAL_PORT $default_port) $.port) }}
+    {{- $port := eq $.port "default" | ternary $default_port $.port }}
     #     using port: {{ $port }}
     {{- $addr_obj := where $.container.Addresses "Port" $port | first }}
     {{- if and $addr_obj $addr_obj.HostPort }}
@@ -367,16 +367,16 @@ upstream {{ $vpath.upstream }} {
 {{- define "debug_location" }}
     {{- $debug_paths := dict }}
     {{- range $path, $vpath := .VHost.paths }}
-        {{- $tmp_port := dict }}
+        {{- $tmp_ports := dict }}
         {{- range $port, $containers := $vpath.ports }}
             {{- $tmp_containers := list }}
             {{- range $container := $containers }}
                 {{- $tmp_containers = dict "Name" $container.Name | append $tmp_containers }}
             {{- end }}
-            {{- $_ := dict $port $tmp_containers | set $tmp_port "ports" }}
-            {{- $tmp_port = deepCopy $vpath | merge $tmp_port }}
+            {{- $_ := set $tmp_ports $port $tmp_containers }}
         {{- end }}
-        {{- $_ := set $debug_paths $path $tmp_port }}
+        {{- $debug_vpath := deepCopy $vpath | merge (dict "ports" $tmp_ports) }}
+        {{- $_ := set $debug_paths $path $debug_vpath }}
     {{- end }}
     
     {{- $debug_vhost := deepCopy .VHost }}
@@ -409,7 +409,7 @@ upstream {{ $vpath.upstream }} {
 
     location  /nginx-proxy-debug {
         default_type application/json;
-        return 200 '{{ toJson $debug_response }}';
+        return 200 '{{ toJson $debug_response }}{{ "\\n" }}';
     }
 {{- end }}
 
@@ -562,7 +562,7 @@ proxy_set_header Proxy "";
     {{- end }}
 
     {{- range $hostname, $vhost := $parsedVhosts }}
-        {{- $vhost_data := when (hasKey $globals.vhosts $hostname) (get $globals.vhosts $hostname) (dict) }}
+        {{- $vhost_data := get $globals.vhosts $hostname | default (dict) }}
         {{- $paths := $vhost_data.paths | default (dict) }}
 
         {{- if (empty $vhost) }}
@@ -574,11 +574,10 @@ proxy_set_header Proxy "";
                 {{- $vpath = dict "dest" "" "port" "default" }}
             {{- end }}
             {{- $dest := $vpath.dest | default "" }}
-            {{- $port := when (hasKey $vpath "port") (toString $vpath.port) "default" }}
-            {{- $path_data := when (hasKey $paths $path) (get $paths $path) (dict) }}
-            {{- $path_ports := when (hasKey $path_data "ports") (get $path_data "ports") (dict) }}
-            {{- $path_port_containers := when (hasKey $path_ports $port) (get $path_ports $port) (list) }}
-            {{- $path_port_containers = concat $path_port_containers $containers }}
+            {{- $port := $vpath.port | default "default" | toString }}
+            {{- $path_data := get $paths $path | default (dict) }}
+            {{- $path_ports := $path_data.ports | default (dict) }}
+            {{- $path_port_containers := get $path_ports $port | default (list) | concat $containers }}
             {{- $_ := set $path_ports $port $path_port_containers }}
             {{- $_ := set $path_data "ports" $path_ports }}
             {{- if (not (hasKey $path_data "dest")) }}
@@ -587,8 +586,6 @@ proxy_set_header Proxy "";
             {{- $_ := set $paths $path $path_data }}
         {{- end }}
         {{- $_ := set $vhost_data "paths" $paths }}
-        {{- $is_regexp := hasPrefix "~" $hostname }}
-        {{- $_ := set $vhost_data "upstream_name" (when (or $is_regexp $globals.config.sha1_upstream_name) (sha1 $hostname) $hostname) }}
         {{- $_ := set $globals.vhosts $hostname $vhost_data }}
     {{- end }}
 {{- end }}
@@ -613,19 +610,19 @@ proxy_set_header Proxy "";
         {{- continue }}
     {{- end }}
 
-    {{- $vhost_data := when (hasKey $globals.vhosts $hostname) (get $globals.vhosts $hostname) (dict) }}
+    {{- $vhost_data := get $globals.vhosts $hostname | default (dict) }}
     {{- $paths := $vhost_data.paths | default (dict) }}
 
     {{- $tmp_paths := groupByWithDefault $containers "Env.VIRTUAL_PATH" "/" }}
 
     {{- range $path, $containers := $tmp_paths }}
         {{- $dest := groupByKeys $containers "Env.VIRTUAL_DEST" | first | default "" }}
-        {{- $port := "legacy" }}
-        {{- $path_data := when (hasKey $paths $path) (get $paths $path) (dict) }}
-        {{- $path_ports := when (hasKey $path_data "ports") (get $path_data "ports") (dict) }}
-        {{- $path_port_containers := when (hasKey $path_ports $port) (get $path_ports $port) (list) }}
-        {{- $path_port_containers = concat $path_port_containers $containers }}
-        {{- $_ := set $path_ports $port $path_port_containers }}
+        {{- $path_data := get $paths $path | default (dict) }}
+        {{- $path_ports := $path_data.ports | default (dict) }}
+        {{- range $port, $containers := groupByWithDefault $containers "Env.VIRTUAL_PORT" "default" }}
+            {{- $path_port_containers := get $path_ports $port | default (list) | concat $containers }}
+            {{- $_ := set $path_ports $port $path_port_containers }}
+        {{- end }}
         {{- $_ := set $path_data "ports" $path_ports }}
         {{- if (not (hasKey $path_data "dest")) }}
             {{- $_ := set $path_data "dest" $dest }}
@@ -633,14 +630,14 @@ proxy_set_header Proxy "";
         {{- $_ := set $paths $path $path_data }}
     {{- end }}
     {{- $_ := set $vhost_data "paths" $paths }}
-    {{- $is_regexp := hasPrefix "~" $hostname }}
-    {{- $_ := set $vhost_data "upstream_name" (when (or $is_regexp $globals.config.sha1_upstream_name) (sha1 $hostname) $hostname) }}
     {{- $_ := set $globals.vhosts $hostname $vhost_data }}
 {{- end }}
 
 {{- /* Loop over $globals.vhosts and update it with the remaining informations about each vhost. */}}
 {{- range $hostname, $vhost_data := $globals.vhosts }}
     {{- $is_regexp := hasPrefix "~" $hostname }}
+    {{- $upstream_name := or $is_regexp $globals.config.sha1_upstream_name | ternary (sha1 $hostname) $hostname }}
+
     {{- $vhost_containers := list }}
 
     {{- range $path, $vpath_data := $vhost_data.paths }}
@@ -657,7 +654,7 @@ proxy_set_header Proxy "";
         {{- $loadbalance := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.loadbalance" | keys | first }}
         {{- $keepalive := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.keepalive" | keys | first | default "auto" }}
 
-        {{- $upstream := $vhost_data.upstream_name }}
+        {{- $upstream := $upstream_name }}
         {{- if (not (eq $path "/")) }}
             {{- $sum := sha1 $path }}
             {{- $upstream = printf "%s-%s" $upstream $sum }}
@@ -723,6 +720,7 @@ proxy_set_header Proxy "";
         "acme_http_challenge_enabled" $acme_http_challenge_enabled
         "server_tokens" $server_tokens
         "ssl_policy" $ssl_policy
+        "upstream_name" $upstream_name
         "vhost_root" $vhost_root
     ) }}
     {{- $_ := set $globals.vhosts $hostname $vhost_data }}
