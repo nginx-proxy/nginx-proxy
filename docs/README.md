@@ -568,8 +568,8 @@ Complete list of policies available through the `SSL_POLICY` environment variabl
 The default behavior for the proxy when port 80 and 443 are exposed is as follows:
 
 - If a virtual host has a usable cert, port 80 will redirect to 443 for that virtual host so that HTTPS is always preferred when available.
-- If the virtual host does not have a usable cert, but `default.crt` and `default.key` exist, those will be used as the virtual host's certificate and the client browser will receive a 500 error.
-- If the virtual host does not have a usable cert, and `default.crt` and `default.key` do not exist, SSL handshake will be rejected (see [Missing Certificate](#missing-certificate) below).
+- If the virtual host does not have a usable cert, but `default.crt` and `default.key` exist, those will be used as the virtual host's certificate.
+- If the virtual host does not have a usable cert, and `default.crt` and `default.key` do not exist, or if the virtual host is configured not to trust the default certificate, SSL handshake will be rejected (see [Default and Missing Certificate](#default-and-missing-certificate) below).
 
 To serve traffic in both SSL and non-SSL modes without redirecting to SSL, you can include the environment variable `HTTPS_METHOD=noredirect` (the default is `HTTPS_METHOD=redirect`). You can also disable the non-SSL site entirely with `HTTPS_METHOD=nohttp`, or disable the HTTPS site with `HTTPS_METHOD=nohttps`. `HTTPS_METHOD` can be specified on each container for which you want to override the default behavior or on the proxy container to set it globally. If `HTTPS_METHOD=noredirect` is used, Strict Transport Security (HSTS) is disabled to prevent HTTPS users from being redirected by the client. If you cannot get to the HTTP site after changing this setting, your browser has probably cached the HSTS policy and is automatically redirecting you back to HTTPS. You will need to clear your browser's HSTS cache or use an incognito window / different browser.
 
@@ -578,7 +578,7 @@ By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.or
 > [!WARNING]
 > HSTS will force your users to visit the HTTPS version of your site for the max-age time - even if they type in http:// manually. The only way to get to an HTTP site after receiving an HSTS response is to clear your browser's HSTS cache.
 
-### Missing Certificate
+### Default and Missing Certificate
 
 If no matching certificate is found for a given virtual host, nginx-proxy will configure nginx to use the default certificate (`default.crt` with `default.key`).
 
@@ -610,6 +610,9 @@ If the default certificate is also missing, nginx-proxy will:
 > Safari Can't Open the Page
 >
 > Safari can't open the page "https://example.test" because Safari can't establish a secure connection to the server "example.test".
+
+> [!NOTE]
+> Prior to version `1.7`, nginx-proxy never trusted the default certificate: when the default certificate was present, virtual hosts that did not have a usable per-virtual-host cert used the default cert but always returned a 500 error over HTTPS. If you want to restore this behaviour, you can do it globally by setting the enviroment variable `TRUST_DEFAULT_CERT` to `false` on the proxy container, or per-virtual-host by setting the label `com.github.nginx-proxy.nginx-proxy.trust-default-cert`to `false` on a proxied container.
 
 ⬆️ [back to table of contents](#table-of-contents)
 
