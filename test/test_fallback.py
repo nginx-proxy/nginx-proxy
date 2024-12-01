@@ -49,6 +49,17 @@ INTERNAL_ERR_RE = re.compile("TLSV1_UNRECOGNIZED_NAME")
     ("withdefault.yml", "https://missing-cert.default-untrusted.nginx-proxy.test/", None, INTERNAL_ERR_RE),
     ("withdefault.yml", "http://unknown.nginx-proxy.test/", 503, None),
     ("withdefault.yml", "https://unknown.nginx-proxy.test/", 503, None),
+    # Same as withdefault.yml, except default.crt is not trusted (TRUST_DEFAULT_CERT=false).
+    ("untrusteddefault.yml", "http://https-and-http.nginx-proxy.test/", 301, None),
+    ("untrusteddefault.yml", "https://https-and-http.nginx-proxy.test/", 200, None),
+    ("untrusteddefault.yml", "http://https-only.nginx-proxy.test/", 503, None),
+    ("untrusteddefault.yml", "https://https-only.nginx-proxy.test/", 200, None),
+    ("untrusteddefault.yml", "http://http-only.nginx-proxy.test/", 200, None),
+    ("untrusteddefault.yml", "https://http-only.nginx-proxy.test/", 503, None),
+    ("untrusteddefault.yml", "http://missing-cert.nginx-proxy.test/", 200, None),
+    ("untrusteddefault.yml", "https://missing-cert.nginx-proxy.test/", None, INTERNAL_ERR_RE),
+    ("untrusteddefault.yml", "http://unknown.nginx-proxy.test/", 503, None),
+    ("untrusteddefault.yml", "https://unknown.nginx-proxy.test/", 503, None),
     # Same as withdefault.yml, except there is no default.crt.
     ("nodefault.yml", "http://https-and-http.nginx-proxy.test/", 301, None),
     ("nodefault.yml", "https://https-and-http.nginx-proxy.test/", 200, None),
