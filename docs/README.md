@@ -287,6 +287,7 @@ If you use fastcgi,you can set `VIRTUAL_ROOT=xxx` for your root directory
 If you have multiple containers with the same `VIRTUAL_HOST` and `VIRTUAL_PATH` settings, nginx will spread the load across all of them. To change the load balancing algorithm from nginx's default (round-robin), set the `com.github.nginx-proxy.nginx-proxy.loadbalance` label on one or more of your application containers to the desired load balancing directive. See the [`ngx_http_upstream_module` documentation](https://nginx.org/en/docs/http/ngx_http_upstream_module.html) for available directives.
 
 > [!NOTE]
+>
 > - Don't forget the terminating semicolon (`;`).
 > - If you are using Docker Compose, remember to escape any dollar sign (`$`) characters (`$` becomes `$$`).
 
@@ -316,6 +317,7 @@ services:
 ```
 
 ### Upstream Server HTTP Keep-Alive Support
+
 By default `nginx-proxy` will enable HTTP keep-alive between itself and backend server(s) and set the maximum number of idle connections to twice the number of servers listed in the corresponding `upstream{}` block, [per nginx recommendation](https://www.nginx.com/blog/avoiding-top-10-nginx-configuration-mistakes/#no-keepalives). To manually set the maximum number of idle connections or disable HTTP keep-alive entirely, use the `com.github.nginx-proxy.nginx-proxy.keepalive` label on the server's container (setting it to `disabled` will disable HTTP keep-alive).
 
 See the [nginx keepalive documentation](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#keepalive) and the [Docker label documentation](https://docs.docker.com/config/labels-custom-metadata/) for details.
@@ -456,7 +458,7 @@ To enable OCSP Stapling for a domain, `nginx-proxy` looks for a PEM certificate 
 
 The default SSL cipher configuration is based on the [Mozilla intermediate profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29) version 5.0 which should provide compatibility with clients back to Firefox 27, Android 4.4.2, Chrome 31, Edge, IE 11 on Windows 7, Java 8u31, OpenSSL 1.0.1, Opera 20, and Safari 9. Note that the DES-based TLS ciphers were removed for security. The configuration also enables HSTS, PFS, OCSP stapling and SSL session caches. Currently TLS 1.2 and 1.3 are supported.
 
-If you don't require backward compatibility, you can use the [Mozilla modern profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility) profile instead by including the environment variable `SSL_POLICY=Mozilla-Modern` to the nginx-proxy container or to your container. This profile is compatible with clients back to Firefox 63, Android 10.0, Chrome 70, Edge 75, Java 11, OpenSSL 1.1.1, Opera 57, and Safari 12.1. 
+If you don't require backward compatibility, you can use the [Mozilla modern profile](https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility) profile instead by including the environment variable `SSL_POLICY=Mozilla-Modern` to the nginx-proxy container or to your container. This profile is compatible with clients back to Firefox 63, Android 10.0, Chrome 70, Edge 75, Java 11, OpenSSL 1.1.1, Opera 57, and Safari 12.1.
 
 > [!NOTE]
 > This profile is **not** compatible with any version of Internet Explorer.
@@ -606,7 +608,7 @@ If the default certificate is also missing, nginx-proxy will configure nginx to 
 > - Please contact the website owners to inform them of this problem.
 
 #### Safari:
-  
+
 > Safari Can't Open the Page
 >
 > Safari can't open the page "https://example.test" because Safari can't establish a secure connection to the server "example.test".
@@ -1009,6 +1011,7 @@ The effective `Port` is retrieved by order of precedence:
 ### Debug endpoint
 
 The debug endpoint can be enabled:
+
 - globally by setting the `DEBUG_ENDPOINT` environment variable to `true` on the nginx-proxy container.
 - per container by setting the `com.github.nginx-proxy.nginx-proxy.debug-endpoint` label to `true` on a proxied container.
 
