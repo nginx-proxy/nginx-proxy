@@ -19,6 +19,7 @@
 {{- $_ := set $config "external_https_port" ($globals.Env.HTTPS_PORT | default "443") }}
 {{- $_ := set $config "sha1_upstream_name" ($globals.Env.SHA1_UPSTREAM_NAME | default "false" | parseBool) }}
 {{- $_ := set $config "default_root_response" ($globals.Env.DEFAULT_ROOT | default "404") }}
+{{- $_ := set $config "trust_default_cert" ($globals.Env.TRUST_DEFAULT_CERT | default "true") }}
 {{- $_ := set $config "trust_downstream_proxy" ($globals.Env.TRUST_DOWNSTREAM_PROXY | default "true" | parseBool) }}
 {{- $_ := set $config "enable_access_log" ($globals.Env.DISABLE_ACCESS_LOGS | default "false" | parseBool | not) }}
 {{- $_ := set $config "enable_ipv6" ($globals.Env.ENABLE_IPV6 | default "false" | parseBool) }}
@@ -674,15 +675,18 @@ proxy_set_header Proxy "";
     {{- $vhostCert := closest (dir "/etc/nginx/certs") (printf "%s.crt" $hostname) }}
     {{- $vhostCert = trimSuffix ".crt" $vhostCert }}
     {{- $vhostCert = trimSuffix ".key" $vhostCert }}
-    {{- $cert := or $certName $vhostCert }}
+    {{- $trust_default_cert := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.trust-default-cert" | keys | first | default $globals.config.trust_default_cert | parseBool }}
+    {{- $cert := and $trust_default_cert $globals.config.default_cert_ok | ternary "default" "" }}
+    {{- $cert = or $certName $vhostCert $cert }}
     {{- $cert_ok := and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)) }}
 
     {{- $enable_debug_endpoint := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.debug-endpoint" | keys | first | default $globals.config.enable_debug_endpoint | parseBool }}
     {{- $default := eq $globals.config.default_host $hostname }}
     {{- $https_method := groupByKeys $vhost_containers "Env.HTTPS_METHOD" | first | default $globals.config.https_method }}
     {{- $enable_http_on_missing_cert := groupByKeys $vhost_containers "Env.ENABLE_HTTP_ON_MISSING_CERT" | first | default $globals.config.enable_http_on_missing_cert | parseBool }}
-    {{- /* When the certificate is missing we want to ensure that HTTP is enabled; hence switching from 'nohttp' or 'redirect' to 'noredirect' */}}
-    {{- if (and $enable_http_on_missing_cert (not $cert_ok) (or (eq $https_method "nohttp") (eq $https_method "redirect"))) }}
+    {{- /* When no trusted certs (default and/or vhost) are present we want to ensure that HTTP is enabled; hence switching from 'nohttp' or 'redirect' to 'noredirect' */}}
+    {{- $https_method_disable_http := list "nohttp" "redirect" | has $https_method }}
+    {{- if and $https_method_disable_http (not $cert_ok) $enable_http_on_missing_cert }}
         {{- $https_method = "noredirect" }}
     {{- end }}
     {{- $http2_enabled := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http2.enable" | keys | first | default $globals.config.enable_http2 | parseBool }}
@@ -720,6 +724,7 @@ proxy_set_header Proxy "";
         "acme_http_challenge_enabled" $acme_http_challenge_enabled
         "server_tokens" $server_tokens
         "ssl_policy" $ssl_policy
+        "trust_default_cert" $trust_default_cert
         "upstream_name" $upstream_name
         "vhost_root" $vhost_root
     ) }}
@@ -945,14 +950,9 @@ server {
     }
     add_header Strict-Transport-Security $sts_header always;
             {{- end }}
-        {{- else if $globals.config.default_cert_ok }}
-    # No certificate found for this vhost, so use the default certificate and
-    # return an error code if the user connects via https.
-    ssl_certificate /etc/nginx/certs/default.crt;
-    ssl_certificate_key /etc/nginx/certs/default.key;
-    if ($https) {
-        return 500;
-    }
+        {{- else if not $vhost.trust_default_cert | and $globals.config.default_cert_ok }}
+    # No certificate found for this vhost, and the default certificate isn't trusted, so reject SSL handshake.
+    ssl_reject_handshake on;
         {{- else }}
     # No certificate for this vhost nor default certificate found, so reject SSL handshake.
     ssl_reject_handshake on;

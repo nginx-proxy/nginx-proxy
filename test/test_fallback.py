@@ -43,10 +43,23 @@ INTERNAL_ERR_RE = re.compile("TLSV1_UNRECOGNIZED_NAME")
     ("withdefault.yml", "https://https-only.nginx-proxy.test/", 200, None),
     ("withdefault.yml", "http://http-only.nginx-proxy.test/", 200, None),
     ("withdefault.yml", "https://http-only.nginx-proxy.test/", 503, None),
-    ("withdefault.yml", "http://missing-cert.nginx-proxy.test/", 200, None),
-    ("withdefault.yml", "https://missing-cert.nginx-proxy.test/", 500, None),
+    ("withdefault.yml", "http://missing-cert.nginx-proxy.test/", 301, None),
+    ("withdefault.yml", "https://missing-cert.nginx-proxy.test/", 200, None),
+    ("withdefault.yml", "http://missing-cert.default-untrusted.nginx-proxy.test/", 200, None),
+    ("withdefault.yml", "https://missing-cert.default-untrusted.nginx-proxy.test/", None, INTERNAL_ERR_RE),
     ("withdefault.yml", "http://unknown.nginx-proxy.test/", 503, None),
     ("withdefault.yml", "https://unknown.nginx-proxy.test/", 503, None),
+    # Same as withdefault.yml, except default.crt is not trusted (TRUST_DEFAULT_CERT=false).
+    ("untrusteddefault.yml", "http://https-and-http.nginx-proxy.test/", 301, None),
+    ("untrusteddefault.yml", "https://https-and-http.nginx-proxy.test/", 200, None),
+    ("untrusteddefault.yml", "http://https-only.nginx-proxy.test/", 503, None),
+    ("untrusteddefault.yml", "https://https-only.nginx-proxy.test/", 200, None),
+    ("untrusteddefault.yml", "http://http-only.nginx-proxy.test/", 200, None),
+    ("untrusteddefault.yml", "https://http-only.nginx-proxy.test/", 503, None),
+    ("untrusteddefault.yml", "http://missing-cert.nginx-proxy.test/", 200, None),
+    ("untrusteddefault.yml", "https://missing-cert.nginx-proxy.test/", None, INTERNAL_ERR_RE),
+    ("untrusteddefault.yml", "http://unknown.nginx-proxy.test/", 503, None),
+    ("untrusteddefault.yml", "https://unknown.nginx-proxy.test/", 503, None),
     # Same as withdefault.yml, except there is no default.crt.
     ("nodefault.yml", "http://https-and-http.nginx-proxy.test/", 301, None),
     ("nodefault.yml", "https://https-and-http.nginx-proxy.test/", 200, None),
@@ -68,12 +81,15 @@ INTERNAL_ERR_RE = re.compile("TLSV1_UNRECOGNIZED_NAME")
     ("nohttp-on-app.yml", "https://https-only.nginx-proxy.test/", 200, None),
     ("nohttp-on-app.yml", "http://unknown.nginx-proxy.test/", 503, None),
     ("nohttp-on-app.yml", "https://unknown.nginx-proxy.test/", 503, None),
-    # Same as nohttp.yml, except there is a vhost with a missing cert.  This causes its
+    # Same as nohttp.yml, except there are two vhosts with a missing cert, the second
+    # one being configured not to trust the default certificate. This causes its
     # HTTPS_METHOD=nohttp setting to effectively become HTTPS_METHOD=noredirect.
     ("nohttp-with-missing-cert.yml", "http://https-only.nginx-proxy.test/", 503, None),
     ("nohttp-with-missing-cert.yml", "https://https-only.nginx-proxy.test/", 200, None),
-    ("nohttp-with-missing-cert.yml", "http://missing-cert.nginx-proxy.test/", 200, None),
-    ("nohttp-with-missing-cert.yml", "https://missing-cert.nginx-proxy.test/", 500, None),
+    ("nohttp-with-missing-cert.yml", "http://missing-cert.nginx-proxy.test/", 503, None),
+    ("nohttp-with-missing-cert.yml", "https://missing-cert.nginx-proxy.test/", 200, None),
+    ("nohttp-with-missing-cert.yml", "http://missing-cert.default-untrusted.nginx-proxy.test/", 200, None),
+    ("nohttp-with-missing-cert.yml", "https://missing-cert.default-untrusted.nginx-proxy.test/", None, INTERNAL_ERR_RE),
     ("nohttp-with-missing-cert.yml", "http://unknown.nginx-proxy.test/", 503, None),
     ("nohttp-with-missing-cert.yml", "https://unknown.nginx-proxy.test/", 503, None),
     # HTTPS_METHOD=nohttps on nginx-proxy, HTTPS_METHOD unset on the app container.
