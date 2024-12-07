@@ -403,7 +403,7 @@ docker run --detach \
 
 ## SSL Support
 
-SSL is supported using single host, wildcard and SNI certificates using naming conventions for certificates or optionally specifying a cert name (for SNI) as an environment variable.
+SSL is supported using single host, wildcard and SAN certificates using naming conventions for certificates or optionally [specifying a cert name as an environment variable](#san-certificates).
 
 To enable SSL:
 
@@ -444,9 +444,11 @@ docker run -e DHPARAM_SKIP=true ....
 
 ### Wildcard Certificates
 
-Wildcard certificates and keys should be named after the domain name with a `.crt` and `.key` extension. For example `VIRTUAL_HOST=foo.bar.com` would use cert name `bar.com.crt` and `bar.com.key`.
+Wildcard certificates and keys should be named after the parent domain name with a `.crt` and `.key` extension. For example:
+- `VIRTUAL_HOST=foo.bar.com` would use cert name `bar.com.crt` and `bar.com.key` if `foo.bar.com.crt` and `foo.bar.com.key` are not available
+- `VIRTUAL_HOST=sub.foo.bar.com` use cert name `foo.bar.com.crt` and `foo.bar.com.key` if `sub.foo.bar.com.crt` and `sub.foo.bar.com.key` are not available, but won't use `bar.com.crt` and `bar.com.key`.
 
-### SNI
+### SAN Certificates
 
 If your certificate(s) supports multiple domain names, you can start a container with `CERT_NAME=<name>` to identify the certificate to be used. For example, a certificate for `*.foo.com` and `*.bar.com` could be named `shared.crt` and `shared.key`. A container running with `VIRTUAL_HOST=foo.bar.com` and `CERT_NAME=shared` will then use this shared cert.
 
@@ -613,6 +615,21 @@ If the default certificate is also missing, nginx-proxy will:
 
 > [!NOTE]
 > Prior to version `1.7`, nginx-proxy never trusted the default certificate: when the default certificate was present, virtual hosts that did not have a usable per-virtual-host cert used the default cert but always returned a 500 error over HTTPS. If you want to restore this behaviour, you can do it globally by setting the enviroment variable `TRUST_DEFAULT_CERT` to `false` on the proxy container, or per-virtual-host by setting the label `com.github.nginx-proxy.nginx-proxy.trust-default-cert`to `false` on a proxied container.
+
+### Certificate selection
+
+Summarizing all the above informations, nginx-proxy will select the certificate for a given virtual host using the following sequence:
+1. if `CERT_NAME` is used, nginx-proxy will use the corresponding certificate if it exists (eg `foor.bar.com` → `CERT_NAME.crt`), or disable HTTPS for this virtual host if it does not. See [SAN certificates](#san-certificates).
+2. if a certificate exactly matching the virtual host hostname exist, nginx-proxy will use it (eg `foo.bar.com` → `foo.bar.com.crt`).
+3. if the virtual host hostname is a subdomain (eg `foo.bar.com` but not `bar.com`) and a certificate exactly matching its parent domain exist  , nginx-proxy will use it (eg `foor.bar.com` → `bar.com.crt`). See [wildcard certificates](#wildcard-certificates).
+4. if the default certificate (`default.crt`) exist and is trusted, nginx-proxy will use it (eg `foor.bar.com` → `default.crt`). See [default and missing certificate](#default-and-missing-certificate).
+5. if the default certificate does not exist or isn't trusted, nginx-proxy will disable HTTPS for this virtual host (eg `foor.bar.com` → no HTTPS).
+
+> [!IMPORTANT]
+>  Using `CERT_NAME` take precedence over the certificate selection process, meaning nginx-proxy will not auto select a correct certificate in step 2 trough 5 if `CERT_NAME` was used with an incorrect value or without corresponding certificate.
+
+> [!NOTE]
+> In all the above cases, if a private key file corresponding to the selected certificate (eg `foo.bar.com.key` for the `foor.bar.com.crt` certificate) does not exist, HTTPS will be disabled for this virtual host.
 
 ⬆️ [back to table of contents](#table-of-contents)
 
