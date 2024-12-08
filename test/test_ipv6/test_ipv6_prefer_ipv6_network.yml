@@ -1,0 +1,47 @@
+version: "2"
+
+networks:
+  ipv4net:
+    ipam:
+      config:
+        - subnet: 172.16.10.0/24
+  dualstacknet:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: 172.16.20.0/24
+        - subnet: fd00:cafe:face:feed::/64
+
+services:
+  ipv4only:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: 80
+      VIRTUAL_HOST: ipv4only.nginx-proxy.tld
+    networks:
+      ipv4net:
+        ipv4_address: 172.16.10.2
+
+  dualstack:
+    image: nginx:alpine
+    environment:
+      VIRTUAL_HOST: dualstack.nginx-proxy.tld
+    networks:
+      dualstacknet:
+        ipv4_address: 172.16.20.2
+        ipv6_address: fd00:cafe:face:feed::2
+
+  sut:
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    environment:
+      PREFER_IPV6_NETWORK: "true"
+    networks:
+      ipv4net:
+        ipv4_address: 172.16.10.3
+      dualstacknet:
+        ipv4_address: 172.16.20.3
+        ipv6_address: fd00:cafe:face:feed::3

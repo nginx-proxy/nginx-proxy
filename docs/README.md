@@ -618,7 +618,19 @@ If the default certificate is also missing, nginx-proxy will:
 
 ## IPv6 Support
 
-You can activate the IPv6 support for the nginx-proxy container by passing the value `true` to the `ENABLE_IPV6` environment variable:
+### IPv6 Docker Networks
+
+nginx-proxy support both IPv4 and IPv6 on Docker networks.
+
+By default nginx-proxy will prefer IPv4: if a container can be reached over both IPv4 and IPv6, only its IPv4 will be used.
+
+This can be changed globally by setting the environment variable `PREFER_IPV6_NETWORK` to `true` on the proxy container: with this setting the proxy will only use IPv6 for containers that can be reached over both IPv4 and IPv6.
+
+IPv4 and IPv6 are never both used at the same time on containers that use both IP stacks to avoid artificially inflating the effective round robin weight of those containers.
+
+### Listening on IPv6
+
+By default the nginx-proxy container will only listen on IPv4. To enable listening on IPv6 too, set the `ENABLE_IPV6` environment variable to `true`:
 
 ```console
 docker run -d -p 80:80 -e ENABLE_IPV6=true -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
