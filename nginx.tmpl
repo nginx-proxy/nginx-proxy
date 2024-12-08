@@ -32,6 +32,7 @@
 {{- $_ := set $config "enable_http3" ($globals.Env.ENABLE_HTTP3 | default "false") }}
 {{- $_ := set $config "enable_http_on_missing_cert" ($globals.Env.ENABLE_HTTP_ON_MISSING_CERT | default "true") }}
 {{- $_ := set $config "https_method" ($globals.Env.HTTPS_METHOD | default "redirect") }}
+{{- $_ := set $config "non_get_redirect" ($globals.Env.NON_GET_REDIRECT | default "301") }}
 {{- $_ := set $config "default_host" $globals.Env.DEFAULT_HOST }}
 {{- $_ := set $config "resolvers" $globals.Env.RESOLVERS }}
 {{- /* LOG_JSON is a shorthand that sets logging defaults to JSON format */}}
@@ -718,8 +719,11 @@ proxy_set_header Proxy "";
     {{- if and $https_method_disable_http (not $cert_ok) $enable_http_on_missing_cert }}
         {{- $https_method = "noredirect" }}
     {{- end }}
+    {{- $non_get_redirect := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.non-get-redirect" | keys | first | default $globals.config.non_get_redirect }}
+    
     {{- $http2_enabled := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http2.enable" | keys | first | default $globals.config.enable_http2 | parseBool }}
     {{- $http3_enabled := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http3.enable" | keys | first | default $globals.config.enable_http3 | parseBool }}
+    
     {{- $acme_http_challenge := groupByKeys $vhost_containers "Env.ACME_HTTP_CHALLENGE_LOCATION" | first | default $globals.config.acme_http_challenge }}
     {{- $acme_http_challenge_legacy := eq $acme_http_challenge "legacy" }}
     {{- $acme_http_challenge_enabled := false }}
@@ -746,6 +750,7 @@ proxy_set_header Proxy "";
         "default" $default
         "hsts" $hsts
         "https_method" $https_method
+        "non_get_redirect" $non_get_redirect
         "http2_enabled" $http2_enabled
         "http3_enabled" $http3_enabled
         "is_regexp" $is_regexp
@@ -886,21 +891,14 @@ server {
         {{- end }}
 
     location / {
-        {{- if eq $globals.config.external_https_port "443" }}
-        if ($request_method = GET) {
-            return 301 https://$host$request_uri;
+        {{- $redirect_uri := "https://$host$request_uri" }}
+        {{- if ne $globals.config.external_https_port "443" }}
+            {{- $redirect_uri = printf "https://$host:%s$request_uri" $globals.config.external_https_port }}
+        {{- end}}
+        if ($request_method ~ (OPTIONS|POST|PUT|PATCH|DELETE)) {
+            return {{ $vhost.non_get_redirect }} {{ $redirect_uri }};
         }
-        if ($request_method != GET) {
-            return 308 https://$host$request_uri;
-        }
-        {{- else }}
-        if ($request_method = GET) {
-            return 301 https://$host:{{ $globals.config.external_https_port }}$request_uri;
-        }
-        if ($request_method != GET) {
-            return 308 https://$host:{{ $globals.config.external_https_port }}$request_uri;
-        }
-        {{- end }}
+        return 301 {{ $redirect_uri }};
     }
 }
     {{- end }}
