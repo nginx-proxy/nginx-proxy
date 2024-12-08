@@ -243,7 +243,7 @@ Proxyed containers running in host network mode **must** use the [`VIRTUAL_PORT`
 
 If you allow traffic from the public internet to access your `nginx-proxy` container, you may want to restrict some containers to the internal network only, so they cannot be accessed from the public internet. On containers that should be restricted to the internal network, you should set the environment variable `NETWORK_ACCESS=internal`. By default, the _internal_ network is defined as `127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16`. To change the list of networks considered internal, mount a file on the `nginx-proxy` at `/etc/nginx/network_internal.conf` with these contents, edited to suit your needs:
 
-```Nginx
+```nginx
 # These networks are considered "internal"
 allow 127.0.0.0/8;
 allow 10.0.0.0/8;
@@ -303,6 +303,7 @@ services:
       - /var/run/docker.sock:/tmp/docker.sock:ro
     environment:
       HTTPS_METHOD: nohttps
+
   myapp:
     image: jwilder/whoami
     expose:
@@ -445,6 +446,7 @@ docker run -e DHPARAM_SKIP=true ....
 ### Wildcard Certificates
 
 Wildcard certificates and keys should be named after the parent domain name with a `.crt` and `.key` extension. For example:
+
 - `VIRTUAL_HOST=foo.bar.com` would use cert name `bar.com.crt` and `bar.com.key` if `foo.bar.com.crt` and `foo.bar.com.key` are not available
 - `VIRTUAL_HOST=sub.foo.bar.com` use cert name `foo.bar.com.crt` and `foo.bar.com.key` if `sub.foo.bar.com.crt` and `sub.foo.bar.com.key` are not available, but won't use `bar.com.crt` and `bar.com.key`.
 
@@ -585,6 +587,7 @@ By default, [HTTP Strict Transport Security (HSTS)](https://developer.mozilla.or
 If no matching certificate is found for a given virtual host, nginx-proxy will configure nginx to use the default certificate (`default.crt` with `default.key`).
 
 If the default certificate is also missing, nginx-proxy will:
+
 - force enable HTTP; i.e. `HTTPS_METHOD` will switch to `noredirect` if it was set to `nohttp` or `redirect`. If this switch to HTTP is not wanted set `ENABLE_HTTP_ON_MISSING_CERT=false` (default is `true`).
 - configure nginx to reject the SSL handshake for this vhost. Client browsers will render a TLS error page. As of October 2024, web browsers display the following error messages:
 
@@ -619,14 +622,15 @@ If the default certificate is also missing, nginx-proxy will:
 ### Certificate selection
 
 Summarizing all the above informations, nginx-proxy will select the certificate for a given virtual host using the following sequence:
+
 1. if `CERT_NAME` is used, nginx-proxy will use the corresponding certificate if it exists (eg `foor.bar.com` → `CERT_NAME.crt`), or disable HTTPS for this virtual host if it does not. See [SAN certificates](#san-certificates).
 2. if a certificate exactly matching the virtual host hostname exist, nginx-proxy will use it (eg `foo.bar.com` → `foo.bar.com.crt`).
-3. if the virtual host hostname is a subdomain (eg `foo.bar.com` but not `bar.com`) and a certificate exactly matching its parent domain exist  , nginx-proxy will use it (eg `foor.bar.com` → `bar.com.crt`). See [wildcard certificates](#wildcard-certificates).
+3. if the virtual host hostname is a subdomain (eg `foo.bar.com` but not `bar.com`) and a certificate exactly matching its parent domain exist , nginx-proxy will use it (eg `foor.bar.com` → `bar.com.crt`). See [wildcard certificates](#wildcard-certificates).
 4. if the default certificate (`default.crt`) exist and is trusted, nginx-proxy will use it (eg `foor.bar.com` → `default.crt`). See [default and missing certificate](#default-and-missing-certificate).
 5. if the default certificate does not exist or isn't trusted, nginx-proxy will disable HTTPS for this virtual host (eg `foor.bar.com` → no HTTPS).
 
 > [!IMPORTANT]
->  Using `CERT_NAME` take precedence over the certificate selection process, meaning nginx-proxy will not auto select a correct certificate in step 2 trough 5 if `CERT_NAME` was used with an incorrect value or without corresponding certificate.
+> Using `CERT_NAME` take precedence over the certificate selection process, meaning nginx-proxy will not auto select a correct certificate in step 2 trough 5 if `CERT_NAME` was used with an incorrect value or without corresponding certificate.
 
 > [!NOTE]
 > In all the above cases, if a private key file corresponding to the selected certificate (eg `foo.bar.com.key` for the `foor.bar.com.crt` certificate) does not exist, HTTPS will be disabled for this virtual host.
@@ -729,7 +733,7 @@ If you need to configure Nginx beyond what is possible using environment variabl
 
 If you want to replace the default proxy settings for the nginx container, add a configuration file at `/etc/nginx/proxy.conf`. A file with the default settings would look like this:
 
-```Nginx
+```nginx
 # HTTP 1.1 support
 proxy_http_version 1.1;
 proxy_set_header Host $http_host;
@@ -764,11 +768,46 @@ RUN { \
     } > /etc/nginx/conf.d/my_proxy.conf
 ```
 
-Or it can be done by mounting in your custom configuration in your `docker run` command:
+Or it can be done by mounting in your custom configuration in your `docker run` command or your Docker Compose file:
+
+```nginx
+# content of the my_proxy.conf file
+server_tokens off;
+client_max_body_size 100m;
+```
+
+<details>
+  <summary>Docker CLI</summary>
 
 ```console
-docker run -d -p 80:80 -p 443:443 -v /path/to/my_proxy.conf:/etc/nginx/conf.d/my_proxy.conf:ro -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+docker run --detach \
+  --name nginx-proxy \
+  --publish 80:80 \
+  --publish 443:443 \
+  --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+  --volume /path/to/my_proxy.conf:/etc/nginx/conf.d/my_proxy.conf:ro \
+  nginxproxy/nginx-proxy
 ```
+
+</details>
+
+<details>
+  <summary>Docker Compose file</summary>
+
+```yaml
+services:
+  proxy:
+    image: nginxproxy/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - /path/to/my_proxy.conf:/etc/nginx/conf.d/my_proxy.conf:ro
+```
+
+</details>
 
 ### Per-VIRTUAL_HOST
 
@@ -778,21 +817,87 @@ In order to allow virtual hosts to be dynamically configured as backends are add
 
 For example, if you have a virtual host named `app.example.com`, you could provide a custom configuration for that host as follows:
 
-```console
-docker run -d -p 80:80 -p 443:443 -v /path/to/vhost.d:/etc/nginx/vhost.d:ro -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
-{ echo 'server_tokens off;'; echo 'client_max_body_size 100m;'; } > /path/to/vhost.d/app.example.com
+1. create your virtual host config file:
+
+```nginx
+# content of the custom-vhost-config.conf file
+client_max_body_size 100m;
 ```
 
-If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=example.com,www.example.com`), the virtual host configuration file must exist for each hostname. If you would like to use the same configuration for multiple virtual host names, you can use a symlink:
+2. mount it to `/etc/nginx/vhost.d/app.example.com`:
+<details>
+  <summary>Docker CLI</summary>
 
 ```console
-{ echo 'server_tokens off;'; echo 'client_max_body_size 100m;'; } > /path/to/vhost.d/www.example.com
-ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
+docker run --detach \
+  --name nginx-proxy \
+  --publish 80:80 \
+  --publish 443:443 \
+  --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+  --volume /path/to/custom-vhost-config.conf:/etc/nginx/vhost.d/app.example.com:ro \
+  nginxproxy/nginx-proxy
 ```
+
+</details>
+
+<details>
+  <summary>Docker Compose file</summary>
+
+```yaml
+services:
+  proxy:
+    image: nginxproxy/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - /path/to/custom-vhost-config.conf:/etc/nginx/vhost.d/app.example.com:ro
+```
+
+</details>
+
+If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=example.com,www.example.com`), the virtual host configuration file must exist for each hostname:
+
+<details>
+  <summary>Docker CLI</summary>
+
+```console
+docker run --detach \
+  --name nginx-proxy \
+  --publish 80:80 \
+  --publish 443:443 \
+  --volume /path/to/custom-vhost-config.conf:/etc/nginx/vhost.d/example.com:ro \
+  --volume /path/to/custom-vhost-config.conf:/etc/nginx/vhost.d/www.example.com:ro \
+  --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+  nginxproxy/nginx-proxy
+```
+
+</details>
+
+<details>
+  <summary>Docker Compose file</summary>
+
+```yaml
+services:
+  proxy:
+    image: nginxproxy/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - /path/to/custom-vhost-config.conf:/etc/nginx/vhost.d/example.com:ro
+      - /path/to/custom-vhost-config.conf:/etc/nginx/vhost.d/www.example.com:ro
+```
+
+</details>
 
 ### Per-VIRTUAL_HOST default configuration
 
-If you want most of your virtual hosts to use a default single configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default` file. This file will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}` file associated with it.
+If you want most of your virtual hosts to use a default single configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default` file. This file will be used on any virtual host which does not have a [per-VIRTUAL_HOST file](#per-virtual_host) associated with it.
 
 ### Per-VIRTUAL_HOST location configuration
 
@@ -800,21 +905,90 @@ To add settings to the "location" block on a per-`VIRTUAL_HOST` basis, add your 
 
 For example, if you have a virtual host named `app.example.com` and you have configured a proxy_cache `my-cache` in another custom file, you could tell it to use a proxy cache as follows:
 
-```console
-docker run -d -p 80:80 -p 443:443 -v /path/to/vhost.d:/etc/nginx/vhost.d:ro -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
-{ echo 'proxy_cache my-cache;'; echo 'proxy_cache_valid  200 302  60m;'; echo 'proxy_cache_valid  404 1m;' } > /path/to/vhost.d/app.example.com_location
+1. create your virtual host location config file:
+
+```nginx
+# content of the custom-vhost-location-config.conf file
+proxy_cache my-cache;
+proxy_cache_valid 200 302 60m;
+proxy_cache_valid 404 1m;
 ```
 
-If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=example.com,www.example.com`), the virtual host configuration file must exist for each hostname. If you would like to use the same configuration for multiple virtual host names, you can use a symlink:
+2. mount it to `/etc/nginx/vhost.d/app.example.com_location`:
+
+<details>
+  <summary>Docker CLI</summary>
 
 ```console
-{ echo 'proxy_cache my-cache;'; echo 'proxy_cache_valid  200 302  60m;'; echo 'proxy_cache_valid  404 1m;' } > /path/to/vhost.d/app.example.com_location
-ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
+docker run --detach \
+  --name nginx-proxy \
+  --publish 80:80 \
+  --publish 443:443 \
+  --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+  --volume /path/to/custom-vhost-location-config.conf:/etc/nginx/vhost.d/app.example.com_location:ro \
+  nginxproxy/nginx-proxy
 ```
+
+</details>
+
+<details>
+  <summary>Docker Compose file</summary>
+
+```yaml
+services:
+  proxy:
+    image: nginxproxy/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - /path/to/custom-vhost-location-config.conf:/etc/nginx/vhost.d/app.example.com_location:ro
+```
+
+</details>
+
+If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=example.com,www.example.com`), the virtual host configuration file must exist for each hostname:
+
+<details>
+  <summary>Docker CLI</summary>
+
+```console
+docker run --detach \
+  --name nginx-proxy \
+  --publish 80:80 \
+  --publish 443:443 \
+  --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+  --volume /path/to/custom-vhost-location-config.conf:/etc/nginx/vhost.d/example.com_location:ro \
+  --volume /path/to/custom-vhost-location-config.conf:/etc/nginx/vhost.d/www.example.com_location:ro \
+  nginxproxy/nginx-proxy
+```
+
+</details>
+
+<details>
+  <summary>Docker Compose file</summary>
+
+```yaml
+services:
+  proxy:
+    image: nginxproxy/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - /path/to/custom-vhost-location-config.conf:/etc/nginx/vhost.d/example.com_location:ro
+      - /path/to/custom-vhost-location-config.conf:/etc/nginx/vhost.d/www.example.com_location:ro
+```
+
+</details>
 
 ### Per-VIRTUAL_HOST location default configuration
 
-If you want most of your virtual hosts to use a default single `location` block configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default_location` file. This file will be used on any virtual host which does not have a `/etc/nginx/vhost.d/{VIRTUAL_HOST}_location` file associated with it.
+If you want most of your virtual hosts to use a default single `location` block configuration and then override on a few specific ones, add those settings to the `/etc/nginx/vhost.d/default_location` file. This file will be used on any virtual host which does not have a [Per-VIRTUAL_HOST location file](#per-virtual_host-location-configuration) associated with it.
 
 ### Overriding `location` blocks
 
@@ -836,7 +1010,7 @@ When an override file exists, the `location` block that is normally created by `
 
 You are responsible for providing a suitable `location` block in your override file as required for your service. By default, `nginx-proxy` uses the `VIRTUAL_HOST` name as the upstream name for your application's Docker container; see [here](#unhashed-vs-sha1-upstream-names) for details. As an example, if your container has a `VIRTUAL_HOST` value of `app.example.com`, then to override the location block for `/` you would create a file named `/etc/nginx/vhost.d/app.example.com_location_override` that contains something like this:
 
-```
+```nginx
 location / {
     proxy_pass http://app.example.com;
 }
