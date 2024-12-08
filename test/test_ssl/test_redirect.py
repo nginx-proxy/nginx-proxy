@@ -1,34 +1,28 @@
 import pytest
 
-# These tests are to test that GET is 301 and other methods all use 308
-# Permanent Redirects
-# https://github.com/nginx-proxy/nginx-proxy/pull/1737
-def test_web1_GET_301(docker_compose, nginxproxy):
-    r = nginxproxy.get('http://nginx-proxy.tld', allow_redirects=False)
-    assert r.status_code == 301
-    assert r.headers['Location'] == 'https://nginx-proxy.tld/'
 
-def test_web1_POST_308(docker_compose, nginxproxy):
-    r = nginxproxy.post('http://nginx-proxy.tld', allow_redirects=False)
-    assert r.status_code == 308
-    assert r.headers['Location'] == 'https://nginx-proxy.tld/'
-
-def test_web1_PUT_308(docker_compose, nginxproxy):
-    r = nginxproxy.put('http://nginx-proxy.tld', allow_redirects=False)
-    assert r.status_code == 308
-    assert r.headers['Location'] == 'https://nginx-proxy.tld/'
-
-def test_web1_HEAD_308(docker_compose, nginxproxy):
-    r = nginxproxy.head('http://nginx-proxy.tld', allow_redirects=False)
-    assert r.status_code == 308
-    assert r.headers['Location'] == 'https://nginx-proxy.tld/'
-
-def test_web1_DELETE_308(docker_compose, nginxproxy):
-    r = nginxproxy.delete('http://nginx-proxy.tld', allow_redirects=False)
-    assert r.status_code == 308
-    assert r.headers['Location'] == 'https://nginx-proxy.tld/'
-
-def test_web1_OPTIONS_308(docker_compose, nginxproxy):
-    r = nginxproxy.options('http://nginx-proxy.tld', allow_redirects=False)
-    assert r.status_code == 308
-    assert r.headers['Location'] == 'https://nginx-proxy.tld/'
+@pytest.mark.parametrize("http_method,expected_code", [
+    ("GET", 301),
+    ("HEAD", 308),
+    ("POST", 308),
+    ("PUT", 308),
+    ("PATCH", 308),
+    ("DELETE", 308),
+    ("OPTIONS", 308),
+    ("CONNECT", 405),
+    ("TRACE", 405),
+])
+def test_default_redirect_by_method(
+    docker_compose,
+    nginxproxy,
+    http_method: str,
+    expected_code: int,
+):
+    r = nginxproxy.request(
+        method=http_method,
+        url='http://nginx-proxy.tld',
+        allow_redirects=False,
+    )
+    assert r.status_code == expected_code
+    if expected_code in { 301, 302, 307, 308 }:
+        assert r.headers['Location'] == 'https://nginx-proxy.tld/'
