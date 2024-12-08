@@ -1,33 +1,33 @@
 services:
-  base:
+  base: 
       image: web
       environment:
         WEB_PORTS: "80"
         VIRTUAL_HOST: "nginx-proxy.tld"
+
+  www:
+      image: web
+      environment:
+        WEB_PORTS: "80"
+        VIRTUAL_HOST: "www.nginx-proxy.tld"
+  
+  sub-www:
+      image: web
+      environment:
+        WEB_PORTS: "80"
+        VIRTUAL_HOST: "subdomain.www.nginx-proxy.tld"
 
   web1:
       image: web
       environment:
         WEB_PORTS: "80"
         VIRTUAL_HOST: "web1.nginx-proxy.tld"
-  
-  sub-web1:
-      image: web
-      environment:
-        WEB_PORTS: "80"
-        VIRTUAL_HOST: "sub.web1.nginx-proxy.tld"
-
-  web2:
-      image: web
-      environment:
-        WEB_PORTS: "80"
-        VIRTUAL_HOST: "web2.nginx-proxy.tld"
 
   sut:
     image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs:/etc/nginx/certs:ro
+      - ./cert_selection:/etc/nginx/certs:ro
       - ./acme_root:/usr/share/nginx/html:ro
     environment:
       DEBUG_ENDPOINT: "true"
