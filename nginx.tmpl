@@ -688,13 +688,25 @@ proxy_set_header Proxy "";
         {{ $vhost_containers = concat $vhost_containers $vpath_containers }}
     {{- end }}
 
-    {{- $certName := groupByKeys $vhost_containers "Env.CERT_NAME" | first }}
-    {{- $vhostCert := closest (dir "/etc/nginx/certs") (printf "%s.crt" $hostname) }}
-    {{- $vhostCert = trimSuffix ".crt" $vhostCert }}
-    {{- $vhostCert = trimSuffix ".key" $vhostCert }}
+    {{- $userIdentifiedCert := groupByKeys $vhost_containers "Env.CERT_NAME" | first }}
+    
+    {{- $vhostCert := "" }}
+    {{- if exists (printf "/etc/nginx/certs/%s.crt" $hostname) }}
+        {{- $vhostCert = $hostname }}
+    {{- end }}
+
+    {{- $parentVhostCert := "" }}
+    {{- if gt ($hostname | sprigSplit "." | len) 2 }}
+        {{- $parentHostname := ($hostname | sprigSplitn "." 2)._1 }}
+        {{- if exists (printf "/etc/nginx/certs/%s.crt" $parentHostname) }}
+            {{- $parentVhostCert = $parentHostname }}
+        {{- end }}
+    {{- end }}
+    
     {{- $trust_default_cert := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.trust-default-cert" | keys | first | default $globals.config.trust_default_cert | parseBool }}
-    {{- $cert := and $trust_default_cert $globals.config.default_cert_ok | ternary "default" "" }}
-    {{- $cert = or $certName $vhostCert $cert }}
+    {{- $defaultCert := and $trust_default_cert $globals.config.default_cert_ok | ternary "default" "" }}
+    
+    {{- $cert := or $userIdentifiedCert $vhostCert $parentVhostCert $defaultCert }}
     {{- $cert_ok := and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)) }}
 
     {{- $enable_debug_endpoint := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.debug-endpoint" | keys | first | default $globals.config.enable_debug_endpoint | parseBool }}
