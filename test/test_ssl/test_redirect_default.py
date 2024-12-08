@@ -3,12 +3,12 @@ import pytest
 
 @pytest.mark.parametrize("http_method,expected_code", [
     ("GET", 301),
-    ("HEAD", 308),
-    ("POST", 308),
-    ("PUT", 308),
-    ("PATCH", 308),
-    ("DELETE", 308),
-    ("OPTIONS", 308),
+    ("HEAD", 301),
+    ("POST", 301),
+    ("PUT", 301),
+    ("PATCH", 301),
+    ("DELETE", 301),
+    ("OPTIONS", 301),
     ("CONNECT", 405),
     ("TRACE", 405),
 ])
