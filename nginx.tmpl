@@ -887,9 +887,19 @@ server {
 
     location / {
         {{- if eq $globals.config.external_https_port "443" }}
-        return 301 https://$host$request_uri;
+        if ($request_method = GET) {
+            return 301 https://$host$request_uri;
+        }
+        if ($request_method != GET) {
+            return 308 https://$host$request_uri;
+        }
         {{- else }}
-        return 301 https://$host:{{ $globals.config.external_https_port }}$request_uri;
+        if ($request_method = GET) {
+            return 301 https://$host:{{ $globals.config.external_https_port }}$request_uri;
+        }
+        if ($request_method != GET) {
+            return 308 https://$host:{{ $globals.config.external_https_port }}$request_uri;
+        }
         {{- end }}
     }
 }
