@@ -1,5 +1,3 @@
-version: "2"
-
 services:
   http2-global-disabled:
     image: web

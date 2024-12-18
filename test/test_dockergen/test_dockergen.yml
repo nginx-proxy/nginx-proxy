@@ -1,11 +1,9 @@
-version: "3"
-
 services:
   nginx:
     image: nginx
     container_name: nginx
     volumes:
-      - nginx_conf:/etc/nginx/conf.d
+      - nginx_conf:/etc/nginx/conf.d:ro
 
   dockergen:
     image: nginxproxy/docker-gen
@@ -25,4 +23,4 @@ services:
       VIRTUAL_HOST: whoami.nginx.container.docker
 
 volumes:
-  nginx_conf: {}
+  nginx_conf:

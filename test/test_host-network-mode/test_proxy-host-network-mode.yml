@@ -1,5 +1,3 @@
-version: "2"
-
 services:
   host-network-1:
     image: web
