@@ -101,7 +101,7 @@ function _setup_dhparam() {
 }
 
 # Run the init logic if the default CMD was provided
-if [[ $* == 'forego start -r' ]]; then
+if [[ $* == "forego start -r" ]] || [[ $* =~ "docker-gen -notify-sighup" ]]; then
 	_print_version
 	
 	_check_unix_socket
@@ -115,6 +115,11 @@ if [[ $* == 'forego start -r' ]]; then
 			Warning: TRUST_DOWNSTREAM_PROXY is not set; defaulting to "true". For security, you should explicitly set TRUST_DOWNSTREAM_PROXY to "false" if there is not a trusted reverse proxy in front of this proxy.
 			Warning: The default value of TRUST_DOWNSTREAM_PROXY might change to "false" in a future version of nginx-proxy. If you require TRUST_DOWNSTREAM_PROXY to be enabled, explicitly set it to "true".
 		EOT
+	fi
+
+	if [[ $3 == "\$NGINX_CONTAINER_NAME" && -n "$NGINX_CONTAINER_NAME" ]]; then
+		# change the value of $3 to the expanded $NGINX_CONTAINER_NAME variable
+		set -- "${@:1:2}" "$NGINX_CONTAINER_NAME" "${@:4}"
 	fi
 fi
 

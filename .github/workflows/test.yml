@@ -20,7 +20,7 @@ jobs:
 
     strategy:
       matrix:
-        base_docker_image: [alpine, debian]
+        flavor: [alpine, debian, dockergen]
 
     steps:
       - uses: actions/checkout@v4
@@ -43,8 +43,10 @@ jobs:
         run: make build-webserver
 
       - name: Build Docker nginx proxy test image
-        run: make build-nginx-proxy-test-${{ matrix.base_docker_image }}
+        run: make build-nginx-proxy-test-${{ matrix.flavor }}
 
       - name: Run tests
         run: pytest
         working-directory: test
+        env:
+          COMPOSE_PROFILES: ${{ matrix.flavor == 'dockergen' && 'separateContainers' || 'singleContainer' }}

@@ -1,0 +1,18 @@
+FROM docker.io/nginxproxy/docker-gen:0.14.4
+
+ARG NGINX_PROXY_VERSION
+ENV NGINX_PROXY_VERSION=${NGINX_PROXY_VERSION} \
+   DOCKER_HOST=unix:///tmp/docker.sock \
+   DHPARAM_SKIP=true \
+   NGINX_CONTAINER_NAME=nginx-proxy
+
+# Install dependencies
+RUN apk add --no-cache --virtual .run-deps bash
+
+RUN mkdir -p '/etc/nginx/conf.d'
+
+COPY app nginx.tmpl LICENSE /app/
+WORKDIR /app/
+
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+CMD ["docker-gen", "-notify-sighup", "$NGINX_CONTAINER_NAME", "-watch", "/app/nginx.tmpl", "/etc/nginx/conf.d/default.conf"]

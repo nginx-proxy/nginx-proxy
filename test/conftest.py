@@ -27,6 +27,9 @@ PYTEST_RUNNING_IN_CONTAINER = os.environ.get('PYTEST_RUNNING_IN_CONTAINER') == "
 FORCE_CONTAINER_IPV6 = False  # ugly global state to consider containers' IPv6 address instead of IPv4
 
 DOCKER_COMPOSE = os.environ.get('DOCKER_COMPOSE', 'docker compose')
+COMPOSE_PROFILES = os.environ.get('COMPOSE_PROFILES', 'singleContainer')
+IMAGE_TAG = "test-dockergen" if COMPOSE_PROFILES == "separateContainers" else "test"
+
 
 docker_client = docker.from_env()
 
@@ -75,11 +78,11 @@ class requests_for_docker(object):
         """
         Return list of containers
         """
-        nginx_proxy_containers = docker_client.containers.list(filters={"ancestor": "nginxproxy/nginx-proxy:test"})
+        nginx_proxy_containers = docker_client.containers.list(filters={"ancestor": f"nginxproxy/nginx-proxy:{IMAGE_TAG}"})
         if len(nginx_proxy_containers) > 1:
-            pytest.fail("Too many running nginxproxy/nginx-proxy:test containers", pytrace=False)
+            pytest.fail(f"Too many running nginxproxy/nginx-proxy:{IMAGE_TAG} containers", pytrace=False)
         elif len(nginx_proxy_containers) == 0:
-            pytest.fail("No running nginxproxy/nginx-proxy:test container", pytrace=False)
+            pytest.fail(f"No running nginxproxy/nginx-proxy:{IMAGE_TAG} container", pytrace=False)
         return nginx_proxy_containers
 
     def get_conf(self):
@@ -188,7 +191,7 @@ def container_ipv6(container):
     return net_info[network_name]["GlobalIPv6Address"]
 
 
-def nginx_proxy_dns_resolver(domain_name):
+def nginx_proxy_single_container_dns_resolver(domain_name):
     """
     if "nginx-proxy" if found in host, return the ip address of the docker container
     issued from the docker image nginxproxy/nginx-proxy:test.
@@ -196,19 +199,42 @@ def nginx_proxy_dns_resolver(domain_name):
     :return: IP or None
     """
     log = logging.getLogger('DNS')
-    log.debug(f"nginx_proxy_dns_resolver({domain_name!r})")
+    log.debug(f"nginx_proxy_single_container_dns_resolver({domain_name!r})")
     if 'nginx-proxy' in domain_name:
         nginxproxy_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "nginxproxy/nginx-proxy:test"})
         if len(nginxproxy_containers) == 0:
-            log.warn(f"no container found from image nginxproxy/nginx-proxy:test while resolving {domain_name!r}")
+            log.info(f"no container found from image nginxproxy/nginx-proxy:test while resolving {domain_name!r}")
             exited_nginxproxy_containers = docker_client.containers.list(filters={"status": "exited", "ancestor": "nginxproxy/nginx-proxy:test"})
             if len(exited_nginxproxy_containers) > 0:
                 exited_nginxproxy_container_logs = exited_nginxproxy_containers[0].logs()
-                log.warn(f"nginxproxy/nginx-proxy:test container might have exited unexpectedly. Container logs: " + "\n" + exited_nginxproxy_container_logs.decode())
+                log.warning(f"nginxproxy/nginx-proxy:test container might have exited unexpectedly. Container logs: " + "\n" + exited_nginxproxy_container_logs.decode())
             return
         nginxproxy_container = nginxproxy_containers[0]
         ip = container_ip(nginxproxy_container)
         log.info(f"resolving domain name {domain_name!r} as IP address {ip} of nginx-proxy container {nginxproxy_container.name}")
+        return ip
+
+def nginx_proxy_separate_containers_dns_resolver(domain_name):
+    """
+    if "nginx-proxy" if found in host, return the ip address of the docker container
+    labeled with "com.github.nginx-proxy.nginx-proxy.nginx".
+
+    :return: IP or None
+    """
+    log = logging.getLogger('DNS')
+    log.debug(f"nginx_proxy_separate_containers_dns_resolver({domain_name!r})")
+    if 'nginx-proxy' in domain_name:
+        nginx_containers = docker_client.containers.list(filters={"status": "running", "label": "com.github.nginx-proxy.nginx-proxy.nginx"})
+        if len(nginx_containers) == 0:
+            log.info(f"no container labeled with com.github.nginx-proxy.nginx-proxy.nginx found while resolving {domain_name!r}")
+            exited_nginx_containers = docker_client.containers.list(filters={"status": "exited", "label": "com.github.nginx-proxy.nginx-proxy.nginx"})
+            if len(exited_nginx_containers) > 0:
+                exited_nginx_container_logs = exited_nginx_containers[0].logs()
+                log.warning(f"nginx container might have exited unexpectedly. Container logs: " + "\n" + exited_nginx_container_logs.decode())
+            return
+        nginx_container = nginx_containers[0]
+        ip = container_ip(nginx_container)
+        log.info(f"resolving domain name {domain_name!r} as IP address {ip} of nginx container {nginx_container.name}")
         return ip
 
 def docker_container_dns_resolver(domain_name):
@@ -231,7 +257,7 @@ def docker_container_dns_resolver(domain_name):
     try:
         container = docker_client.containers.get(container_name)
     except docker.errors.NotFound:
-        log.warn(f"container named {container_name!r} not found while resolving {domain_name!r}")
+        log.warning(f"container named {container_name!r} not found while resolving {domain_name!r}")
         return
     log.debug(f"container {container.name!r} found ({container.short_id})")
 
@@ -244,7 +270,8 @@ def monkey_patch_urllib_dns_resolver():
     """
     Alter the behavior of the urllib DNS resolver so that any domain name
     containing substring 'nginx-proxy' will resolve to the IP address
-    of the container created from image 'nginxproxy/nginx-proxy:test'.
+    of the container created from image 'nginxproxy/nginx-proxy:test' or
+    labeled with 'com.github.nginx-proxy.nginx-proxy.nginx'.
     """
     prv_getaddrinfo = socket.getaddrinfo
     dns_cache = {}
@@ -258,7 +285,9 @@ def monkey_patch_urllib_dns_resolver():
             pytest.skip("This system does not support IPv6")
 
         # custom DNS resolvers
-        ip = nginx_proxy_dns_resolver(args[0])
+        ip = nginx_proxy_single_container_dns_resolver(args[0])
+        if ip is None:
+            ip = nginx_proxy_separate_containers_dns_resolver(args[0])
         if ip is None:
             ip = docker_container_dns_resolver(args[0])
         if ip is not None:
@@ -319,10 +348,11 @@ def docker_compose_down(compose_file='docker-compose.yml'):
 
 def wait_for_nginxproxy_to_be_ready():
     """
-    If one (and only one) container started from image nginxproxy/nginx-proxy:test is found,
-    wait for its log to contain substring "Watching docker events"
+    If one (and only one) container started from image nginxproxy/nginx-proxy:test
+    or nginxproxy/nginx-proxy:test-dockergen is found, wait for its log to contain
+    substring "Watching docker events"
     """
-    containers = docker_client.containers.list(filters={"ancestor": "nginxproxy/nginx-proxy:test"})
+    containers = docker_client.containers.list(filters={"ancestor": f"nginxproxy/nginx-proxy:{IMAGE_TAG}"})
     if len(containers) != 1:
         return
     container = containers[0]
@@ -371,7 +401,7 @@ def connect_to_network(network):
         try:
             my_container = docker_client.containers.get(test_container)
         except docker.errors.NotFound:
-            logging.warn(f"container {test_container} not found")
+            logging.warning(f"container {test_container} not found")
             return
 
         # figure out our container networks
@@ -399,7 +429,7 @@ def disconnect_from_network(network=None):
         try:
             my_container = docker_client.containers.get(test_container)
         except docker.errors.NotFound:
-            logging.warn(f"container {test_container} not found")
+            logging.warning(f"container {test_container} not found")
             return
 
         # figure out our container networks
@@ -527,7 +557,11 @@ def acme_challenge_path():
 def pytest_runtest_logreport(report):
     if report.failed:
         if isinstance(report.longrepr, ReprExceptionInfo):
-            test_containers = docker_client.containers.list(all=True, filters={"ancestor": "nginxproxy/nginx-proxy:test"})
+            nginx_containers = docker_client.containers.list(all=True, filters={"label": "com.github.nginx-proxy.nginx-proxy.nginx"})
+            for container in nginx_containers:
+                report.longrepr.addsection('nginx container logs', container.logs())
+
+            test_containers = docker_client.containers.list(all=True, filters={"ancestor": f"nginxproxy/nginx-proxy:{IMAGE_TAG}"})
             for container in test_containers:
                 report.longrepr.addsection('nginx-proxy logs', container.logs())
                 report.longrepr.addsection('nginx-proxy conf', get_nginx_conf_from_container(container))
@@ -553,9 +587,9 @@ def pytest_runtest_setup(item):
 ###############################################################################
 
 try:
-    docker_client.images.get('nginxproxy/nginx-proxy:test')
+    docker_client.images.get(f"nginxproxy/nginx-proxy:{IMAGE_TAG}")
 except docker.errors.ImageNotFound:
-    pytest.exit("The docker image 'nginxproxy/nginx-proxy:test' is missing")
+    pytest.exit(f"The docker image 'nginxproxy/nginx-proxy:{IMAGE_TAG}' is missing")
 
 if Version(docker.__version__) < Version("7.0.0"):
     pytest.exit("This test suite is meant to work with the python docker module v7.0.0 or later")
