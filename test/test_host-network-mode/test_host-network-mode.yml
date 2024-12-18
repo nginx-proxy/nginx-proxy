@@ -3,6 +3,11 @@ networks:
     internal: true
   net2:
 
+
+volumes:
+  nginx_conf:
+
+
 services:
   bridge-network:
     image: web
@@ -21,9 +26,35 @@ services:
     network_mode: host
 
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
     networks:
       - net1
       - net2
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+    networks:
+      - net1
+      - net2
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+    networks:
+      - net1
+      - net2
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"
