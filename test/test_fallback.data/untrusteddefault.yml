@@ -1,11 +1,39 @@
+volumes:
+  nginx_conf:
+
+
 services:
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./withdefault.certs:/etc/nginx/certs:ro
-    environment:
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+      - &certs ./withdefault.certs:/etc/nginx/certs:ro
+    environment: &nginxProxyEnv
       TRUST_DEFAULT_CERT: "false"
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+      - *certs
+    environment:
+      <<: *nginxProxyEnv
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+      - *certs
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"
 
   https-and-http:
     image: web

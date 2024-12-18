@@ -1,11 +1,39 @@
+volumes:
+  nginx_conf:
+
+
 services:
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./withdefault.certs:/etc/nginx/certs:ro
-    environment:
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+      - &certs ./withdefault.certs:/etc/nginx/certs:ro
+    environment: &nginxProxyEnv
       ENABLE_HTTP_ON_MISSING_CERT: "false"
+
+  sutdockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    environment:
+      <<: *nginxProxyEnv
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+      - *certs
+
+  sutnginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+      - *certs
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"
 
   nohttp-missing-cert-disabled:
     image: web
