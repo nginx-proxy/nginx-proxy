@@ -1,3 +1,7 @@
+volumes:
+  nginx_conf:
+
+
 services:
   web1:
     image: web
@@ -16,8 +20,30 @@ services:
       VIRTUAL_HOST: web2.nginx-proxy.tld
 
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/f00.sock:ro
+    environment:
+      DOCKER_HOST: unix:///f00.sock
+
+  sutnginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - nginx_conf:/etc/nginx/conf.d:ro
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"
+
+  sutdockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - /var/run/docker.sock:/f00.sock:ro
+      - nginx_conf:/etc/nginx/conf.d
     environment:
       DOCKER_HOST: unix:///f00.sock

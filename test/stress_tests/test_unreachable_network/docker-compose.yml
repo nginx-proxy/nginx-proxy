@@ -2,8 +2,10 @@ networks:
   netA:
   netB:
 
+
 volumes:
   nginx_conf:
+
 
 services:
   reverseproxy:
@@ -15,7 +17,7 @@ services:
     image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-  
+
   reverseproxynginx:
     profiles:
       - separateContainers

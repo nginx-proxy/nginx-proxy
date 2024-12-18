@@ -1,8 +1,34 @@
+volumes:
+  nginx_conf:
+
+
 services:
   nginx-proxy:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./my_custom_proxy_settings_f00.conf:/etc/nginx/proxy.conf:ro
+
+  nginx-proxy-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - nginx_conf:/etc/nginx/conf.d:ro
+      - ./my_custom_proxy_settings_f00.conf:/etc/nginx/proxy.conf:ro
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"
+
+  nginx-proxy-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - nginx_conf:/etc/nginx/conf.d
       - ./my_custom_proxy_settings_f00.conf:/etc/nginx/proxy.conf:ro
 
   web1:

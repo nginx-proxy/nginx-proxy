@@ -1,6 +1,7 @@
 volumes:
   nginx_conf:
 
+
 services:
   web1:
     image: web
@@ -48,7 +49,7 @@ services:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./certs:/etc/nginx/certs:ro
       - ./acme_root:/usr/share/nginx/html:ro
-  
+
   sutnginx:
     profiles:
       - separateContainers
