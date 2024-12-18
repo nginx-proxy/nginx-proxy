@@ -24,9 +24,19 @@ services:
       - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/f00.sock:ro
-    environment:
+      - &dockerSocket /var/run/docker.sock:/f00.sock:ro
+    environment: &nginxProxyEnv
       DOCKER_HOST: unix:///f00.sock
+
+  sutdockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+    environment:
+      <<: *nginxProxyEnv
 
   sutnginx:
     profiles:
@@ -34,16 +44,6 @@ services:
     container_name: nginx-proxy
     image: nginx:alpine
     volumes:
-      - nginx_conf:/etc/nginx/conf.d:ro
+      - *confVolume
     labels:
       - "com.github.nginx-proxy.nginx-proxy.nginx"
-
-  sutdockergen:
-    profiles:
-      - separateContainers
-    image: nginxproxy/nginx-proxy:test-dockergen
-    volumes:
-      - /var/run/docker.sock:/f00.sock:ro
-      - nginx_conf:/etc/nginx/conf.d
-    environment:
-      DOCKER_HOST: unix:///f00.sock

@@ -43,12 +43,23 @@ services:
     profiles:
       - singleContainer
     image: nginxproxy/nginx-proxy:test
-    environment:
+    environment: &nginxProxyEnv
       ACME_HTTP_CHALLENGE_LOCATION: "false"
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs:/etc/nginx/certs:ro
-      - ./acme_root:/usr/share/nginx/html:ro
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+      - &certs ./certs:/etc/nginx/certs:ro
+      - &acmeRoot ./acme_root:/usr/share/nginx/html:ro
+
+  sutdockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    environment:
+      <<: *nginxProxyEnv
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+      - *certs
 
   sutnginx:
     profiles:
@@ -56,19 +67,8 @@ services:
     container_name: nginx-proxy
     image: nginx:alpine
     volumes:
-      - nginx_conf:/etc/nginx/conf.d:ro
-      - ./certs:/etc/nginx/certs:ro
-      - ./acme_root:/usr/share/nginx/html:ro
+      - *confVolume
+      - *certs
+      - *acmeRoot
     labels:
       - "com.github.nginx-proxy.nginx-proxy.nginx"
-
-  sutdockergen:
-    profiles:
-      - separateContainers
-    image: nginxproxy/nginx-proxy:test-dockergen
-    environment:
-      ACME_HTTP_CHALLENGE_LOCATION: "false"
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - nginx_conf:/etc/nginx/conf.d
-      - ./certs:/etc/nginx/certs:ro

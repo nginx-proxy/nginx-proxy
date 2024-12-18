@@ -8,9 +8,19 @@ services:
       - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./my_custom_proxy_settings_f00.conf:/etc/nginx/vhost.d/web1.nginx-proxy.example:ro
-      - ./my_custom_proxy_settings_bar.conf:/etc/nginx/vhost.d/561032515ede3ab3a015edfb244608b72409c430:ro
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+      - &vhostConf ./my_custom_proxy_settings_f00.conf:/etc/nginx/vhost.d/web1.nginx-proxy.example:ro
+      - &regexConf ./my_custom_proxy_settings_bar.conf:/etc/nginx/vhost.d/561032515ede3ab3a015edfb244608b72409c430:ro
+
+  nginx-proxy-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+      - *vhostConf
+      - *regexConf
 
   nginx-proxy-nginx:
     profiles:
@@ -18,21 +28,11 @@ services:
     container_name: nginx-proxy
     image: nginx:alpine
     volumes:
-      - nginx_conf:/etc/nginx/conf.d:ro
-      - ./my_custom_proxy_settings_f00.conf:/etc/nginx/vhost.d/web1.nginx-proxy.example:ro
-      - ./my_custom_proxy_settings_bar.conf:/etc/nginx/vhost.d/561032515ede3ab3a015edfb244608b72409c430:ro
+      - *confVolume
+      - *vhostConf
+      - *regexConf
     labels:
       - "com.github.nginx-proxy.nginx-proxy.nginx"
-
-  nginx-proxy-dockergen:
-    profiles:
-      - separateContainers
-    image: nginxproxy/nginx-proxy:test-dockergen
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - nginx_conf:/etc/nginx/conf.d
-      - ./my_custom_proxy_settings_f00.conf:/etc/nginx/vhost.d/web1.nginx-proxy.example:ro
-      - ./my_custom_proxy_settings_bar.conf:/etc/nginx/vhost.d/561032515ede3ab3a015edfb244608b72409c430:ro
 
   web1:
     image: web

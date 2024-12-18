@@ -8,9 +8,19 @@ services:
       - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./my_custom_proxy_settings_f00.conf:/etc/nginx/vhost.d/default_location:ro
-      - ./my_custom_proxy_settings_bar.conf:/etc/nginx/vhost.d/web3.nginx-proxy.example_location:ro
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+      - &defaultLocation ./my_custom_proxy_settings_f00.conf:/etc/nginx/vhost.d/default_location:ro
+      - &vhostLocation ./my_custom_proxy_settings_bar.conf:/etc/nginx/vhost.d/web3.nginx-proxy.example_location:ro
+
+  nginx-proxy-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+      - *defaultLocation
+      - *vhostLocation
 
   nginx-proxy-nginx:
     profiles:
@@ -18,21 +28,11 @@ services:
     container_name: nginx-proxy
     image: nginx:alpine
     volumes:
-      - nginx_conf:/etc/nginx/conf.d:ro
-      - ./my_custom_proxy_settings_f00.conf:/etc/nginx/vhost.d/default_location:ro
-      - ./my_custom_proxy_settings_bar.conf:/etc/nginx/vhost.d/web3.nginx-proxy.example_location:ro
+      - *confVolume
+      - *defaultLocation
+      - *vhostLocation
     labels:
       - "com.github.nginx-proxy.nginx-proxy.nginx"
-
-  nginx-proxy-dockergen:
-    profiles:
-      - separateContainers
-    image: nginxproxy/nginx-proxy:test-dockergen
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - nginx_conf:/etc/nginx/conf.d
-      - ./my_custom_proxy_settings_f00.conf:/etc/nginx/vhost.d/default_location:ro
-      - ./my_custom_proxy_settings_bar.conf:/etc/nginx/vhost.d/web3.nginx-proxy.example_location:ro
 
   web1:
     image: web

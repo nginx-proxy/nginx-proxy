@@ -1,8 +1,32 @@
+volumes:
+  nginx_conf:
+
+
 services:
   nginx-proxy:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+
+  nginx-proxy-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+
+  nginx-proxy-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"
 
   debug_disabled1:
     image: web
@@ -11,7 +35,7 @@ services:
     environment:
       WEB_PORTS: 81
       VIRTUAL_HOST: disabled1.debug.nginx-proxy.example
-  
+
   debug_disabled2:
     image: web
     expose:
@@ -19,7 +43,6 @@ services:
     environment:
       WEB_PORTS: 82
       VIRTUAL_HOST: disabled2.debug.nginx-proxy.example
-
 
   debug_enabled:
     image: web

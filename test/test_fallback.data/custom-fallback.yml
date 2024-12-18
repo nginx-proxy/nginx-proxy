@@ -1,9 +1,35 @@
+volumes:
+  nginx_conf:
+
+
 services:
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./custom-fallback.conf:/etc/nginx/conf.d/zzz-custom-fallback.conf:ro
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+      - &customFallback ./custom-fallback.conf:/etc/nginx/conf.d/zzz-custom-fallback.conf:ro
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+      - *customFallback
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+      - *customFallback
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"
 
   http-only:
     image: web

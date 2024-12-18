@@ -16,7 +16,19 @@ services:
       - netA
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+
+  docker-gen:
+    profiles:
+      - separateContainers
+    networks:
+      - netA
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+    environment:
+      NGINX_CONTAINER_NAME: reverseproxy
 
   reverseproxynginx:
     profiles:
@@ -26,21 +38,9 @@ services:
       - netA
     image: nginx:alpine
     volumes:
-      - nginx_conf:/etc/nginx/conf.d:ro
+      - *confVolume
     labels:
       - "com.github.nginx-proxy.nginx-proxy.nginx"
-
-  docker-gen:
-    profiles:
-      - separateContainers
-    networks:
-      - netA
-    image: nginxproxy/nginx-proxy:test-dockergen
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - nginx_conf:/etc/nginx/conf.d
-    environment:
-      NGINX_CONTAINER_NAME: reverseproxy
 
   webA:
     networks:
