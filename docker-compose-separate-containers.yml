@@ -1,4 +1,5 @@
-version: "2"
+volumes:
+  nginx_conf:
 
 services:
   nginx:
@@ -7,17 +8,15 @@ services:
     ports:
       - "80:80"
     volumes:
-      - /etc/nginx/conf.d
+      - nginx_conf:/etc/nginx/conf.d:ro
 
   dockergen:
     image: nginxproxy/docker-gen
-    command: -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl
-      /etc/nginx/conf.d/default.conf
-    volumes_from:
-      - nginx
+    command: -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl
+      - nginx_conf:/etc/nginx/conf.d
 
   whoami:
     image: jwilder/whoami

@@ -1150,8 +1150,6 @@ docker run -e VIRTUAL_HOST=foo.bar.com  ...
 ## Docker Compose
 
 ```yaml
-version: "2"
-
 services:
   nginx-proxy:
     image: nginxproxy/nginx-proxy

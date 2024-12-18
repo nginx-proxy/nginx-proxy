@@ -1,5 +1,3 @@
-version: "2"
-
 services:
   sut:
     image: nginxproxy/nginx-proxy:test

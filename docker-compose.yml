@@ -1,5 +1,3 @@
-version: "2"
-
 services:
   nginx-proxy:
     image: nginxproxy/nginx-proxy

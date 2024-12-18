@@ -1,10 +1,8 @@
-version: "2"
-
 networks:
-  net1: {}
-  net2: {}
-  net3a: {}
-  net3b: {}
+  net1:
+  net2:
+  net3a:
+  net3b:
 
 services:
   nginx-proxy:

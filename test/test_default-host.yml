@@ -1,5 +1,3 @@
-version: "2"
-
 services:
   # GIVEN a webserver with VIRTUAL_HOST set to web1.tld
   web1:

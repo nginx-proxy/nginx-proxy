@@ -1,5 +1,3 @@
-version: "2"
-
 services:
   merged-singleport:
     image: web

@@ -1,5 +1,3 @@
-version: "2"
-
 networks:
   net1:
     enable_ipv6: true
