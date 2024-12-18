@@ -1,3 +1,6 @@
+volumes:
+  nginx_conf:
+
 services:
   web1:
     image: web
@@ -17,6 +20,8 @@ services:
       HTTPS_METHOD: noredirect
 
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     environment:
       ACME_HTTP_CHALLENGE_LOCATION: "legacy"
@@ -24,3 +29,26 @@ services:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./certs:/etc/nginx/certs:ro
       - ./acme_root:/usr/share/nginx/html:ro
+  
+  sutnginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"
+    volumes:
+      - nginx_conf:/etc/nginx/conf.d:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./acme_root:/usr/share/nginx/html:ro
+
+  sutdockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    environment:
+      ACME_HTTP_CHALLENGE_LOCATION: "legacy"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - nginx_conf:/etc/nginx/conf.d
+      - ./certs:/etc/nginx/certs:ro
