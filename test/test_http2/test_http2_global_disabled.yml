@@ -1,3 +1,7 @@
+volumes:
+  nginx_conf:
+
+
 services:
   http2-global-disabled:
     image: web
@@ -8,8 +12,30 @@ services:
       VIRTUAL_HOST: http2-global-disabled.nginx-proxy.tld
 
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-    environment:
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+    environment: &nginxProxyEnv
       ENABLE_HTTP2: "false"
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+    environment:
+      <<: *nginxProxyEnv
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"

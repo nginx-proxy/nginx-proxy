@@ -5,6 +5,10 @@ networks:
       config:
         - subnet: fd00:1::/80
 
+volumes:
+  nginx_conf:
+
+
 services:
   web1:
     image: web
@@ -27,10 +31,36 @@ services:
       - net1
 
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-    environment:
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+    environment: &nginxProxyEnv
       ENABLE_IPV6: "true"
+    networks:
+      - net1
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+    environment:
+      <<: *nginxProxyEnv
+    networks:
+      - net1
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"
     networks:
       - net1

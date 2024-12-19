@@ -1,3 +1,7 @@
+volumes:
+  nginx_conf:
+
+
 services:
   http3-global-disabled:
     image: web
@@ -8,8 +12,30 @@ services:
       VIRTUAL_HOST: http3-global-disabled.nginx-proxy.tld
 
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
     #environment:
     #ENABLE_HTTP3: "false"    #Disabled by default
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+    #environment:
+    #ENABLE_HTTP3: "false"    #Disabled by default
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"

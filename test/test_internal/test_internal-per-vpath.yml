@@ -1,3 +1,7 @@
+volumes:
+  nginx_conf:
+
+
 services:
   web1:
     image: web
@@ -21,7 +25,29 @@ services:
       VIRTUAL_DEST: /
 
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./network_internal.conf:/etc/nginx/network_internal.conf:ro
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+      - &networkInternal ./network_internal.conf:/etc/nginx/network_internal.conf:ro
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+      - *networkInternal
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+      - *networkInternal
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"

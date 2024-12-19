@@ -10,6 +10,10 @@ networks:
         - subnet: 172.16.20.0/24
         - subnet: fd00:cafe:face:feed::/64
 
+volumes:
+  nginx_conf:
+
+
 services:
   ipv4only:
     image: web
@@ -32,12 +36,40 @@ services:
         ipv6_address: fd00:cafe:face:feed::2
 
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-    networks:
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+    networks: &nginxProxyNetworks
       ipv4net:
         ipv4_address: 172.16.10.3
       dualstacknet:
         ipv4_address: 172.16.20.3
         ipv6_address: fd00:cafe:face:feed::3
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+    networks:
+      <<: *nginxProxyNetworks
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"
+    networks:
+      ipv4net:
+        ipv4_address: 172.16.10.4
+      dualstacknet:
+        ipv4_address: 172.16.20.4
+        ipv6_address: fd00:cafe:face:feed::4
