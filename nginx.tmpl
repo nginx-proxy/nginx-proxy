@@ -289,9 +289,11 @@
     {{- else }}
         {{- $keepalive := $vpath.keepalive }}
     location {{ .Path }} {
-        {{- if eq $vpath.network_tag "internal" }}
-        # Only allow traffic from internal clients
-        include /etc/nginx/network_internal.conf;
+        {{- if not (eq $vpath.network_tag "external") }}
+            {{- if exists (printf "/etc/nginx/network_%s.conf" $vpath.network_tag) }}
+        # Only allow traffic from {{ $vpath.network_tag }} clients
+        include {{ printf "/etc/nginx/network_%s.conf" $vpath.network_tag }};
+            {{- end }}
         {{- end }}
 
         {{ $proto := $vpath.proto }}
