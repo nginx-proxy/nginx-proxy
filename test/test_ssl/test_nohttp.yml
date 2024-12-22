@@ -1,3 +1,7 @@
+volumes:
+  nginx_conf:
+
+
 services:
   web2:
     image: web
@@ -9,8 +13,32 @@ services:
       HTTPS_METHOD: nohttp
 
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs:/etc/nginx/certs:ro
-      - ./acme_root:/usr/share/nginx/html:ro
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+      - &certs ./certs:/etc/nginx/certs:ro
+      - &acmeRoot ./acme_root:/usr/share/nginx/html:ro
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+      - *certs
+      - *acmeRoot
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+      - *certs
+      - *acmeRoot
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"

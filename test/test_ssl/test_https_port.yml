@@ -1,3 +1,7 @@
+volumes:
+  nginx_conf:
+
+
 services:
   web1:
     image: web
@@ -8,11 +12,36 @@ services:
       VIRTUAL_HOST: "*.nginx-proxy.tld"
 
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs:/etc/nginx/certs:ro
-      - ./acme_root:/usr/share/nginx/html:ro
-    environment:
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+      - &certs ./certs:/etc/nginx/certs:ro
+      - &acmeRoot ./acme_root:/usr/share/nginx/html:ro
+    environment: &nginxProxyEnv
       HTTP_PORT: 8080
       HTTPS_PORT: 8443
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+      - *certs
+      - *acmeRoot
+    environment: *nginxProxyEnv
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+      - *certs
+      - *acmeRoot
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"

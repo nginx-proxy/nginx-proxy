@@ -1,10 +1,35 @@
+volumes:
+  nginx_conf:
+
+
 services:
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-    environment:
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+    environment: &nginxProxyEnv
       DEFAULT_ROOT: none
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+    environment: *nginxProxyEnv
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"
 
   web:
     image: web

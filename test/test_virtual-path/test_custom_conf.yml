@@ -1,3 +1,7 @@
+volumes:
+  nginx_conf:
+
+
 services:
   foo:
     image: web
@@ -37,11 +41,38 @@ services:
       VIRTUAL_PATH: "~ ^/(web3|alt)/"
 
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
-    environment:
-      DEFAULT_ROOT: 418
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./foo.conf:/etc/nginx/vhost.d/foo.nginx-proxy.test:ro
-      - ./bar.conf:/etc/nginx/vhost.d/nginx-proxy.test_918d687a929083edd0c7224ee2293e0e7c062ab4_location:ro
-      - ./alternate.conf:/etc/nginx/vhost.d/nginx-proxy.test_7fb22b74bbdf907425dbbad18e4462565cada230_location:ro
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+      - &fooConf ./foo.conf:/etc/nginx/vhost.d/foo.nginx-proxy.test:ro
+      - &barConf ./bar.conf:/etc/nginx/vhost.d/nginx-proxy.test_918d687a929083edd0c7224ee2293e0e7c062ab4_location:ro
+      - &alternateConf ./alternate.conf:/etc/nginx/vhost.d/nginx-proxy.test_7fb22b74bbdf907425dbbad18e4462565cada230_location:ro
+    environment: &nginxProxyEnv
+      DEFAULT_ROOT: 418
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+      - *fooConf
+      - *barConf
+      - *alternateConf
+    environment: *nginxProxyEnv
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+      - *fooConf
+      - *barConf
+      - *alternateConf
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"

@@ -1,33 +1,62 @@
+volumes:
+  nginx_conf:
+
+
 services:
-  base: 
-      image: web
-      environment:
-        WEB_PORTS: "80"
-        VIRTUAL_HOST: "nginx-proxy.tld"
+  base:
+    image: web
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: "nginx-proxy.tld"
 
   www:
-      image: web
-      environment:
-        WEB_PORTS: "80"
-        VIRTUAL_HOST: "www.nginx-proxy.tld"
-  
+    image: web
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: "www.nginx-proxy.tld"
+
   sub-www:
-      image: web
-      environment:
-        WEB_PORTS: "80"
-        VIRTUAL_HOST: "subdomain.www.nginx-proxy.tld"
+    image: web
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: "subdomain.www.nginx-proxy.tld"
 
   web1:
-      image: web
-      environment:
-        WEB_PORTS: "80"
-        VIRTUAL_HOST: "web1.nginx-proxy.tld"
+    image: web
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: "web1.nginx-proxy.tld"
 
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./cert_selection:/etc/nginx/certs:ro
-      - ./acme_root:/usr/share/nginx/html:ro
-    environment:
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+      - &certs ./cert_selection:/etc/nginx/certs:ro
+      - &acmeRoot ./acme_root:/usr/share/nginx/html:ro
+    environment: &nginxProxyEnv
       DEBUG_ENDPOINT: "true"
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+      - *certs
+      - *acmeRoot
+    environment: *nginxProxyEnv
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+      - *certs
+      - *acmeRoot
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"

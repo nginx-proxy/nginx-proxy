@@ -1,3 +1,7 @@
+volumes:
+  nginx_conf:
+
+
 services:
   web1:
     image: web
@@ -46,7 +50,29 @@ services:
       com.github.nginx-proxy.nginx-proxy.http3.enable: "true"
 
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs:/etc/nginx/certs:ro
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+      - &certs ./cert_selection:/etc/nginx/certs:ro
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+      - *certs
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+      - *certs
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"

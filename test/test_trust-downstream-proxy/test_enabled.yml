@@ -1,3 +1,7 @@
+volumes:
+  nginx_conf:
+
+
 services:
   web:
     image: web
@@ -9,10 +13,35 @@ services:
       HTTPS_METHOD: noredirect
 
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
-    environment:
-      TRUST_DOWNSTREAM_PROXY: "true"
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs/web.nginx-proxy.tld.crt:/etc/nginx/certs/web.nginx-proxy.tld.crt:ro
-      - ./certs/web.nginx-proxy.tld.key:/etc/nginx/certs/web.nginx-proxy.tld.key:ro
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+      - &certificate ./certs/web.nginx-proxy.tld.crt:/etc/nginx/certs/web.nginx-proxy.tld.crt:ro
+      - &privateKey ./certs/web.nginx-proxy.tld.key:/etc/nginx/certs/web.nginx-proxy.tld.key:ro
+    environment: &nginxProxyEnv
+      TRUST_DOWNSTREAM_PROXY: "true"
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+      - *certificate
+      - *privateKey
+    environment: *nginxProxyEnv
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+      - *certificate
+      - *privateKey
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"

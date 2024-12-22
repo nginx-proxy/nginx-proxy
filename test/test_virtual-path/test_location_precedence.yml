@@ -1,3 +1,7 @@
+volumes:
+  nginx_conf:
+
+
 services:
   web1:
     image: web
@@ -30,9 +34,35 @@ services:
       VIRTUAL_DEST: "/"
 
   sut:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./default.conf:/etc/nginx/vhost.d/default_location:ro
-      - ./host.conf:/etc/nginx/vhost.d/bar.nginx-proxy.test_location:ro
-      - ./path.conf:/etc/nginx/vhost.d/bar.nginx-proxy.test_99f2db0ed8aa95dbb5b87fca79c7eff2ff6bb8bd_location:ro
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+      - &defaultConf ./default.conf:/etc/nginx/vhost.d/default_location:ro
+      - &hostConf ./host.conf:/etc/nginx/vhost.d/bar.nginx-proxy.test_location:ro
+      - &pathConf ./path.conf:/etc/nginx/vhost.d/bar.nginx-proxy.test_99f2db0ed8aa95dbb5b87fca79c7eff2ff6bb8bd_location:ro
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+      - *defaultConf
+      - *hostConf
+      - *pathConf
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+      - *defaultConf
+      - *hostConf
+      - *pathConf
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"
