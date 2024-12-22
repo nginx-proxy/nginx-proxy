@@ -1,0 +1,65 @@
+volumes:
+  nginx_conf:
+
+
+services:
+  default-80:
+    image: web
+    expose:
+      - "80"
+      - "81"
+    environment:
+      WEB_PORTS: "80 81"
+      VIRTUAL_HOST: "default-80.nginx-proxy.tld"
+
+  default-exposed:
+    image: web
+    expose:
+      - "81"
+    environment:
+      WEB_PORTS: "81"
+      VIRTUAL_HOST: "default-exposed.nginx-proxy.tld"
+
+  virtual-port:
+    image: web
+    expose:
+      - "80"
+      - "90"
+    environment:
+      WEB_PORTS: "80 90"
+      VIRTUAL_HOST: "virtual-port.nginx-proxy.tld"
+      VIRTUAL_PORT: "90"
+
+  wrong-virtual-port:
+    image: web
+    expose:
+      - "81"
+    environment:
+      WEB_PORTS: "81"
+      VIRTUAL_HOST: "wrong-virtual-port.nginx-proxy.tld"
+      VIRTUAL_PORT: "91"
+
+  sut:
+    profiles:
+      - singleContainer
+    image: nginxproxy/nginx-proxy:test
+    volumes:
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"
