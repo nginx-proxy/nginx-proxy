@@ -1,3 +1,7 @@
+volumes:
+  nginx_conf:
+
+
 services:
   web1:
     image: web
@@ -8,9 +12,31 @@ services:
       VIRTUAL_HOST: nginx-proxy.test
 
   sut:
-    container_name: sut
+    profiles:
+      - singleContainer
+    container_name: nginx-proxy
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-    environment:
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+    environment: &nginxProxyEnv
       LOG_FORMAT: '{"time_local":"$$time_iso8601","remote_addr":"$$remote_addr","request":"$$request","upstream_addr":"$$upstream_addr"}'
+
+  sut-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+    environment:
+      <<: *nginxProxyEnv
+
+  sut-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"

@@ -4,16 +4,45 @@ networks:
   net3a:
   net3b:
 
+
+volumes:
+  nginx_conf:
+
+
 services:
   nginx-proxy:
+    profiles:
+      - singleContainer
     image: nginxproxy/nginx-proxy:test
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-    networks:
+      - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
+    networks: &nginxProxyNetworks
       - net1
       - net2
       - net3a
       - net3b
+
+  nginx-proxy-dockergen:
+    profiles:
+      - separateContainers
+    image: nginxproxy/nginx-proxy:test-dockergen
+    volumes:
+      - &confVolume nginx_conf:/etc/nginx/conf.d
+      - *dockerSocket
+    networks:
+      <<: *nginxProxyNetworks
+
+  nginx-proxy-nginx:
+    profiles:
+      - separateContainers
+    container_name: nginx-proxy
+    image: nginx:alpine
+    volumes:
+      - *confVolume
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"
+    networks:
+      <<: *nginxProxyNetworks
 
   web1:
     image: web

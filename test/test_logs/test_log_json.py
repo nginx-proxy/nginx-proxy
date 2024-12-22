@@ -7,7 +7,7 @@ def test_log_json(docker_compose, nginxproxy):
     r = nginxproxy.get("http://nginx-proxy.test/port")
     assert r.status_code == 200
     assert r.text == "answer from port 81\n"
-    sut_container = docker_compose.containers.get("sut")
+    sut_container = docker_compose.containers.get("nginx-proxy")
     docker_logs = sut_container.logs(stdout=True, stderr=True, stream=False, follow=False)
     docker_logs = docker_logs.decode("utf-8").splitlines()
     docker_logs = [line for line in docker_logs if "{\"time_local\":" in line]
