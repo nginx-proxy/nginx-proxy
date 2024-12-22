@@ -55,7 +55,7 @@ services:
     image: nginxproxy/nginx-proxy:test
     volumes:
       - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
-      - &certs ./cert_selection:/etc/nginx/certs:ro
+      - &certs ./certs:/etc/nginx/certs:ro
 
   sut-dockergen:
     profiles:

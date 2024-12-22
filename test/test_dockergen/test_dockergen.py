@@ -1,12 +1,10 @@
-import docker
+import os
 import pytest
-from packaging.version import Version
 
 
-raw_version = docker.from_env().version()["Version"]
 pytestmark = pytest.mark.skipif(
-    Version(raw_version) < Version("1.13"),
-    reason="Docker compose syntax v3 requires docker engine v1.13 or later (got {raw_version})"
+    os.environ.get("COMPOSE_PROFILES") == "separateContainers",
+    reason="This test does not need to run in separateContainers mode"
 )
 
 

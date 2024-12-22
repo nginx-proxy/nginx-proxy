@@ -1,3 +1,4 @@
+import os
 import re
 import subprocess
 
@@ -146,6 +147,11 @@ def get_env(sut_container, var):
 # Tests
 #
 ###############################################################################
+
+pytestmark = pytest.mark.skipif(
+    condition = os.environ.get("COMPOSE_PROFILES") == "separateContainers",
+    reason = "DH parameters generation is not supported in separate containers mode"
+)
 
 def test_default_dhparam_is_ffdhe4096(docker_compose):
     container_name="dh-default"

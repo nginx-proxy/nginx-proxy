@@ -1,9 +1,13 @@
+volumes:
+  nginx_conf_dockergen:
+
+
 services:
   nginx:
     image: nginx
     container_name: nginx
     volumes:
-      - nginx_conf:/etc/nginx/conf.d:ro
+      - nginx_conf_dockergen:/etc/nginx/conf.d:ro
 
   dockergen:
     image: nginxproxy/docker-gen
@@ -11,7 +15,7 @@ services:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ../../nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl
-      - nginx_conf:/etc/nginx/conf.d
+      - nginx_conf_dockergen:/etc/nginx/conf.d
 
   web:
     image: web
@@ -21,6 +25,3 @@ services:
     environment:
       WEB_PORTS: 80
       VIRTUAL_HOST: whoami.nginx.container.docker
-
-volumes:
-  nginx_conf:

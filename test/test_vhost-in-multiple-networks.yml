@@ -35,6 +35,7 @@ services:
     image: nginx:alpine
     volumes:
       - *confVolume
+    networks: *nginxProxyNetworks
     labels:
       - "com.github.nginx-proxy.nginx-proxy.nginx"
 

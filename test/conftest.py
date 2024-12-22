@@ -353,7 +353,11 @@ def wait_for_nginxproxy_to_be_ready():
     substring "Watching docker events"
     """
     containers = docker_client.containers.list(filters={"ancestor": f"nginxproxy/nginx-proxy:{IMAGE_TAG}"})
-    if len(containers) != 1:
+    if len(containers) > 1:
+        logging.info(f"Too many running nginxproxy/nginx-proxy:{IMAGE_TAG} containers")
+        return
+    elif len(containers) == 0:
+        logging.info(f"No running nginxproxy/nginx-proxy:{IMAGE_TAG} container")
         return
     container = containers[0]
     for line in container.logs(stream=True):
@@ -387,7 +391,7 @@ def docker_compose_file(request):
     if not os.path.isfile(docker_compose_file):
         logging.error("Could not find any docker compose file named either '{0}.yml', '{0}.yaml' or 'docker-compose.yml'".format(request.module.__name__))
 
-    logging.debug(f"using docker compose file {docker_compose_file}")
+    logging.info(f"using docker compose file {docker_compose_file}")
     return docker_compose_file
 
 
