@@ -27,8 +27,7 @@ services:
     volumes:
       - &confVolume nginx_conf:/etc/nginx/conf.d
       - *dockerSocket
-    environment:
-      <<: *nginxProxyEnv
+    environment: *nginxProxyEnv
 
   sut-nginx:
     profiles:

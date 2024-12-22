@@ -29,8 +29,7 @@ services:
     volumes:
       - &confVolume nginx_conf:/etc/nginx/conf.d
       - *dockerSocket
-    networks:
-      <<: *nginxProxyNetworks
+    networks: *nginxProxyNetworks
 
   nginx-proxy-nginx:
     profiles:
@@ -41,8 +40,7 @@ services:
       - *confVolume
     labels:
       - "com.github.nginx-proxy.nginx-proxy.nginx"
-    networks:
-      <<: *nginxProxyNetworks
+    networks: *nginxProxyNetworks
 
   web1:
     image: web

@@ -24,8 +24,7 @@ services:
     profiles:
       - separateContainers
     image: nginxproxy/nginx-proxy:test-dockergen
-    environment:
-      <<: *nginxProxyEnv
+    environment: *nginxProxyEnv
     volumes:
       - &confVolume nginx_conf:/etc/nginx/conf.d
       - *dockerSocket

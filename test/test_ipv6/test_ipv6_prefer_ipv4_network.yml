@@ -55,8 +55,7 @@ services:
     volumes:
       - &confVolume nginx_conf:/etc/nginx/conf.d
       - *dockerSocket
-    networks:
-      <<: *nginxProxyNetworks
+    networks: *nginxProxyNetworks
 
   sut-nginx:
     profiles:
