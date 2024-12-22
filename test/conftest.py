@@ -313,6 +313,7 @@ def remove_all_containers():
             continue  # pytest is running within a Docker container, so we do not want to remove that particular container
         logging.info(f"removing container {container.name}")
         container.remove(v=True, force=True)
+    docker_client.volumes.prune()
 
 
 def get_nginx_conf_from_container(container):
