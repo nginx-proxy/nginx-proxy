@@ -355,10 +355,10 @@ def wait_for_nginxproxy_to_be_ready():
     """
     containers = docker_client.containers.list(filters={"ancestor": f"nginxproxy/nginx-proxy:{IMAGE_TAG}"})
     if len(containers) > 1:
-        logging.info(f"Too many running nginxproxy/nginx-proxy:{IMAGE_TAG} containers")
+        logging.warning(f"Too many running nginxproxy/nginx-proxy:{IMAGE_TAG} containers")
         return
     elif len(containers) == 0:
-        logging.info(f"No running nginxproxy/nginx-proxy:{IMAGE_TAG} container")
+        logging.warning(f"No running nginxproxy/nginx-proxy:{IMAGE_TAG} container")
         return
     container = containers[0]
     for line in container.logs(stream=True):
