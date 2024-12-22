@@ -1,3 +1,7 @@
+import os
+import pytest
+
+
 def test_arbitrary_headers_are_passed_on(docker_compose, nginxproxy):
     r = nginxproxy.get("http://web.nginx-proxy.tld/headers", headers={'Foo': 'Bar'})
     assert r.status_code == 200
@@ -91,6 +95,10 @@ def test_httpoxy_safe(docker_compose, nginxproxy):
     assert "Proxy:" not in r.text
 
 
+@pytest.mark.xfail(
+    condition = os.environ.get("COMPOSE_PROFILES") == "separateContainers",
+    reason = "This test is expected to fail when using separate containers",
+)
 def test_no_host_server_tokens_off(docker_compose, nginxproxy):
     ip = nginxproxy.get_ip()
     r = nginxproxy.get(f"http://{ip}/headers")

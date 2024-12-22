@@ -17,10 +17,10 @@ services:
     volumes:
       - &dockerSocket /var/run/docker.sock:/tmp/docker.sock:ro
     networks: &nginxProxyNetworks
-      - net1
-      - net2
-      - net3a
-      - net3b
+      net1:
+      net2:
+      net3a:
+      net3b:
 
   nginx-proxy-dockergen:
     profiles:
