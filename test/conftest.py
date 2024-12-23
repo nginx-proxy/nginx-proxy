@@ -332,7 +332,7 @@ def get_nginx_conf_from_container(container):
 
 
 def docker_compose_up(compose_file='docker-compose.yml'):
-    composeCmd = f'{DOCKER_COMPOSE} --file {compose_file} up --remove-orphans --detach'
+    composeCmd = f'{DOCKER_COMPOSE} --file {compose_file} up --remove-orphans --force-recreate --detach'
     logging.info(composeCmd)
     
     try:
