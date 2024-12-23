@@ -480,8 +480,6 @@ class DockerComposer(contextlib.AbstractContextManager):
         self._docker_compose_file = None
 
     def compose(self, docker_compose_file):
-        if docker_compose_file == self._docker_compose_file:
-            return
         self._down()
         if docker_compose_file is None:
             return
