@@ -99,50 +99,62 @@ class requests_for_docker(object):
         nginx_proxy_containers = self.get_nginx_proxy_containers()
         return container_ip(nginx_proxy_containers[0])
 
+    def _backoff_predicate(expected_status_codes=None):
+        if expected_status_codes is not None:
+            return lambda r: r.status_code not in expected_status_codes
+        else:
+            return lambda r: r.status_code in (404, 502, 503)
+
     def get(self, *args, **kwargs):
+        _expected_status_code = kwargs.pop('expected_status_code', None)
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_exception(backoff.constant, requests.exceptions.SSLError, interval=.3, max_tries=30, jitter=None)
-            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502, 503), interval=.3, max_tries=30, jitter=None)
+            @backoff.on_predicate(backoff.constant, self._backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
             def _get(*args, **kwargs):
                 return self.session.get(*args, **kwargs)
             return _get(*args, **kwargs)
 
     def post(self, *args, **kwargs):
+        _expected_status_code = kwargs.pop('expected_status_code', None)
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_exception(backoff.constant, requests.exceptions.SSLError, interval=.3, max_tries=30, jitter=None)
-            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502, 503), interval=.3, max_tries=30, jitter=None)
+            @backoff.on_predicate(backoff.constant, self._backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
             def _post(*args, **kwargs):
                 return self.session.post(*args, **kwargs)
             return _post(*args, **kwargs)
 
     def put(self, *args, **kwargs):
+        _expected_status_code = kwargs.pop('expected_status_code', None)
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_exception(backoff.constant, requests.exceptions.SSLError, interval=.3, max_tries=30, jitter=None)
-            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502, 503), interval=.3, max_tries=30, jitter=None)
+            @backoff.on_predicate(backoff.constant, self._backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
             def _put(*args, **kwargs):
                 return self.session.put(*args, **kwargs)
             return _put(*args, **kwargs)
 
     def head(self, *args, **kwargs):
+        _expected_status_code = kwargs.pop('expected_status_code', None)
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_exception(backoff.constant, requests.exceptions.SSLError, interval=.3, max_tries=30, jitter=None)
-            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502, 503), interval=.3, max_tries=30, jitter=None)
+            @backoff.on_predicate(backoff.constant, self._backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
             def _head(*args, **kwargs):
                 return self.session.head(*args, **kwargs)
             return _head(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
+        _expected_status_code = kwargs.pop('expected_status_code', None)
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_exception(backoff.constant, requests.exceptions.SSLError, interval=.3, max_tries=30, jitter=None)
-            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502, 503), interval=.3, max_tries=30, jitter=None)
+            @backoff.on_predicate(backoff.constant, self._backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
             def _delete(*args, **kwargs):
                 return self.session.delete(*args, **kwargs)
             return _delete(*args, **kwargs)
 
     def options(self, *args, **kwargs):
+        _expected_status_code = kwargs.pop('expected_status_code', None)
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_exception(backoff.constant, requests.exceptions.SSLError, interval=.3, max_tries=30, jitter=None)
-            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502, 503), interval=.3, max_tries=30, jitter=None)
+            @backoff.on_predicate(backoff.constant, self._backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
             def _options(*args, **kwargs):
                 return self.session.options(*args, **kwargs)
             return _options(*args, **kwargs)
