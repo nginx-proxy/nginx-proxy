@@ -362,7 +362,7 @@ def wait_for_nginxproxy_to_be_ready():
         return
     container = containers[0]
     for line in container.logs(stream=True):
-        if b"Watching docker events" in line:
+        if b"Generated '/etc/nginx/conf.d/default.conf'" in line:
             logging.debug("nginx-proxy ready")
             break
 
@@ -393,7 +393,7 @@ def docker_compose_file(request):
         logging.error("Could not find any docker compose file named either '{0}.yml', '{0}.yaml' or 'docker-compose.yml'".format(request.module.__name__))
 
     logging.info(f"using docker compose file {docker_compose_file}")
-    return docker_compose_file
+    yield docker_compose_file
 
 
 def connect_to_network(network):
@@ -504,7 +504,7 @@ def docker_composer():
 
 @pytest.fixture
 def ca_root_certificate():
-    return CA_ROOT_CERTIFICATE
+    yield CA_ROOT_CERTIFICATE
 
 
 @pytest.fixture
@@ -550,7 +550,7 @@ def acme_challenge_path():
     """
     Provides fake Let's Encrypt ACME challenge path used in certain tests
     """
-    return ".well-known/acme-challenge/test-filename"
+    yield ".well-known/acme-challenge/test-filename"
 
 ###############################################################################
 #
