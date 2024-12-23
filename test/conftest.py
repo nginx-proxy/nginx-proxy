@@ -332,19 +332,23 @@ def get_nginx_conf_from_container(container):
 
 
 def docker_compose_up(compose_file='docker-compose.yml'):
-    logging.info(f'{DOCKER_COMPOSE} -f {compose_file} up -d')
+    composeCmd = f'{DOCKER_COMPOSE} --file {compose_file} up --remove-orphans --detach'
+    logging.info(composeCmd)
+    
     try:
-        subprocess.check_output(shlex.split(f'{DOCKER_COMPOSE} -f {compose_file} up -d'), stderr=subprocess.STDOUT)
+        subprocess.check_output(shlex.split(composeCmd), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        pytest.fail(f"Error while runninng '{DOCKER_COMPOSE} -f {compose_file} up -d':\n{e.output}", pytrace=False)
+        pytest.fail(f"Error while runninng '{composeCmd}:\n{e.output}", pytrace=False)
 
 
 def docker_compose_down(compose_file='docker-compose.yml'):
-    logging.info(f'{DOCKER_COMPOSE} -f {compose_file} down -v')
+    composeCmd = f'{DOCKER_COMPOSE} --file {compose_file} down --remove-orphans --volumes'
+    logging.info(composeCmd)
+    
     try:
-        subprocess.check_output(shlex.split(f'{DOCKER_COMPOSE} -f {compose_file} down -v'), stderr=subprocess.STDOUT)
+        subprocess.check_output(shlex.split(composeCmd), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        pytest.fail(f"Error while runninng '{DOCKER_COMPOSE} -f {compose_file} down -v':\n{e.output}", pytrace=False)
+        pytest.fail(f"Error while runninng '{composeCmd}':\n{e.output}", pytrace=False)
 
 
 def wait_for_nginxproxy_to_be_ready():
