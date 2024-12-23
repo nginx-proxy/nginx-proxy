@@ -1,3 +1,7 @@
+networks:
+  default:
+    name: nginx-proxy-test-events
+
 volumes:
   nginx_conf:
 

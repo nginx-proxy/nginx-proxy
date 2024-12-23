@@ -1,3 +1,7 @@
+networks:
+  default:
+    name: nginx-proxy-test-ssl-dhparam
+
 services:
   web5:
     image: web

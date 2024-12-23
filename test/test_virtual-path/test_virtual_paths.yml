@@ -1,3 +1,7 @@
+networks:
+  default:
+    name: nginx-proxy-test-virtual-paths
+
 volumes:
   nginx_conf:
 

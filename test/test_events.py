@@ -22,7 +22,7 @@ def web1(docker_compose):
         },
         ports={"81/tcp": None}
     )
-    docker_compose.networks.get("test_default").connect(container)
+    docker_compose.networks.get("nginx-proxy-test-events").connect(container)
     sleep(2)  # give it some time to initialize and for docker-gen to detect it
     yield container
     try:
@@ -47,7 +47,7 @@ def web2(docker_compose):
         },
         ports={"82/tcp": None}
     )
-    docker_compose.networks.get("test_default").connect(container)
+    docker_compose.networks.get("nginx-proxy-test-events").connect(container)
     sleep(2)  # give it some time to initialize and for docker-gen to detect it
     yield container
     try:

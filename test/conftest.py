@@ -331,8 +331,8 @@ def get_nginx_conf_from_container(container):
         return conffile.read()
 
 
-def docker_compose_up(compose_file='docker-compose.yml'):
-    composeCmd = f'{DOCKER_COMPOSE} --file {compose_file} up --remove-orphans --force-recreate --detach'
+def docker_compose_up(project_name, compose_file='docker-compose.yml'):
+    composeCmd = f'{DOCKER_COMPOSE} --project-name {project_name} --file {compose_file} up --remove-orphans --force-recreate --detach'
     logging.info(composeCmd)
     
     try:
@@ -341,8 +341,8 @@ def docker_compose_up(compose_file='docker-compose.yml'):
         pytest.fail(f"Error while runninng '{composeCmd}:\n{e.output}", pytrace=False)
 
 
-def docker_compose_down(compose_file='docker-compose.yml'):
-    composeCmd = f'{DOCKER_COMPOSE} --file {compose_file} down --remove-orphans --volumes'
+def docker_compose_down(project_name, compose_file='docker-compose.yml'):
+    composeCmd = f'{DOCKER_COMPOSE} --project-name {project_name} --file {compose_file} down --remove-orphans --volumes'
     logging.info(composeCmd)
     
     try:
@@ -467,6 +467,7 @@ def connect_to_all_networks():
 class DockerComposer(contextlib.AbstractContextManager):
     def __init__(self):
         self._docker_compose_file = None
+        self._project_name = None
 
     def __exit__(self, *exc_info):
         self._down()
@@ -476,19 +477,22 @@ class DockerComposer(contextlib.AbstractContextManager):
             return
         for network in self._networks:
             disconnect_from_network(network)
-        docker_compose_down(self._docker_compose_file)
+        docker_compose_down(self._project_name, self._docker_compose_file)
         self._docker_compose_file = None
 
-    def compose(self, docker_compose_file):
+    def compose(self, project_name, docker_compose_file):
+        if docker_compose_file == self._docker_compose_file and project_name == self._project_name:
+            return
         self._down()
         if docker_compose_file is None:
             return
         remove_all_containers()
-        docker_compose_up(docker_compose_file)
+        docker_compose_up(project_name, docker_compose_file)
         self._networks = connect_to_all_networks()
         wait_for_nginxproxy_to_be_ready()
         time.sleep(3)  # give time to containers to be ready
         self._docker_compose_file = docker_compose_file
+        self._project_name = project_name
 
 
 ###############################################################################
@@ -517,7 +521,7 @@ def monkey_patched_dns():
 
 
 @pytest.fixture
-def docker_compose(monkey_patched_dns, docker_composer, docker_compose_file):
+def docker_compose(request, monkey_patched_dns, docker_composer, docker_compose_file):
     """Ensures containers described in a docker compose file are started.
 
     A custom docker compose file name can be specified by overriding the `docker_compose_file`
@@ -526,7 +530,8 @@ def docker_compose(monkey_patched_dns, docker_composer, docker_compose_file):
     Also, in the case where pytest is running from a docker container, this fixture makes sure
     our container will be attached to all the docker networks.
     """
-    docker_composer.compose(docker_compose_file)
+    project_name = request.module.__name__
+    docker_composer.compose(project_name, docker_compose_file)
     yield docker_client
 
 

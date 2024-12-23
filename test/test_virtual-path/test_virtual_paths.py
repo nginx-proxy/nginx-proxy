@@ -39,7 +39,7 @@ def web4(docker_compose):
         },
         ports={"84/tcp": None}
     )
-    docker_compose.networks.get("test_virtual-path_default").connect(container)
+    docker_compose.networks.get("nginx-proxy-test-virtual-paths").connect(container)
     sleep(2)  # give it some time to initialize and for docker-gen to detect it
     yield container
     try:
