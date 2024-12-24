@@ -1,4 +1,3 @@
-import pytest
 import re
 
     #Python Requests is not able to do native http3 requests. 

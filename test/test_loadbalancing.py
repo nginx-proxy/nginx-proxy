@@ -1,4 +1,3 @@
-import pytest
 import re
 
 def test_loadbalance_hash(docker_compose, nginxproxy):

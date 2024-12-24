@@ -5,7 +5,7 @@ def test_virtual_host_is_dropped_when_using_multiports(docker_compose, nginxprox
     r = nginxproxy.get("http://notskipped.nginx-proxy.tld/port")
     assert r.status_code == 200
     assert "answer from port 81\n" in r.text
-    r = nginxproxy.get("http://skipped.nginx-proxy.tld/")
+    r = nginxproxy.get("http://skipped.nginx-proxy.tld/", expected_status_code=503)
     assert r.status_code == 503
 
 

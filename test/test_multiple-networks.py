@@ -3,9 +3,6 @@ import re
 import pytest
 
 
-def test_unknown_virtual_host(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://nginx-proxy/")
-    assert r.status_code == 503
 
 def test_forwards_to_web1(docker_compose, nginxproxy):
     r = nginxproxy.get("http://web1.nginx-proxy.example/port")
@@ -26,3 +23,7 @@ def test_multipath(docker_compose, nginxproxy):
     web3_server_lines = [l for l in lines
                          if re.search(r'(?m)^\s*server\s+[^\s]*:83;\s*$', l)]
     assert len(web3_server_lines) == 1
+
+def test_unknown_virtual_host(docker_compose, nginxproxy):
+    r = nginxproxy.get("http://nginx-proxy/", expected_status_code=503)
+    assert r.status_code == 503

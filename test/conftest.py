@@ -1,6 +1,7 @@
 import contextlib
 import logging
 import os
+import platform
 import re
 import shlex
 import socket
@@ -9,12 +10,11 @@ import time
 from typing import List
 
 import backoff
-import docker
+import docker.errors
 import pytest
 import requests
-from _pytest._code.code import ReprExceptionInfo
-from packaging.version import Version
 from docker.models.containers import Container
+from packaging.version import Version
 from requests.packages.urllib3.util.connection import HAS_IPV6
 
 logging.basicConfig(level=logging.INFO)
@@ -74,6 +74,17 @@ class requests_for_docker(object):
             self.session.verify = CA_ROOT_CERTIFICATE
 
     @staticmethod
+    def __backoff_predicate(expected_status_codes=None):
+        if expected_status_codes is not None:
+            if isinstance(expected_status_codes, int):
+                expected_status_codes = [expected_status_codes]
+            return lambda r: r.status_code not in expected_status_codes
+        else:
+            return lambda r: r.status_code not in (200, 301)
+
+    __backed_off_exceptions = (requests.exceptions.SSLError, requests.exceptions.ConnectionError)
+
+    @staticmethod
     def get_nginx_proxy_containers() -> List[Container]:
         """
         Return list of containers
@@ -99,17 +110,17 @@ class requests_for_docker(object):
         nginx_proxy_containers = self.get_nginx_proxy_containers()
         return container_ip(nginx_proxy_containers[0])
 
-    def _backoff_predicate(expected_status_codes=None):
-        if expected_status_codes is not None:
-            return lambda r: r.status_code not in expected_status_codes
-        else:
-            return lambda r: r.status_code in (404, 502, 503)
-
     def get(self, *args, **kwargs):
         _expected_status_code = kwargs.pop('expected_status_code', None)
         with ipv6(kwargs.pop('ipv6', False)):
-            @backoff.on_exception(backoff.constant, requests.exceptions.SSLError, interval=.3, max_tries=30, jitter=None)
-            @backoff.on_predicate(backoff.constant, self._backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
+            @backoff.on_exception(backoff.constant, self.__backed_off_exceptions, interval=.3, max_tries=30, jitter=None)
+            @backoff.on_predicate(backoff.constant, self.__backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
+            def _get(*args, **kwargs):
+                return self.session.get(*args, **kwargs)
+            return _get(*args, **kwargs)
+
+    def get_without_backoff(self, *args, **kwargs):
+        with ipv6(kwargs.pop('ipv6', False)):
             def _get(*args, **kwargs):
                 return self.session.get(*args, **kwargs)
             return _get(*args, **kwargs)
@@ -118,7 +129,7 @@ class requests_for_docker(object):
         _expected_status_code = kwargs.pop('expected_status_code', None)
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_exception(backoff.constant, requests.exceptions.SSLError, interval=.3, max_tries=30, jitter=None)
-            @backoff.on_predicate(backoff.constant, self._backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
+            @backoff.on_predicate(backoff.constant, self.__backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
             def _post(*args, **kwargs):
                 return self.session.post(*args, **kwargs)
             return _post(*args, **kwargs)
@@ -127,7 +138,7 @@ class requests_for_docker(object):
         _expected_status_code = kwargs.pop('expected_status_code', None)
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_exception(backoff.constant, requests.exceptions.SSLError, interval=.3, max_tries=30, jitter=None)
-            @backoff.on_predicate(backoff.constant, self._backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
+            @backoff.on_predicate(backoff.constant, self.__backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
             def _put(*args, **kwargs):
                 return self.session.put(*args, **kwargs)
             return _put(*args, **kwargs)
@@ -136,7 +147,7 @@ class requests_for_docker(object):
         _expected_status_code = kwargs.pop('expected_status_code', None)
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_exception(backoff.constant, requests.exceptions.SSLError, interval=.3, max_tries=30, jitter=None)
-            @backoff.on_predicate(backoff.constant, self._backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
+            @backoff.on_predicate(backoff.constant, self.__backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
             def _head(*args, **kwargs):
                 return self.session.head(*args, **kwargs)
             return _head(*args, **kwargs)
@@ -145,7 +156,7 @@ class requests_for_docker(object):
         _expected_status_code = kwargs.pop('expected_status_code', None)
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_exception(backoff.constant, requests.exceptions.SSLError, interval=.3, max_tries=30, jitter=None)
-            @backoff.on_predicate(backoff.constant, self._backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
+            @backoff.on_predicate(backoff.constant, self.__backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
             def _delete(*args, **kwargs):
                 return self.session.delete(*args, **kwargs)
             return _delete(*args, **kwargs)
@@ -154,7 +165,7 @@ class requests_for_docker(object):
         _expected_status_code = kwargs.pop('expected_status_code', None)
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_exception(backoff.constant, requests.exceptions.SSLError, interval=.3, max_tries=30, jitter=None)
-            @backoff.on_predicate(backoff.constant, self._backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
+            @backoff.on_predicate(backoff.constant, self.__backoff_predicate(_expected_status_code), interval=.3, max_tries=30, jitter=None)
             def _options(*args, **kwargs):
                 return self.session.options(*args, **kwargs)
             return _options(*args, **kwargs)
@@ -303,7 +314,11 @@ def monkey_patch_urllib_dns_resolver():
             pytest.skip("This system does not support IPv6")
 
         # custom DNS resolvers
-        ip = nginx_proxy_single_container_dns_resolver(args[0])
+        ip = None
+        if platform.system() == "Darwin":
+            ip = "127.0.0.1"
+        if ip is None:
+            ip = nginx_proxy_single_container_dns_resolver(args[0])
         if ip is None:
             ip = nginx_proxy_separate_containers_dns_resolver(args[0])
         if ip is None:
@@ -323,15 +338,6 @@ def monkey_patch_urllib_dns_resolver():
 
 def restore_urllib_dns_resolver(getaddrinfo_func):
     socket.getaddrinfo = getaddrinfo_func
-
-
-def remove_all_containers():
-    for container in docker_client.containers.list(all=True):
-        if PYTEST_RUNNING_IN_CONTAINER and container.name == test_container:
-            continue  # pytest is running within a Docker container, so we do not want to remove that particular container
-        logging.info(f"removing container {container.name}")
-        container.remove(v=True, force=True)
-    docker_client.volumes.prune()
 
 
 def get_nginx_conf_from_container(container):
@@ -375,18 +381,26 @@ def wait_for_nginxproxy_to_be_ready():
     or nginxproxy/nginx-proxy:test-dockergen is found, wait for its log to contain
     substring "Watching docker events"
     """
-    containers = docker_client.containers.list(filters={"ancestor": f"nginxproxy/nginx-proxy:{IMAGE_TAG}"})
-    if len(containers) > 1:
-        logging.warning(f"Too many running nginxproxy/nginx-proxy:{IMAGE_TAG} containers")
-        return
-    elif len(containers) == 0:
-        logging.warning(f"No running nginxproxy/nginx-proxy:{IMAGE_TAG} container")
-        return
-    container = containers[0]
-    for line in container.logs(stream=True):
-        if b"Generated '/etc/nginx/conf.d/default.conf'" in line:
-            logging.debug("nginx-proxy ready")
+    timeout = time.time() + 10
+    while True:
+        containers = docker_client.containers.list(
+            filters={"status": "running", "ancestor": f"nginxproxy/nginx-proxy:{IMAGE_TAG}"}
+        )
+        if len(containers) == 1:
             break
+        if time.time() > timeout:
+            pytest.fail(f"Got {len(containers)} nginxproxy/nginx-proxy:{IMAGE_TAG} containers after 10s", pytrace=False)
+        time.sleep(1)
+
+    container = containers
+    conf_generated = False
+    while True:
+        for line in container[0].logs(stream=True, follow=True):
+            if b"Generated '/etc/nginx/conf.d/default.conf'" in line:
+                return
+        if time.time() > timeout:
+            pytest.fail(f"nginxproxy/nginx-proxy:{IMAGE_TAG} container not ready after 10s", pytrace=False)
+        time.sleep(1)
 
 
 @pytest.fixture
@@ -484,6 +498,7 @@ def connect_to_all_networks():
 
 class DockerComposer(contextlib.AbstractContextManager):
     def __init__(self):
+        self._networks = None
         self._docker_compose_file = None
         self._project_name = None
 
@@ -504,11 +519,9 @@ class DockerComposer(contextlib.AbstractContextManager):
         self._down()
         if docker_compose_file is None:
             return
-        remove_all_containers()
         docker_compose_up(project_name, docker_compose_file)
         self._networks = connect_to_all_networks()
         wait_for_nginxproxy_to_be_ready()
-        time.sleep(3)  # give time to containers to be ready
         self._docker_compose_file = docker_compose_file
         self._project_name = project_name
 
@@ -586,15 +599,14 @@ def acme_challenge_path():
 # pytest hook to display additionnal stuff in test report
 def pytest_runtest_logreport(report):
     if report.failed:
-        if isinstance(report.longrepr, ReprExceptionInfo):
-            nginx_containers = docker_client.containers.list(all=True, filters={"label": "com.github.nginx-proxy.nginx-proxy.nginx"})
-            for container in nginx_containers:
-                report.longrepr.addsection('nginx container logs', container.logs())
+        nginx_containers = docker_client.containers.list(all=True, filters={"label": "com.github.nginx-proxy.nginx-proxy.nginx"})
+        for container in nginx_containers:
+            report.longrepr.addsection('nginx container logs', container.logs().decode())
 
-            test_containers = docker_client.containers.list(all=True, filters={"ancestor": f"nginxproxy/nginx-proxy:{IMAGE_TAG}"})
-            for container in test_containers:
-                report.longrepr.addsection('nginx-proxy logs', container.logs())
-                report.longrepr.addsection('nginx-proxy conf', get_nginx_conf_from_container(container))
+        test_containers = docker_client.containers.list(all=True, filters={"ancestor": f"nginxproxy/nginx-proxy:{IMAGE_TAG}"})
+        for container in test_containers:
+            report.longrepr.addsection('nginx-proxy logs', container.logs().decode())
+            report.longrepr.addsection('nginx-proxy conf', get_nginx_conf_from_container(container).decode())
 
 
 # Py.test `incremental` marker, see http://stackoverflow.com/a/12579625/107049

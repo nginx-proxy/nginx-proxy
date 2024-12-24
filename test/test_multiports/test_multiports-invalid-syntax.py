@@ -1,11 +1,14 @@
+import time
+
 import pytest
 import re
 
 
 def test_virtual_hosts_with_syntax_error_should_not_be_reachable(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://test1.nginx-proxy.tld")
+    time.sleep(3)
+    r = nginxproxy.get("http://test1.nginx-proxy.tld", expected_status_code=503)
     assert r.status_code == 503
-    r = nginxproxy.get("http://test2.nginx-proxy.tld")
+    r = nginxproxy.get("http://test2.nginx-proxy.tld", expected_status_code=503)
     assert r.status_code == 503
 
 

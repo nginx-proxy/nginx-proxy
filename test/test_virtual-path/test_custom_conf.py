@@ -1,7 +1,7 @@
 import pytest
 
 def test_default_root_response(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://nginx-proxy.test/")
+    r = nginxproxy.get("http://nginx-proxy.test/", expected_status_code=418)
     assert r.status_code == 418
 
 @pytest.mark.parametrize("stub,header", [
@@ -21,7 +21,7 @@ def test_custom_applies(docker_compose, nginxproxy, stub, header):
     ("bar.nginx-proxy.test", 503),
 ])
 def test_custom_does_not_apply(docker_compose, nginxproxy, stub, code):
-    r = nginxproxy.get(f"http://{stub}/port")
+    r = nginxproxy.get(f"http://{stub}/port", expected_status_code=code)
     assert r.status_code == code
     assert "X-test" not in r.headers
 

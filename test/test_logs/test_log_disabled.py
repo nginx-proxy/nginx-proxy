@@ -1,6 +1,9 @@
+import time
+
 import pytest
 
 def test_log_disabled(docker_compose, nginxproxy):
+    time.sleep(3)
     r = nginxproxy.get("http://nginx-proxy.test/port")
     assert r.status_code == 200
     assert r.text == "answer from port 81\n"

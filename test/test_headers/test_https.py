@@ -102,7 +102,7 @@ def test_httpoxy_safe(docker_compose, nginxproxy):
 @pytest.mark.filterwarnings('ignore::urllib3.exceptions.InsecureRequestWarning')
 def test_no_host_server_tokens_off(docker_compose, nginxproxy):
     ip = nginxproxy.get_ip()
-    r = nginxproxy.get(f"https://{ip}/headers", verify=False)
+    r = nginxproxy.get(f"https://{ip}/headers", verify=False, expected_status_code=503)
     assert r.status_code == 503
     assert r.headers["Server"] == "nginx"
 

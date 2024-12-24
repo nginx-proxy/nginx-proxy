@@ -42,5 +42,5 @@ def test_debug_endpoint_hostname_replaced_by_warning_if_regexp(docker_compose, n
 
 
 def test_debug_endpoint_is_disabled_per_container(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://disabled.debug.nginx-proxy.example/nginx-proxy-debug")
+    r = nginxproxy.get("http://disabled.debug.nginx-proxy.example/nginx-proxy-debug", expected_status_code=404)
     assert r.status_code == 404  

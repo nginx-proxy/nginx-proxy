@@ -10,7 +10,7 @@ def test_web1_HSTS_default(docker_compose, nginxproxy):
 # Regression test to ensure HSTS is enabled even when the upstream sends an error in response
 # Issue #1073 https://github.com/nginx-proxy/nginx-proxy/pull/1073
 def test_web1_HSTS_error(docker_compose, nginxproxy):
-    r = nginxproxy.get("https://web1.nginx-proxy.tld/status/500", allow_redirects=False)
+    r = nginxproxy.get("https://web1.nginx-proxy.tld/status/500", allow_redirects=False, expected_status_code=500)
     assert "Strict-Transport-Security" in r.headers
     assert "max-age=31536000" == r.headers["Strict-Transport-Security"]
 

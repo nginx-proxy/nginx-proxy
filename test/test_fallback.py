@@ -26,8 +26,11 @@ def get(docker_compose, nginxproxy, want_err_re):
         interval=.3,
         max_tries=30,
         jitter=None)
-    def _get(url):
-        return nginxproxy.get(url, allow_redirects=False)
+    def _get(url, expected_status_code=None):
+        if expected_status_code is None:
+            return nginxproxy.get_without_backoff(url, allow_redirects=False)
+        else:
+            return nginxproxy.get(url, allow_redirects=False, expected_status_code=expected_status_code)
 
     return _get
 
@@ -110,7 +113,7 @@ INTERNAL_ERR_RE = re.compile("TLSV1_UNRECOGNIZED_NAME")
 ])
 def test_fallback(get, url, want_code, want_err_re):
     if want_err_re is None:
-        r = get(url)
+        r = get(url, want_code)
         assert r.status_code == want_code
     else:
         with pytest.raises(requests.exceptions.SSLError, match=want_err_re):

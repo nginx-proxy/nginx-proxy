@@ -101,7 +101,7 @@ def test_httpoxy_safe(docker_compose, nginxproxy):
 )
 def test_no_host_server_tokens_off(docker_compose, nginxproxy):
     ip = nginxproxy.get_ip()
-    r = nginxproxy.get(f"http://{ip}/headers")
+    r = nginxproxy.get(f"http://{ip}/headers", expected_status_code=503)
     assert r.status_code == 503
     assert r.headers["Server"] == "nginx"
 

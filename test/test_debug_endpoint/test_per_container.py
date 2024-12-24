@@ -2,9 +2,9 @@ import json
 import pytest
 
 def test_debug_endpoint_is_disabled_globally(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://disabled1.debug.nginx-proxy.example/nginx-proxy-debug")
+    r = nginxproxy.get("http://disabled1.debug.nginx-proxy.example/nginx-proxy-debug", expected_status_code=404)
     assert r.status_code == 404 
-    r = nginxproxy.get("http://disabled2.debug.nginx-proxy.example/nginx-proxy-debug")
+    r = nginxproxy.get("http://disabled2.debug.nginx-proxy.example/nginx-proxy-debug", expected_status_code=404)
     assert r.status_code == 404 
 
 
