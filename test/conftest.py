@@ -292,6 +292,7 @@ def monkey_patch_urllib_dns_resolver():
     socket.getaddrinfo = new_getaddrinfo
     return prv_getaddrinfo
 
+
 def restore_urllib_dns_resolver(getaddrinfo_func):
     socket.getaddrinfo = getaddrinfo_func
 
@@ -316,7 +317,7 @@ def docker_compose_up(compose_file='docker-compose.yml'):
     try:
         subprocess.check_output(shlex.split(f'{DOCKER_COMPOSE} -f {compose_file} up -d'), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        pytest.fail(f"Error while runninng '{DOCKER_COMPOSE} -f {compose_file} up -d':\n{e.output}", pytrace=False)
+        pytest.fail(f"Error while running '{DOCKER_COMPOSE} -f {compose_file} up -d':\n{e.output}", pytrace=False)
 
 
 def docker_compose_down(compose_file='docker-compose.yml'):
@@ -324,7 +325,7 @@ def docker_compose_down(compose_file='docker-compose.yml'):
     try:
         subprocess.check_output(shlex.split(f'{DOCKER_COMPOSE} -f {compose_file} down -v'), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        pytest.fail(f"Error while runninng '{DOCKER_COMPOSE} -f {compose_file} down -v':\n{e.output}", pytrace=False)
+        pytest.fail(f"Error while running '{DOCKER_COMPOSE} -f {compose_file} down -v':\n{e.output}", pytrace=False)
 
 
 def wait_for_nginxproxy_to_be_ready():
@@ -533,13 +534,13 @@ def acme_challenge_path():
 #
 ###############################################################################
 
-# pytest hook to display additionnal stuff in test report
+# pytest hook to display additional stuff in test report
 def pytest_runtest_logreport(report):
     if report.failed:
-            test_containers = docker_client.containers.list(all=True, filters={"ancestor": "nginxproxy/nginx-proxy:test"})
-            for container in test_containers:
-                report.longrepr.addsection('nginx-proxy logs', container.logs().decode())
-                report.longrepr.addsection('nginx-proxy conf', get_nginx_conf_from_container(container).decode())
+        test_containers = docker_client.containers.list(all=True, filters={"ancestor": "nginxproxy/nginx-proxy:test"})
+        for container in test_containers:
+            report.longrepr.addsection('nginx-proxy logs', container.logs().decode())
+            report.longrepr.addsection('nginx-proxy conf', get_nginx_conf_from_container(container).decode())
 
 
 # Py.test `incremental` marker, see http://stackoverflow.com/a/12579625/107049

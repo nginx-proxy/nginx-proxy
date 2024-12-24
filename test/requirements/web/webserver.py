@@ -28,7 +28,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Content-Type", "text/plain")
         self.end_headers()
 
-        if (len(response_body)):
+        if len(response_body):
             self.wfile.write(response_body.encode())
 
 if __name__ == '__main__':
