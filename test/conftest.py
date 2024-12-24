@@ -296,14 +296,6 @@ def restore_urllib_dns_resolver(getaddrinfo_func):
     socket.getaddrinfo = getaddrinfo_func
 
 
-def remove_all_containers():
-    for container in docker_client.containers.list(all=True):
-        if PYTEST_RUNNING_IN_CONTAINER and container.name == test_container:
-            continue  # pytest is running within a Docker container, so we do not want to remove that particular container
-        logging.info(f"removing container {container.name}")
-        container.remove(v=True, force=True)
-
-
 def get_nginx_conf_from_container(container):
     """
     return the nginx /etc/nginx/conf.d/default.conf file content from a container
@@ -465,7 +457,6 @@ class DockerComposer(contextlib.AbstractContextManager):
         self._down()
         if docker_compose_file is None:
             return
-        remove_all_containers()
         docker_compose_up(docker_compose_file)
         self._networks = connect_to_all_networks()
         wait_for_nginxproxy_to_be_ready()
