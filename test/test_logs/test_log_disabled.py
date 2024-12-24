@@ -1,5 +1,3 @@
-import pytest
-
 def test_log_disabled(docker_compose, nginxproxy):
     r = nginxproxy.get("http://nginx-proxy.test/port")
     assert r.status_code == 200

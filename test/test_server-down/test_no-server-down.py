@@ -1,5 +1,3 @@
-import pytest
-
 def test_web_has_no_server_down(docker_compose, nginxproxy):
     conf = nginxproxy.get_conf().decode('ASCII')
     r = nginxproxy.get("http://web.nginx-proxy.tld/port")

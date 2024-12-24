@@ -1,5 +1,6 @@
 import pytest
 
+
 @pytest.mark.parametrize("subdomain", ["foo", "bar"])
 def test_web1_http_redirects_to_https(docker_compose, nginxproxy, subdomain):
     r = nginxproxy.get("http://%s.nginx-proxy.tld:8080/" % subdomain, allow_redirects=False)

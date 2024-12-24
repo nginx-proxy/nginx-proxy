@@ -1,5 +1,3 @@
-import pytest
-
 def test_htpasswd_virtual_host_is_restricted(docker_compose, nginxproxy):
     r = nginxproxy.get("http://htpasswd.nginx-proxy.tld/port")
     assert r.status_code == 401

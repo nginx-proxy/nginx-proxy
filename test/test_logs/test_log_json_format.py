@@ -1,5 +1,3 @@
-import pytest
-
 def test_log_json_format(docker_compose, nginxproxy):
     log_conf = [line for line in nginxproxy.get_conf().decode('ASCII').splitlines() if "log_format vhost escape=" in line]
     assert "{\"time_local\":\"$time_iso8601\"," in log_conf[0]

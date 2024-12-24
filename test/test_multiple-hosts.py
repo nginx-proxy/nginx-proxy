@@ -1,6 +1,3 @@
-import pytest
-
-
 def test_unknown_virtual_host_is_503(docker_compose, nginxproxy):
     r = nginxproxy.get("http://unknown.nginx-proxy.tld/port")
     assert r.status_code == 503

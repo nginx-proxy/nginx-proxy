@@ -1,5 +1,6 @@
-import pytest
 import re
+
+import pytest
 
 
 @pytest.mark.parametrize('url,header,input,want', [

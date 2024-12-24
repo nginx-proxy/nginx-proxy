@@ -1,8 +1,8 @@
-import pytest
 import re
 
-    #Python Requests is not able to do native http3 requests. 
-    #We only check for directives which should enable http3.
+
+# Python Requests is not able to do native http3 requests.
+# We only check for directives which should enable http3.
 
 def test_http3_global_disabled_ALTSVC_header(docker_compose, nginxproxy):
     r = nginxproxy.get("http://http3-global-disabled.nginx-proxy.tld/headers")

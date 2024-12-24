@@ -1,5 +1,4 @@
 import backoff
-import pytest
 
 
 def test_multiports_and_legacy_configs_should_be_merged(docker_compose, nginxproxy):

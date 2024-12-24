@@ -1,5 +1,7 @@
 import json
+
 import pytest
+
 
 def test_debug_endpoint_is_enabled_globally(docker_compose, nginxproxy):
     r = nginxproxy.get("http://enabled.debug.nginx-proxy.example/nginx-proxy-debug")

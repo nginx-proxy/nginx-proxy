@@ -1,5 +1,3 @@
-import pytest
-
 def test_location_precedence_case1(docker_compose, nginxproxy):
     r = nginxproxy.get(f"http://foo.nginx-proxy.test/web1/port")
     assert r.status_code == 200

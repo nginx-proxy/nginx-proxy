@@ -1,7 +1,3 @@
-import pytest
-import requests
-
-
 def test_web2_http_is_connection_refused(docker_compose, nginxproxy):
     r = nginxproxy.get("http://web2.nginx-proxy.tld/", allow_redirects=False)
     assert r.status_code == 503

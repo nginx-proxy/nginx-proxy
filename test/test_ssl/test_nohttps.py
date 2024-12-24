@@ -1,6 +1,7 @@
 import pytest
 from requests import ConnectionError
 
+
 def test_http_is_forwarded(docker_compose, nginxproxy):
     r = nginxproxy.get("http://web.nginx-proxy.tld/port", allow_redirects=False)
     assert r.status_code == 200

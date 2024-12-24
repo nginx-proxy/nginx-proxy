@@ -1,7 +1,5 @@
 import re
 
-import pytest
-
 
 def test_unknown_virtual_host(docker_compose, nginxproxy):
     r = nginxproxy.get("http://nginx-proxy/")

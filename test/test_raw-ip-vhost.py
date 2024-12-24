@@ -1,6 +1,3 @@
-import pytest
-
-
 def test_raw_ipv4_vhost_forwards_to_web1(docker_compose, nginxproxy):
     r = nginxproxy.get("http://172.20.0.4")
     assert r.status_code == 200

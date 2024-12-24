@@ -1,10 +1,12 @@
 """
 Test that nginx-proxy-tester can build successfully
 """
-import pytest
-import docker
 import re
 import os
+
+import docker
+import pytest
+
 
 client = docker.from_env()
 

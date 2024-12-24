@@ -3,6 +3,7 @@ from time import sleep
 import pytest
 from docker.errors import NotFound
 
+
 @pytest.mark.parametrize("stub,expected_port", [
     ("nginx-proxy.test/web1", 81),
     ("nginx-proxy.test/web2", 82),

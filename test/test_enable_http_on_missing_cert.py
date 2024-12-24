@@ -1,6 +1,3 @@
-import pytest
-
-
 def test_nohttp_missing_cert_disabled(docker_compose, nginxproxy):
     r = nginxproxy.get("http://nohttp-missing-cert-disabled.nginx-proxy.tld/", allow_redirects=False)
     assert r.status_code == 503

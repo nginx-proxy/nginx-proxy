@@ -1,6 +1,7 @@
 import pytest
 from requests import ConnectionError
 
+
 @pytest.mark.parametrize("path", ["web1", "web2"])
 def test_web1_http_redirects_to_https(docker_compose, nginxproxy, path):
     r = nginxproxy.get("http://www.nginx-proxy.tld/%s/port" % path, allow_redirects=False)

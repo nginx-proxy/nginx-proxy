@@ -1,5 +1,5 @@
-import pytest
 import re
+
 
 def test_loadbalance_hash(docker_compose, nginxproxy):
     conf = nginxproxy.get_conf().decode('ASCII')

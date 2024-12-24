@@ -1,6 +1,3 @@
-import pytest
-
-
 def test_forwards_to_ipv4_only_network(docker_compose, nginxproxy):
     r = nginxproxy.get("http://ipv4only.nginx-proxy.tld/port")
     assert r.status_code == 200   

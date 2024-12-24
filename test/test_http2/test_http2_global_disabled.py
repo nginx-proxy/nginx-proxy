@@ -1,5 +1,5 @@
-import pytest
 import re
+
 
 def test_http2_global_disabled_config(docker_compose, nginxproxy):
     conf = nginxproxy.get_conf().decode('ASCII')
