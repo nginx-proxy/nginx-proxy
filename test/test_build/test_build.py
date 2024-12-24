@@ -1,8 +1,8 @@
 """
 Test that nginx-proxy-tester can build successfully
 """
+import pathlib
 import re
-import os
 
 import docker
 import pytest
@@ -13,12 +13,13 @@ client = docker.from_env()
 @pytest.fixture(scope = "session")
 def docker_build(request):
     # Define Dockerfile path
-    dockerfile_path = os.path.join(os.path.dirname(__file__), "requirements/")
+    current_file_path = pathlib.Path(__file__)
+    dockerfile_path = current_file_path.parent.parent.joinpath("requirements")
     dockerfile_name = "Dockerfile-nginx-proxy-tester"
 
     # Build the Docker image
     image, logs = client.images.build(
-        path = dockerfile_path,
+        path = dockerfile_path.as_posix(),
         dockerfile = dockerfile_name,
         rm = True,  # Remove intermediate containers
         tag = "nginx-proxy-tester-ci",  # Tag for the built image

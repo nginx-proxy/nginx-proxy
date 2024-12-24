@@ -3,7 +3,7 @@ services:
     image: nginxproxy/nginx-proxy:test
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./test_location-override.vhost.d:/etc/nginx/vhost.d:ro
+      - ./vhost.d:/etc/nginx/vhost.d:ro
 
   explicit-root:
     image: web

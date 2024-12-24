@@ -1,3 +1,7 @@
+networks:
+  default:
+    name: "test_virtual-path-net"
+
 services:
   foo:
     image: web
