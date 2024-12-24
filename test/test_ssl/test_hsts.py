@@ -1,6 +1,3 @@
-import pytest
-
-
 def test_web1_HSTS_default(docker_compose, nginxproxy):
     r = nginxproxy.get("https://web1.nginx-proxy.tld/port", allow_redirects=False)
     assert "answer from port 81\n" in r.text

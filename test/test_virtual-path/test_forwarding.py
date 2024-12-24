@@ -1,5 +1,3 @@
-import pytest
-
 def test_root_redirects_to_web1(docker_compose, nginxproxy):
     r = nginxproxy.get("http://www.nginx-proxy.tld/port", allow_redirects=False)
     assert r.status_code == 301

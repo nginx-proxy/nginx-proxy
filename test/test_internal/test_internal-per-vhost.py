@@ -1,5 +1,3 @@
-import pytest
-
 def test_network_web1(docker_compose, nginxproxy):
     r = nginxproxy.get("http://web1.nginx-proxy.example/port")
     assert r.status_code == 200   

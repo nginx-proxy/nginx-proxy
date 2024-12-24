@@ -1,6 +1,3 @@
-import pytest
-
-
 def test_forwards_to_host_network_container_1(docker_compose, nginxproxy):
     r = nginxproxy.get("http://host-network-1.nginx-proxy.tld:8888/port")
     assert r.status_code == 200

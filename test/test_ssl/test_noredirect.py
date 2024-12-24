@@ -1,6 +1,3 @@
-import pytest
-
-
 def test_web3_http_is_forwarded(docker_compose, nginxproxy):
     r = nginxproxy.get("http://web3.nginx-proxy.tld/port", allow_redirects=False)
     assert r.status_code == 200

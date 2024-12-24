@@ -1,6 +1,3 @@
-import pytest
-
-
 def test_forwards_to_bridge_network_container(docker_compose, nginxproxy):
     r = nginxproxy.get("http://bridge-network.nginx-proxy.tld/port")
     assert r.status_code == 200   
