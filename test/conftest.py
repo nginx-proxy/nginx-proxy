@@ -1,5 +1,4 @@
 import contextlib
-import errno
 import logging
 import os
 import platform
@@ -27,6 +26,7 @@ logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.W
 
 CA_ROOT_CERTIFICATE = os.path.join(os.path.dirname(__file__), 'certs/ca-root.crt')
 PYTEST_RUNNING_IN_CONTAINER = os.environ.get('PYTEST_RUNNING_IN_CONTAINER') == "1"
+HAS_IPV6 = socket.has_ipv6
 FORCE_CONTAINER_IPV6 = False  # ugly global state to consider containers' IPv6 address instead of IPv4
 
 DOCKER_COMPOSE = os.environ.get('DOCKER_COMPOSE', 'docker compose')
@@ -43,25 +43,6 @@ test_container = 'nginx-proxy-pytest'
 #
 ###############################################################################
 
-def system_has_ipv6() -> bool:
-    # See https://stackoverflow.com/a/66249915
-    _ADDR_NOT_AVAIL = {errno.EADDRNOTAVAIL, errno.EAFNOSUPPORT}
-    _ADDR_IN_USE = {errno.EADDRINUSE}
-
-    if not socket.has_ipv6:
-        return False
-    try:
-        with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as sock:
-            sock.bind(("::1", 0))
-        return True
-    except OSError as e:
-        if e.errno in _ADDR_NOT_AVAIL:
-            return False
-        if e.errno in _ADDR_IN_USE:
-            return True
-        raise
-
-HAS_IPV6 = system_has_ipv6()
 
 @contextlib.contextmanager
 def ipv6(force_ipv6=True):
