@@ -1,5 +1,6 @@
 def test_log_json(docker_compose, nginxproxy):
-    log_conf = [line for line in nginxproxy.get_conf().decode('ASCII').splitlines() if "log_format vhost escape=" in line]
+    conf_lines = nginxproxy.get_conf().decode('ASCII').splitlines()
+    log_conf = [line for line in conf_lines if "log_format vhost escape=" in line]
     assert "{\"time_local\":\"$time_iso8601\"," in log_conf[0]
 
     r = nginxproxy.get("http://nginx-proxy.test/port")

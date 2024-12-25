@@ -10,12 +10,13 @@ def test_http_is_forwarded(docker_compose, nginxproxy):
 
 def test_https_is_disabled(docker_compose, nginxproxy):
     with pytest.raises(ConnectionError):
-        nginxproxy.get("https://web.nginx-proxy.tld/", allow_redirects=False)
+        nginxproxy.get_without_backoff("https://web.nginx-proxy.tld/", allow_redirects=False)
 
 
 def test_http_acme_challenge_does_not_work(docker_compose, nginxproxy, acme_challenge_path):
     r = nginxproxy.get(
         f"http://web.nginx-proxy.tld/{acme_challenge_path}",
-        allow_redirects=False
+        allow_redirects=False,
+        expected_status_code=404
     )
     assert r.status_code == 404

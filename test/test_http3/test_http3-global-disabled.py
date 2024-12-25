@@ -10,6 +10,7 @@ def test_http3_global_disabled_ALTSVC_header(docker_compose, nginxproxy):
     assert "Host: http3-global-disabled.nginx-proxy.tld" in r.text
     assert not "alt-svc" in r.headers
 
+
 def test_http3_global_disabled_config(docker_compose, nginxproxy):
     conf = nginxproxy.get_conf().decode('ASCII')
     r = nginxproxy.get("http://http3-global-disabled.nginx-proxy.tld")

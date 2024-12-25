@@ -14,6 +14,7 @@ def test_X_Forwarded_For_is_generated(docker_compose, nginxproxy):
     assert r.status_code == 200
     assert "X-Forwarded-For:" in r.text
 
+
 def test_X_Forwarded_For_is_passed_on(docker_compose, nginxproxy):
     r = nginxproxy.get("https://web.nginx-proxy.tld/headers", headers={'X-Forwarded-For': '1.2.3.4'})
     assert r.status_code == 200
@@ -26,6 +27,7 @@ def test_X_Forwarded_Proto_is_generated(docker_compose, nginxproxy):
     r = nginxproxy.get("https://web.nginx-proxy.tld/headers")
     assert r.status_code == 200
     assert "X-Forwarded-Proto: https" in r.text
+
 
 def test_X_Forwarded_Proto_is_passed_on(docker_compose, nginxproxy):
     r = nginxproxy.get("https://web.nginx-proxy.tld/headers", headers={'X-Forwarded-Proto': 'f00'})
@@ -40,6 +42,7 @@ def test_X_Forwarded_Host_is_generated(docker_compose, nginxproxy):
     assert r.status_code == 200
     assert "X-Forwarded-Host: web.nginx-proxy.tld\n" in r.text
 
+
 def test_X_Forwarded_Host_is_passed_on(docker_compose, nginxproxy):
     r = nginxproxy.get("https://web.nginx-proxy.tld/headers", headers={'X-Forwarded-Host': 'example.com'})
     assert r.status_code == 200
@@ -52,6 +55,7 @@ def test_X_Forwarded_Port_is_generated(docker_compose, nginxproxy):
     r = nginxproxy.get("https://web.nginx-proxy.tld/headers")
     assert r.status_code == 200
     assert "X-Forwarded-Port: 443\n" in r.text
+
 
 def test_X_Forwarded_Port_is_passed_on(docker_compose, nginxproxy):
     r = nginxproxy.get("https://web.nginx-proxy.tld/headers", headers={'X-Forwarded-Port': '1234'})
@@ -66,6 +70,7 @@ def test_X_Forwarded_Ssl_is_generated(docker_compose, nginxproxy):
     assert r.status_code == 200
     assert "X-Forwarded-Ssl: on\n" in r.text
 
+
 def test_X_Forwarded_Ssl_is_overwritten(docker_compose, nginxproxy):
     r = nginxproxy.get("https://web.nginx-proxy.tld/headers", headers={'X-Forwarded-Ssl': 'f00'})
     assert r.status_code == 200
@@ -79,10 +84,12 @@ def test_X_Real_IP_is_generated(docker_compose, nginxproxy):
     assert r.status_code == 200
     assert "X-Real-IP: " in r.text
 
+
 def test_Host_is_passed_on(docker_compose, nginxproxy):
     r = nginxproxy.get("https://web.nginx-proxy.tld/headers")
     assert r.status_code == 200
     assert "Host: web.nginx-proxy.tld" in r.text
+
 
 def test_httpoxy_safe(docker_compose, nginxproxy):
     """
@@ -97,7 +104,7 @@ def test_httpoxy_safe(docker_compose, nginxproxy):
 @pytest.mark.filterwarnings('ignore::urllib3.exceptions.InsecureRequestWarning')
 def test_no_host_server_tokens_off(docker_compose, nginxproxy):
     ip = nginxproxy.get_ip()
-    r = nginxproxy.get(f"https://{ip}/headers", verify=False)
+    r = nginxproxy.get(f"https://{ip}/headers", verify=False, expected_status_code=503)
     assert r.status_code == 503
     assert r.headers["Server"] == "nginx"
 

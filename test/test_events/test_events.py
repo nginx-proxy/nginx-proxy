@@ -1,6 +1,7 @@
 """
 Test that nginx-proxy detects new containers
 """
+import time
 from time import sleep
 
 import pytest
@@ -56,7 +57,8 @@ def web2(docker_compose):
         pass
 
 def test_nginx_proxy_behavior_when_alone(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://nginx-proxy/")
+    time.sleep(3)
+    r = nginxproxy.get("http://nginx-proxy/", expected_status_code=503)
     assert r.status_code == 503
 
 
@@ -67,18 +69,18 @@ def test_new_container_is_detected_vhost(web1, nginxproxy):
 
     web1.remove(force=True)
     sleep(2)
-    r = nginxproxy.get("http://web1.nginx-proxy/port")
+    r = nginxproxy.get("http://web1.nginx-proxy/port", expected_status_code=503)
     assert r.status_code == 503
 
 def test_new_container_is_detected_vpath(web2, nginxproxy):
     r = nginxproxy.get("http://nginx-proxy/web2/port")
     assert r.status_code == 200
     assert "answer from port 82\n" == r.text
-    r = nginxproxy.get("http://nginx-proxy/port")
+    r = nginxproxy.get("http://nginx-proxy/port", expected_status_code=[404, 503])
     assert r.status_code in [404, 503]
 
     web2.remove(force=True)
     sleep(2)
-    r = nginxproxy.get("http://nginx-proxy/web2/port")
+    r = nginxproxy.get("http://nginx-proxy/web2/port", expected_status_code=503)
     assert r.status_code == 503
 

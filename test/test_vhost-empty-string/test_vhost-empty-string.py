@@ -1,7 +1,9 @@
 import re
+import time
 
 
 def test_vhost_empty_string(docker_compose, nginxproxy):
+    time.sleep(3)
     conf = nginxproxy.get_conf().decode()
     assert re.search(r"(?m)^\s*server_name\s+web2\.nginx-proxy\.test\s*;", conf)
     assert re.search(r"(?m)^\s*server_name\s+web3\.nginx-proxy\.test\s*;", conf)

@@ -2,8 +2,9 @@ import pytest
 
 
 def test_default_root_response(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://nginx-proxy.test/")
+    r = nginxproxy.get("http://nginx-proxy.test/", expected_status_code=418)
     assert r.status_code == 418
+
 
 @pytest.mark.parametrize("stub,header", [
     ("nginx-proxy.test/web1", "bar"),
@@ -15,6 +16,7 @@ def test_custom_applies(docker_compose, nginxproxy, stub, header):
     assert "X-test" in r.headers
     assert header == r.headers["X-test"]
 
+
 @pytest.mark.parametrize("stub,code", [
     ("nginx-proxy.test/foo", 418),
     ("nginx-proxy.test/web2", 200),
@@ -22,9 +24,10 @@ def test_custom_applies(docker_compose, nginxproxy, stub, header):
     ("bar.nginx-proxy.test", 503),
 ])
 def test_custom_does_not_apply(docker_compose, nginxproxy, stub, code):
-    r = nginxproxy.get(f"http://{stub}/port")
+    r = nginxproxy.get(f"http://{stub}/port", expected_status_code=code)
     assert r.status_code == code
     assert "X-test" not in r.headers
+
 
 @pytest.mark.parametrize("stub,port", [
     ("nginx-proxy.test/web1", 81),
@@ -36,4 +39,3 @@ def test_alternate(docker_compose, nginxproxy, stub, port):
     r = nginxproxy.get(f"http://{stub}/port")
     assert r.status_code == 200
     assert r.text == f"answer from port {port}\n"
-

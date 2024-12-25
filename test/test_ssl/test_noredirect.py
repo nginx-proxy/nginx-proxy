@@ -17,8 +17,5 @@ def test_web2_HSTS_policy_is_inactive(docker_compose, nginxproxy):
 
 
 def test_web3_acme_challenge_does_work(docker_compose, nginxproxy, acme_challenge_path):
-    r = nginxproxy.get(
-        f"http://web3.nginx-proxy.tld/{acme_challenge_path}",
-        allow_redirects=False
-    )
+    r = nginxproxy.get(f"http://web3.nginx-proxy.tld/{acme_challenge_path}", allow_redirects=False)
     assert r.status_code == 200

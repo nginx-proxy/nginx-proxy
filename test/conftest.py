@@ -9,7 +9,7 @@ import socket
 import subprocess
 import time
 from io import StringIO
-from typing import List
+from typing import List, Callable
 
 import backoff
 import docker.errors
@@ -19,7 +19,7 @@ import requests
 from docker.models.containers import Container
 from docker.models.networks import Network
 from packaging.version import Version
-
+from requests.models import Response
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('backoff').setLevel(logging.INFO)
@@ -93,6 +93,17 @@ class RequestsForDocker(object):
             self.session.verify = CA_ROOT_CERTIFICATE
 
     @staticmethod
+    def __backoff_predicate(expected_status_codes=None) -> Callable[[Response], bool]:
+        if expected_status_codes is not None:
+            if isinstance(expected_status_codes, int):
+                expected_status_codes = [expected_status_codes]
+            return lambda r: r.status_code not in expected_status_codes
+        else:
+            return lambda r: r.status_code not in [200, 301]
+
+    __backed_off_exceptions = (requests.exceptions.SSLError, requests.exceptions.ConnectionError)
+
+    @staticmethod
     def get_nginx_proxy_containers() -> List[Container]:
         """
         Return list of containers
@@ -119,8 +130,16 @@ class RequestsForDocker(object):
         return container_ip(nginx_proxy_containers[0])
 
     def get(self, *args, **kwargs):
+        _expected_status_code = kwargs.pop('expected_status_code', None)
         with ipv6(kwargs.pop('ipv6', False)):
-            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
+            @backoff.on_exception(backoff.expo, self.__backed_off_exceptions, max_time=8)
+            @backoff.on_predicate(backoff.expo, self.__backoff_predicate(_expected_status_code), max_time=8)
+            def _get(*_args, **_kwargs):
+                return self.session.get(*_args, **_kwargs)
+            return _get(*args, **kwargs)
+
+    def get_without_backoff(self, *args, **kwargs):
+        with ipv6(kwargs.pop('ipv6', False)):
             def _get(*_args, **_kwargs):
                 return self.session.get(*_args, **_kwargs)
             return _get(*args, **kwargs)
@@ -352,14 +371,22 @@ def wait_for_nginxproxy_to_be_ready():
     If one (and only one) container started from image nginxproxy/nginx-proxy:test is found,
     wait for its log to contain substring "Watching docker events"
     """
-    containers = docker_client.containers.list(filters={"ancestor": "nginxproxy/nginx-proxy:test"})
-    if len(containers) != 1:
-        return
-    container = containers[0]
-    for line in container.logs(stream=True):
-        if b"Watching docker events" in line:
-            logging.debug("nginx-proxy ready")
-            break
+    timeout = time.time() + 10
+    while True:
+        containers = docker_client.containers.list(
+            filters={"status": "running", "ancestor": "nginxproxy/nginx-proxy:test"}
+        )
+
+        if len(containers) != 1:
+            logging.warning(f"Found {len(containers)} nginxproxy/nginx-proxy:test containers running")
+        else:
+            for line in containers.pop().logs(stream=True):
+                if b"Generated '/etc/nginx/conf.d/default.conf'" in line:
+                    return
+
+        if time.time() > timeout:
+            pytest.fail("nginxproxy/nginx-proxy:test container not ready after 10s", pytrace=False)
+        time.sleep(1)
 
 
 @pytest.fixture
@@ -491,7 +518,6 @@ class DockerComposer(contextlib.AbstractContextManager):
         docker_compose_up(docker_compose_files, project_name)
         self._networks = connect_to_all_networks()
         wait_for_nginxproxy_to_be_ready()
-        time.sleep(3)  # give time to containers to be ready
         self._docker_compose_files = docker_compose_files
         self._project_name = project_name
 

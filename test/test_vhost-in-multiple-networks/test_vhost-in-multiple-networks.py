@@ -9,10 +9,12 @@ def test_forwards_to_web1(docker_compose, nginxproxy):
     assert r.status_code == 200
     assert r.text == "answer from port 81\n"
 
+
 def test_nginx_config_remains_the_same_after_restart(docker_compose, nginxproxy):
     """
     Restarts the Web container and returns nginx-proxy config after restart
     """
+
     def get_conf_after_web_container_restart():
         web_containers = docker_compose.containers.list(filters={"ancestor": "web:latest"})
         assert len(web_containers) == 1

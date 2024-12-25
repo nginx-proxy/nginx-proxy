@@ -15,13 +15,15 @@ def test_valid_path(docker_compose, nginxproxy, stub, expected_port):
     assert r.status_code == 200
     assert r.text == f"answer from port {expected_port}\n"
 
+
 @pytest.mark.parametrize("stub", [
     "nginx-proxy.test/foo",
     "bar.nginx-proxy.test",
 ])
 def test_invalid_path(docker_compose, nginxproxy, stub):
-    r = nginxproxy.get(f"http://{stub}/port")
+    r = nginxproxy.get(f"http://{stub}/port", expected_status_code=[404, 503])
     assert r.status_code in [404, 503]
+
 
 @pytest.fixture()
 def web4(docker_compose):
@@ -48,14 +50,17 @@ def web4(docker_compose):
     except NotFound:
         pass
 
+
 """
 Test if we can add and remove a single virtual_path from multiple ones on the same subdomain.
 """
+
+
 def test_container_hotplug(web4, nginxproxy):
     r = nginxproxy.get(f"http://nginx-proxy.test/web4/port")
     assert r.status_code == 200
     assert r.text == f"answer from port 84\n"
     web4.remove(force=True)
     sleep(2)
-    r = nginxproxy.get(f"http://nginx-proxy.test/web4/port")
+    r = nginxproxy.get(f"http://nginx-proxy.test/web4/port", expected_status_code=404)
     assert r.status_code == 404

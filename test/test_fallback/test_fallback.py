@@ -25,8 +25,11 @@ def get(docker_compose, nginxproxy, want_err_re):
         interval=.3,
         max_tries=30,
         jitter=None)
-    def _get(url):
-        return nginxproxy.get(url, allow_redirects=False)
+    def _get(url, want_code=None):
+        if want_code is None:
+            return nginxproxy.get_without_backoff(url, allow_redirects=False)
+        else:
+            return nginxproxy.get(url, allow_redirects=False, expected_status_code=want_code)
     yield _get
 
 
@@ -106,9 +109,9 @@ INTERNAL_ERR_RE = re.compile("TLSV1_UNRECOGNIZED_NAME")
     # should prefer that server for handling requests for unknown vhosts.
     ("custom-fallback.yml", "http://unknown.nginx-proxy.test/", 418, None),
 ])
-def test_fallback(get, url, want_code, want_err_re):
+def test_fallback(get, compose_file, url, want_code, want_err_re):
     if want_err_re is None:
-        r = get(url)
+        r = get(url, want_code)
         assert r.status_code == want_code
     else:
         with pytest.raises(requests.exceptions.SSLError, match=want_err_re):

@@ -3,7 +3,7 @@ import pytest
 
 @pytest.mark.parametrize("subdomain", ["foo", "bar"])
 def test_web1_http_redirects_to_https(docker_compose, nginxproxy, subdomain):
-    r = nginxproxy.get(f"http://{subdomain}.nginx-proxy.tld/", allow_redirects=False)
+    r = nginxproxy.get(f"http://{subdomain}.nginx-proxy.tld/", allow_redirects=False, expected_status_code=301)
     assert r.status_code == 301
     assert "Location" in r.headers
     assert f"https://{subdomain}.nginx-proxy.tld/" == r.headers['Location']
@@ -25,9 +25,6 @@ def test_web1_HSTS_policy_is_active(docker_compose, nginxproxy, subdomain):
 
 @pytest.mark.parametrize("subdomain", ["foo", "bar"])
 def test_web1_acme_challenge_works(docker_compose, nginxproxy, acme_challenge_path, subdomain):
-    r = nginxproxy.get(
-        f"http://web3.nginx-proxy.tld/{acme_challenge_path}",
-        allow_redirects=False
-    )
+    r = nginxproxy.get(f"http://web3.nginx-proxy.tld/{acme_challenge_path}", allow_redirects=False)
     assert r.status_code == 200
     assert "challenge-teststring\n" in r.text
