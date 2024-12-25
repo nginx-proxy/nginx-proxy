@@ -70,3 +70,8 @@ docker pull nginxproxy/nginx-proxy:1.6-alpine
 ### Additional documentation
 
 Please check the [docs section](https://github.com/nginx-proxy/nginx-proxy/tree/main/docs).
+
+### Powered by 
+
+[![GoLand logo](https://resources.jetbrains.com/storage/products/company/brand/logos/GoLand_icon.svg)](https://www.jetbrains.com/go/)
+[![PyCharm logo](https://resources.jetbrains.com/storage/products/company/brand/logos/PyCharm_icon.svg)](https://www.jetbrains.com/pycharm/)
