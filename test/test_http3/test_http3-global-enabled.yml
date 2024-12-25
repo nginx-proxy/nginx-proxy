@@ -1,4 +1,8 @@
 services:
+  nginx-proxy:
+    environment:
+      ENABLE_HTTP3: "true"
+
   http3-global-enabled:
     image: web
     expose:
@@ -6,10 +10,3 @@ services:
     environment:
       WEB_PORTS: 80
       VIRTUAL_HOST: http3-global-enabled.nginx-proxy.tld
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-    environment:
-      ENABLE_HTTP3: "true"

@@ -1,9 +1,5 @@
 services:
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./withdefault.certs:/etc/nginx/certs:ro
+  nginx-proxy:
     environment:
       ENABLE_HTTP_ON_MISSING_CERT: "false"
 

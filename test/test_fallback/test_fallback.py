@@ -1,24 +1,23 @@
-import os.path
 import re
+from typing import List
 
 import backoff
+import pathlib
 import pytest
 import requests
 
 
 @pytest.fixture
-def data_dir():
-    return f"{os.path.splitext(__file__)[0]}.data"
-
-
-@pytest.fixture
-def docker_compose_file(data_dir, compose_file):
-    return os.path.join(data_dir, compose_file)
+def docker_compose_files(compose_file) -> List[str]:
+    data_dir = pathlib.Path(__file__).parent.joinpath("test_fallback.data")
+    yield [
+        data_dir.joinpath("compose.base.yml"),
+        data_dir.joinpath(compose_file).as_posix()
+    ]
 
 
 @pytest.fixture
 def get(docker_compose, nginxproxy, want_err_re):
-
     @backoff.on_exception(
         backoff.constant,
         requests.exceptions.SSLError,
@@ -28,8 +27,7 @@ def get(docker_compose, nginxproxy, want_err_re):
         jitter=None)
     def _get(url):
         return nginxproxy.get(url, allow_redirects=False)
-
-    return _get
+    yield _get
 
 
 INTERNAL_ERR_RE = re.compile("TLSV1_UNRECOGNIZED_NAME")

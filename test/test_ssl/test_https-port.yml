@@ -1,4 +1,12 @@
 services:
+  nginx-proxy:
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    environment:
+      HTTP_PORT: 8080
+      HTTPS_PORT: 8443
+
   web1:
     image: web
     expose:
@@ -6,13 +14,3 @@ services:
     environment:
       WEB_PORTS: "81"
       VIRTUAL_HOST: "*.nginx-proxy.tld"
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs:/etc/nginx/certs:ro
-      - ./acme_root:/usr/share/nginx/html:ro
-    environment:
-      HTTP_PORT: 8080
-      HTTPS_PORT: 8443

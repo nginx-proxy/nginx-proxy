@@ -1,3 +1,9 @@
+import platform
+
+import pytest
+
+
+@pytest.mark.xfail(platform.system() == "Darwin", reason="Host to Container IP connection only work on Linux")
 def test_raw_ipv4_vhost_forwards_to_web1(docker_compose, nginxproxy):
     r = nginxproxy.get("http://172.20.0.4")
     assert r.status_code == 200
@@ -5,6 +11,7 @@ def test_raw_ipv4_vhost_forwards_to_web1(docker_compose, nginxproxy):
     assert r.text == f"I'm {web1_container.id[:12]}\n"
 
 
+@pytest.mark.xfail(platform.system() == "Darwin", reason="Host to Container IP connection only work on Linux")
 def test_raw_ipv6_vhost_forwards_to_web2(docker_compose, nginxproxy):
     r = nginxproxy.get("http://[fd00::4]", ipv6=True)
     assert r.status_code == 200

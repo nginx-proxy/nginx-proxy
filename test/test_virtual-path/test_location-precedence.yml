@@ -1,4 +1,11 @@
 services:
+  nginx-proxy:
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ${PYTEST_MODULE_PATH}/default.conf:/etc/nginx/vhost.d/default_location:ro
+      - ${PYTEST_MODULE_PATH}/host.conf:/etc/nginx/vhost.d/bar.nginx-proxy.test_location:ro
+      - ${PYTEST_MODULE_PATH}/path.conf:/etc/nginx/vhost.d/bar.nginx-proxy.test_99f2db0ed8aa95dbb5b87fca79c7eff2ff6bb8bd_location:ro
+
   web1:
     image: web
     expose:
@@ -28,11 +35,3 @@ services:
       VIRTUAL_HOST: "bar.nginx-proxy.test"
       VIRTUAL_PATH: "/web3/"
       VIRTUAL_DEST: "/"
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./default.conf:/etc/nginx/vhost.d/default_location:ro
-      - ./host.conf:/etc/nginx/vhost.d/bar.nginx-proxy.test_location:ro
-      - ./path.conf:/etc/nginx/vhost.d/bar.nginx-proxy.test_99f2db0ed8aa95dbb5b87fca79c7eff2ff6bb8bd_location:ro

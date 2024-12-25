@@ -4,6 +4,11 @@ networks:
   net2:
 
 services:
+  nginx-proxy:
+    networks:
+      - net1
+      - net2
+
   bridge-network:
     image: web
     environment:
@@ -20,10 +25,4 @@ services:
       VIRTUAL_PORT: "8080"
     network_mode: host
 
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-    networks:
-      - net1
-      - net2
+

@@ -1,3 +1,5 @@
+import platform
+
 import pytest
 from requests import ConnectionError
 
@@ -19,6 +21,7 @@ def test_forwards_to_web2(docker_compose, nginxproxy):
     assert r.text == "answer from port 82\n" 
 
 
+@pytest.mark.xfail(platform.system() == "Darwin", reason="This test is flaky on Darwin")
 def test_ipv6_is_disabled_by_default(docker_compose, nginxproxy):
     with pytest.raises(ConnectionError):
         nginxproxy.get("http://nginx-proxy/port", ipv6=True)

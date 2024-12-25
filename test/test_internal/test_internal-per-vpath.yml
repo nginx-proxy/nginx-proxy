@@ -20,8 +20,3 @@ services:
       VIRTUAL_PATH: /web2/
       VIRTUAL_DEST: /
 
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./network_internal.conf:/etc/nginx/network_internal.conf:ro

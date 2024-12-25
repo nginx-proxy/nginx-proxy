@@ -2,19 +2,23 @@ import contextlib
 import errno
 import logging
 import os
+import platform
 import re
 import shlex
 import socket
 import subprocess
 import time
+from io import StringIO
 from typing import List
 
 import backoff
 import docker.errors
+import pathlib
 import pytest
 import requests
-from packaging.version import Version
 from docker.models.containers import Container
+from docker.models.networks import Network
+from packaging.version import Version
 
 
 logging.basicConfig(level=logging.INFO)
@@ -276,7 +280,11 @@ def monkey_patch_urllib_dns_resolver():
             pytest.skip("This system does not support IPv6")
 
         # custom DNS resolvers
-        ip = nginx_proxy_dns_resolver(args[0])
+        ip = None
+        if platform.system() == "Darwin":
+            ip = "127.0.0.1"
+        if ip is None:
+            ip = nginx_proxy_dns_resolver(args[0])
         if ip is None:
             ip = docker_container_dns_resolver(args[0])
         if ip is not None:
@@ -312,20 +320,31 @@ def get_nginx_conf_from_container(container):
         return conffile.read()
 
 
-def docker_compose_up(compose_file='docker-compose.yml'):
-    logging.info(f'{DOCKER_COMPOSE} -f {compose_file} up -d')
+def __prepare_and_execute_compose_cmd(compose_files:List[str], project_name:str, cmd: str):
+    compose_cmd = StringIO()
+    compose_cmd.write(DOCKER_COMPOSE)
+    compose_cmd.write(f" --project-name {project_name}")
+    for compose_file in compose_files:
+        compose_cmd.write(f" --file {compose_file}")
+    compose_cmd.write(f" {cmd}")
+
+    logging.info(compose_cmd.getvalue())
     try:
-        subprocess.check_output(shlex.split(f'{DOCKER_COMPOSE} -f {compose_file} up -d'), stderr=subprocess.STDOUT)
+        subprocess.check_output(shlex.split(compose_cmd.getvalue()), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        pytest.fail(f"Error while running '{DOCKER_COMPOSE} -f {compose_file} up -d':\n{e.output}", pytrace=False)
+        pytest.fail(f"Error while running '{compose_cmd.getvalue()}':\n{e.output}", pytrace=False)
 
 
-def docker_compose_down(compose_file='docker-compose.yml'):
-    logging.info(f'{DOCKER_COMPOSE} -f {compose_file} down -v')
-    try:
-        subprocess.check_output(shlex.split(f'{DOCKER_COMPOSE} -f {compose_file} down -v'), stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError as e:
-        pytest.fail(f"Error while running '{DOCKER_COMPOSE} -f {compose_file} down -v':\n{e.output}", pytrace=False)
+def docker_compose_up(compose_files:List[str], project_name:str):
+    if compose_files is None or len(compose_files) == 0:
+        pytest.fail(f"No compose file passed to docker_compose_up", pytrace=False)
+    __prepare_and_execute_compose_cmd(compose_files, project_name, cmd="up --detach")
+
+
+def docker_compose_down(compose_files:List[str], project_name:str):
+    if compose_files is None or len(compose_files) == 0:
+        pytest.fail(f"No compose file passed to docker_compose_up", pytrace=False)
+    __prepare_and_execute_compose_cmd(compose_files, project_name, cmd="down --volumes")
 
 
 def wait_for_nginxproxy_to_be_ready():
@@ -344,35 +363,44 @@ def wait_for_nginxproxy_to_be_ready():
 
 
 @pytest.fixture
-def docker_compose_file(request):
+def docker_compose_files(request) -> List[str]:
     """Fixture naming the docker compose file to consider.
 
     If a YAML file exists with the same name as the test module (with the `.py` extension replaced
-    with `.yml` or `.yaml`), use that.  Otherwise, use `docker-compose.yml` in the same directory
+    with `.yml`), use that.  Otherwise, use `docker-compose.yml` in the same directory
     as the test module.
 
     Tests can override this fixture to specify a custom location.
     """
-    test_module_dir = os.path.dirname(request.module.__file__)
-    yml_file = os.path.join(test_module_dir, request.module.__name__ + '.yml')
-    yaml_file = os.path.join(test_module_dir, request.module.__name__ + '.yaml')
-    default_file = os.path.join(test_module_dir, 'docker-compose.yml')
+    compose_files:List[str] = []
+    test_module_path = pathlib.Path(request.module.__file__).parent
 
-    if os.path.isfile(yml_file):
-        docker_compose_file = yml_file
-    elif os.path.isfile(yaml_file):
-        docker_compose_file = yaml_file
-    else:
-        docker_compose_file = default_file
+    module_base_file = test_module_path.joinpath(f"{request.module.__name__}.base.yml")
+    if module_base_file.is_file():
+        return [module_base_file.as_posix()]
 
-    if not os.path.isfile(docker_compose_file):
-        logging.error("Could not find any docker compose file named either '{0}.yml', '{0}.yaml' or 'docker-compose.yml'".format(request.module.__name__))
+    global_base_file = test_module_path.parent.joinpath("compose.base.yml")
+    if global_base_file.is_file():
+        compose_files.append(global_base_file.as_posix())
 
-    logging.debug(f"using docker compose file {docker_compose_file}")
-    return docker_compose_file
+    module_base_override_file = test_module_path.joinpath("compose.base.override.yml")
+    if module_base_override_file.is_file():
+        compose_files.append(module_base_override_file.as_posix())
+
+    module_compose_file = test_module_path.joinpath(f"{request.module.__name__}.yml")
+    if module_compose_file.is_file():
+        compose_files.append(module_compose_file.as_posix())
+
+    if not module_base_file.is_file() and not module_compose_file.is_file():
+        logging.error(
+            f"Could not find any docker compose file named '{module_base_file.name}' or '{module_compose_file.name}'"
+        )
+
+    logging.debug(f"using docker compose files {compose_files}")
+    return compose_files
 
 
-def connect_to_network(network):
+def connect_to_network(network:Network):
     """
     If we are running from a container, connect our container to the given network
 
@@ -383,7 +411,7 @@ def connect_to_network(network):
             my_container = docker_client.containers.get(test_container)
         except docker.errors.NotFound:
             logging.warning(f"container {test_container} not found")
-            return
+            return None
 
         # figure out our container networks
         my_networks = list(my_container.attrs["NetworkSettings"]["Networks"].keys())
@@ -400,7 +428,7 @@ def connect_to_network(network):
             return network
 
 
-def disconnect_from_network(network=None):
+def disconnect_from_network(network:Network=None):
     """
     If we are running from a container, disconnect our container from the given network.
 
@@ -422,7 +450,7 @@ def disconnect_from_network(network=None):
             network.disconnect(my_container)
 
 
-def connect_to_all_networks():
+def connect_to_all_networks() -> List[Network]:
     """
     If we are running from a container, connect our container to all current docker networks.
 
@@ -439,30 +467,33 @@ def connect_to_all_networks():
 class DockerComposer(contextlib.AbstractContextManager):
     def __init__(self):
         self._networks = None
-        self._docker_compose_file = None
+        self._docker_compose_files = None
+        self._project_name = None
 
     def __exit__(self, *exc_info):
         self._down()
 
     def _down(self):
-        if self._docker_compose_file is None:
+        if self._docker_compose_files is None:
             return
         for network in self._networks:
             disconnect_from_network(network)
-        docker_compose_down(self._docker_compose_file)
+        docker_compose_down(self._docker_compose_files, self._project_name)
         self._docker_compose_file = None
+        self._project_name = None
 
-    def compose(self, docker_compose_file):
-        if docker_compose_file == self._docker_compose_file:
+    def compose(self, docker_compose_files:List[str], project_name:str):
+        if docker_compose_files == self._docker_compose_files and project_name == self._project_name:
             return
         self._down()
-        if docker_compose_file is None:
+        if docker_compose_files is None or project_name is None:
             return
-        docker_compose_up(docker_compose_file)
+        docker_compose_up(docker_compose_files, project_name)
         self._networks = connect_to_all_networks()
         wait_for_nginxproxy_to_be_ready()
         time.sleep(3)  # give time to containers to be ready
-        self._docker_compose_file = docker_compose_file
+        self._docker_compose_files = docker_compose_files
+        self._project_name = project_name
 
 
 ###############################################################################
@@ -491,7 +522,7 @@ def monkey_patched_dns():
 
 
 @pytest.fixture
-def docker_compose(monkey_patched_dns, docker_composer, docker_compose_file):
+def docker_compose(request, monkeypatch, monkey_patched_dns, docker_composer, docker_compose_files):
     """Ensures containers described in a docker compose file are started.
 
     A custom docker compose file name can be specified by overriding the `docker_compose_file`
@@ -500,7 +531,9 @@ def docker_compose(monkey_patched_dns, docker_composer, docker_compose_file):
     Also, in the case where pytest is running from a docker container, this fixture makes sure
     our container will be attached to all the docker networks.
     """
-    docker_composer.compose(docker_compose_file)
+    project_name = request.module.__name__
+    monkeypatch.setenv("PYTEST_MODULE_PATH", pathlib.Path(request.module.__file__).parent.as_posix())
+    docker_composer.compose(docker_compose_files, project_name)
     yield docker_client
 
 
