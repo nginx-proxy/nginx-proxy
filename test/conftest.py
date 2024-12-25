@@ -9,7 +9,7 @@ import socket
 import subprocess
 import time
 from io import StringIO
-from typing import List, Callable
+from typing import List
 
 import backoff
 import docker.errors
@@ -19,7 +19,6 @@ import requests
 from docker.models.containers import Container
 from docker.models.networks import Network
 from packaging.version import Version
-from requests.models import Response
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('backoff').setLevel(logging.INFO)
@@ -62,6 +61,8 @@ def system_has_ipv6() -> bool:
             return True
         raise
 
+HAS_IPV6 = system_has_ipv6()
+
 @contextlib.contextmanager
 def ipv6(force_ipv6=True):
     """
@@ -93,13 +94,13 @@ class RequestsForDocker(object):
             self.session.verify = CA_ROOT_CERTIFICATE
 
     @staticmethod
-    def __backoff_predicate(expected_status_codes=None) -> Callable[[Response], bool]:
+    def __backoff_predicate(expected_status_codes=None):
         if expected_status_codes is not None:
             if isinstance(expected_status_codes, int):
                 expected_status_codes = [expected_status_codes]
             return lambda r: r.status_code not in expected_status_codes
         else:
-            return lambda r: r.status_code not in [200, 301]
+            return lambda r: r.status_code not in (200, 301)
 
     __backed_off_exceptions = (requests.exceptions.SSLError, requests.exceptions.ConnectionError)
 
@@ -191,7 +192,7 @@ def container_ip(container: Container):
     """
     global FORCE_CONTAINER_IPV6
     if FORCE_CONTAINER_IPV6:
-        if not system_has_ipv6():
+        if not HAS_IPV6:
             pytest.skip("This system does not support IPv6")
         ip = container_ipv6(container)
         if ip == '':
@@ -295,7 +296,7 @@ def monkey_patch_urllib_dns_resolver():
 
         # Fail early when querying IP directly, and it is forced ipv6 when not supported,
         # Otherwise a pytest container not using the host network fails to pass `test_raw-ip-vhost`.
-        if FORCE_CONTAINER_IPV6 and not system_has_ipv6():
+        if FORCE_CONTAINER_IPV6 and not HAS_IPV6:
             pytest.skip("This system does not support IPv6")
 
         # custom DNS resolvers
