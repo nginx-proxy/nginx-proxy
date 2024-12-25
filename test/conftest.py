@@ -26,7 +26,6 @@ logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.W
 
 CA_ROOT_CERTIFICATE = os.path.join(os.path.dirname(__file__), 'certs/ca-root.crt')
 PYTEST_RUNNING_IN_CONTAINER = os.environ.get('PYTEST_RUNNING_IN_CONTAINER') == "1"
-HAS_IPV6 = socket.has_ipv6
 FORCE_CONTAINER_IPV6 = False  # ugly global state to consider containers' IPv6 address instead of IPv4
 
 DOCKER_COMPOSE = os.environ.get('DOCKER_COMPOSE', 'docker compose')
@@ -43,6 +42,29 @@ test_container = 'nginx-proxy-pytest'
 #
 ###############################################################################
 
+def _has_ipv6(host: str) -> bool:
+    """Returns True if the system can bind an IPv6 address."""
+    sock = None
+    has_ipv6 = False
+
+    if socket.has_ipv6:
+        # has_ipv6 returns true if cPython was compiled with IPv6 support.
+        # It does not tell us if the system has IPv6 support enabled. To
+        # determine that we must bind to an IPv6 address.
+        # https://github.com/urllib3/urllib3/pull/611
+        # https://bugs.python.org/issue658327
+        try:
+            sock = socket.socket(socket.AF_INET6)
+            sock.bind((host, 0))
+            has_ipv6 = True
+        except Exception:
+            pass
+
+    if sock:
+        sock.close()
+    return has_ipv6
+
+HAS_IPV6 = _has_ipv6("::1")
 
 @contextlib.contextmanager
 def ipv6(force_ipv6=True):
