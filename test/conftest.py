@@ -15,7 +15,7 @@ import pytest
 import requests
 from packaging.version import Version
 from docker.models.containers import Container
-
+from urllib3.util.connection import HAS_IPV6
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('backoff').setLevel(logging.INFO)
@@ -40,23 +40,6 @@ test_container = 'nginx-proxy-pytest'
 #
 ###############################################################################
 
-def system_has_ipv6() -> bool:
-    # See https://stackoverflow.com/a/66249915
-    _ADDR_NOT_AVAIL = {errno.EADDRNOTAVAIL, errno.EAFNOSUPPORT}
-    _ADDR_IN_USE = {errno.EADDRINUSE}
-
-    if not socket.has_ipv6:
-        return False
-    try:
-        with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as sock:
-            sock.bind(("::1", 0))
-        return True
-    except OSError as e:
-        if e.errno in _ADDR_NOT_AVAIL:
-            return False
-        if e.errno in _ADDR_IN_USE:
-            return True
-        raise
 
 @contextlib.contextmanager
 def ipv6(force_ipv6=True):
@@ -168,7 +151,7 @@ def container_ip(container: Container):
     """
     global FORCE_CONTAINER_IPV6
     if FORCE_CONTAINER_IPV6:
-        if not system_has_ipv6():
+        if not HAS_IPV6:
             pytest.skip("This system does not support IPv6")
         ip = container_ipv6(container)
         if ip == '':
@@ -272,7 +255,7 @@ def monkey_patch_urllib_dns_resolver():
 
         # Fail early when querying IP directly, and it is forced ipv6 when not supported,
         # Otherwise a pytest container not using the host network fails to pass `test_raw-ip-vhost`.
-        if FORCE_CONTAINER_IPV6 and not system_has_ipv6():
+        if FORCE_CONTAINER_IPV6 and not HAS_IPV6:
             pytest.skip("This system does not support IPv6")
 
         # custom DNS resolvers
