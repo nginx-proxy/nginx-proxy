@@ -1,5 +1,4 @@
 import contextlib
-import errno
 import logging
 import os
 import re
@@ -7,14 +6,18 @@ import shlex
 import socket
 import subprocess
 import time
-from typing import List
+from typing import List, Optional
 
 import backoff
 import docker.errors
 import pytest
 import requests
-from packaging.version import Version
+from _pytest.fixtures import FixtureRequest
+from docker import DockerClient
 from docker.models.containers import Container
+from docker.models.networks import Network
+from packaging.version import Version
+from requests import Response
 from urllib3.util.connection import HAS_IPV6
 
 logging.basicConfig(level=logging.INFO)
@@ -42,7 +45,7 @@ test_container = 'nginx-proxy-pytest'
 
 
 @contextlib.contextmanager
-def ipv6(force_ipv6=True):
+def ipv6(force_ipv6: bool = True):
     """
     Meant to be used as a context manager to force IPv6 sockets:
 
@@ -60,7 +63,7 @@ def ipv6(force_ipv6=True):
     FORCE_CONTAINER_IPV6 = False
 
 
-class RequestsForDocker(object):
+class RequestsForDocker:
     """
     Proxy for calling methods of the requests module.
     When an HTTP response failed due to HTTP Error 404 or 502, retry a few times.
@@ -72,7 +75,7 @@ class RequestsForDocker(object):
             self.session.verify = CA_ROOT_CERTIFICATE
 
     @staticmethod
-    def get_nginx_proxy_containers() -> List[Container]:
+    def get_nginx_proxy_container() -> Container:
         """
         Return list of containers
         """
@@ -81,58 +84,58 @@ class RequestsForDocker(object):
             pytest.fail("Too many running nginxproxy/nginx-proxy:test containers", pytrace=False)
         elif len(nginx_proxy_containers) == 0:
             pytest.fail("No running nginxproxy/nginx-proxy:test container", pytrace=False)
-        return nginx_proxy_containers
+        return nginx_proxy_containers.pop()
 
-    def get_conf(self):
+    def get_conf(self) -> bytes:
         """
         Return the nginx config file
         """
-        nginx_proxy_containers = self.get_nginx_proxy_containers()
-        return get_nginx_conf_from_container(nginx_proxy_containers[0])
+        nginx_proxy_container = self.get_nginx_proxy_container()
+        return get_nginx_conf_from_container(nginx_proxy_container)
 
     def get_ip(self) -> str:
         """
         Return the nginx container ip address
         """
-        nginx_proxy_containers = self.get_nginx_proxy_containers()
-        return container_ip(nginx_proxy_containers[0])
+        nginx_proxy_container = self.get_nginx_proxy_container()
+        return container_ip(nginx_proxy_container)
 
-    def get(self, *args, **kwargs):
+    def get(self, *args, **kwargs) -> Response:
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
             def _get(*_args, **_kwargs):
                 return self.session.get(*_args, **_kwargs)
             return _get(*args, **kwargs)
 
-    def post(self, *args, **kwargs):
+    def post(self, *args, **kwargs) -> Response:
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
             def _post(*_args, **_kwargs):
                 return self.session.post(*_args, **_kwargs)
             return _post(*args, **kwargs)
 
-    def put(self, *args, **kwargs):
+    def put(self, *args, **kwargs) -> Response:
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
             def _put(*_args, **_kwargs):
                 return self.session.put(*_args, **_kwargs)
             return _put(*args, **kwargs)
 
-    def head(self, *args, **kwargs):
+    def head(self, *args, **kwargs) -> Response:
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
             def _head(*_args, **_kwargs):
                 return self.session.head(*_args, **_kwargs)
             return _head(*args, **kwargs)
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args, **kwargs) -> Response:
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
             def _delete(*_args, **_kwargs):
                 return self.session.delete(*_args, **_kwargs)
             return _delete(*args, **kwargs)
 
-    def options(self, *args, **kwargs):
+    def options(self, *args, **kwargs) -> Response:
         with ipv6(kwargs.pop('ipv6', False)):
             @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
             def _options(*_args, **_kwargs):
@@ -143,7 +146,7 @@ class RequestsForDocker(object):
         return getattr(requests, name)
 
 
-def container_ip(container: Container):
+def container_ip(container: Container) -> str:
     """
     return the IP address of a container.
 
@@ -172,7 +175,7 @@ def container_ip(container: Container):
         return net_info[network_name]["IPAddress"]
 
 
-def container_ipv6(container):
+def container_ipv6(container: Container) -> str:
     """
     return the IPv6 address of a container.
     """
@@ -189,7 +192,7 @@ def container_ipv6(container):
     return net_info[network_name]["GlobalIPv6Address"]
 
 
-def nginx_proxy_dns_resolver(domain_name):
+def nginx_proxy_dns_resolver(domain_name: str) -> Optional[str]:
     """
     if "nginx-proxy" if found in host, return the ip address of the docker container
     issued from the docker image nginxproxy/nginx-proxy:test.
@@ -206,13 +209,13 @@ def nginx_proxy_dns_resolver(domain_name):
             if len(exited_nginxproxy_containers) > 0:
                 exited_nginxproxy_container_logs = exited_nginxproxy_containers[0].logs()
                 log.warning(f"nginxproxy/nginx-proxy:test container might have exited unexpectedly. Container logs: " + "\n" + exited_nginxproxy_container_logs.decode())
-            return
+            return None
         nginxproxy_container = nginxproxy_containers[0]
         ip = container_ip(nginxproxy_container)
         log.info(f"resolving domain name {domain_name!r} as IP address {ip} of nginx-proxy container {nginxproxy_container.name}")
         return ip
 
-def docker_container_dns_resolver(domain_name):
+def docker_container_dns_resolver(domain_name: str) -> Optional[str]:
     """
     if domain name is of the form "XXX.container.docker" or "anything.XXX.container.docker", return the ip address of the docker container
     named XXX.
@@ -225,7 +228,7 @@ def docker_container_dns_resolver(domain_name):
     match = re.search(r'(^|.+\.)(?P<container>[^.]+)\.container\.docker$', domain_name)
     if not match:
         log.debug(f"{domain_name!r} does not match")
-        return
+        return None
 
     container_name = match.group('container')
     log.debug(f"looking for container {container_name!r}")
@@ -233,7 +236,7 @@ def docker_container_dns_resolver(domain_name):
         container = docker_client.containers.get(container_name)
     except docker.errors.NotFound:
         log.warning(f"container named {container_name!r} not found while resolving {domain_name!r}")
-        return
+        return None
     log.debug(f"container {container.name!r} found ({container.short_id})")
 
     ip = container_ip(container)
@@ -280,7 +283,7 @@ def restore_urllib_dns_resolver(getaddrinfo_func):
     socket.getaddrinfo = getaddrinfo_func
 
 
-def get_nginx_conf_from_container(container):
+def get_nginx_conf_from_container(container: Container) -> bytes:
     """
     return the nginx /etc/nginx/conf.d/default.conf file content from a container
     """
@@ -295,7 +298,7 @@ def get_nginx_conf_from_container(container):
         return conffile.read()
 
 
-def docker_compose_up(compose_file='docker-compose.yml'):
+def docker_compose_up(compose_file: str):
     logging.info(f'{DOCKER_COMPOSE} -f {compose_file} up -d')
     try:
         subprocess.check_output(shlex.split(f'{DOCKER_COMPOSE} -f {compose_file} up -d'), stderr=subprocess.STDOUT)
@@ -303,7 +306,7 @@ def docker_compose_up(compose_file='docker-compose.yml'):
         pytest.fail(f"Error while running '{DOCKER_COMPOSE} -f {compose_file} up -d':\n{e.output}", pytrace=False)
 
 
-def docker_compose_down(compose_file='docker-compose.yml'):
+def docker_compose_down(compose_file: str):
     logging.info(f'{DOCKER_COMPOSE} -f {compose_file} down -v')
     try:
         subprocess.check_output(shlex.split(f'{DOCKER_COMPOSE} -f {compose_file} down -v'), stderr=subprocess.STDOUT)
@@ -327,7 +330,7 @@ def wait_for_nginxproxy_to_be_ready():
 
 
 @pytest.fixture
-def docker_compose_file(request):
+def docker_compose_file(request: FixtureRequest) -> Optional[str]:
     """Fixture naming the docker compose file to consider.
 
     If a YAML file exists with the same name as the test module (with the `.py` extension replaced
@@ -337,25 +340,28 @@ def docker_compose_file(request):
     Tests can override this fixture to specify a custom location.
     """
     test_module_dir = os.path.dirname(request.module.__file__)
-    yml_file = os.path.join(test_module_dir, request.module.__name__ + '.yml')
-    yaml_file = os.path.join(test_module_dir, request.module.__name__ + '.yaml')
+    yml_file = os.path.join(test_module_dir, f"{request.module.__name__}.yml")
+    yaml_file = os.path.join(test_module_dir, f"{request.module.__name__}.yaml")
     default_file = os.path.join(test_module_dir, 'docker-compose.yml')
+
+    docker_compose_file = None
 
     if os.path.isfile(yml_file):
         docker_compose_file = yml_file
     elif os.path.isfile(yaml_file):
         docker_compose_file = yaml_file
-    else:
+    elif os.path.isfile(default_file):
         docker_compose_file = default_file
 
-    if not os.path.isfile(docker_compose_file):
+    if docker_compose_file is None:
         logging.error("Could not find any docker compose file named either '{0}.yml', '{0}.yaml' or 'docker-compose.yml'".format(request.module.__name__))
+    else:
+        logging.debug(f"using docker compose file {docker_compose_file}")
 
-    logging.debug(f"using docker compose file {docker_compose_file}")
-    return docker_compose_file
+    yield docker_compose_file
 
 
-def connect_to_network(network):
+def connect_to_network(network: Network) -> Optional[Network]:
     """
     If we are running from a container, connect our container to the given network
 
@@ -366,7 +372,7 @@ def connect_to_network(network):
             my_container = docker_client.containers.get(test_container)
         except docker.errors.NotFound:
             logging.warning(f"container {test_container} not found")
-            return
+            return None
 
         # figure out our container networks
         my_networks = list(my_container.attrs["NetworkSettings"]["Networks"].keys())
@@ -383,7 +389,7 @@ def connect_to_network(network):
             return network
 
 
-def disconnect_from_network(network=None):
+def disconnect_from_network(network: Network = None):
     """
     If we are running from a container, disconnect our container from the given network.
 
@@ -405,7 +411,7 @@ def disconnect_from_network(network=None):
             network.disconnect(my_container)
 
 
-def connect_to_all_networks():
+def connect_to_all_networks() -> List[Network]:
     """
     If we are running from a container, connect our container to all current docker networks.
 
@@ -435,7 +441,7 @@ class DockerComposer(contextlib.AbstractContextManager):
         docker_compose_down(self._docker_compose_file)
         self._docker_compose_file = None
 
-    def compose(self, docker_compose_file):
+    def compose(self, docker_compose_file: Optional[str]):
         if docker_compose_file == self._docker_compose_file:
             return
         self._down()
@@ -456,14 +462,14 @@ class DockerComposer(contextlib.AbstractContextManager):
 
 
 @pytest.fixture(scope="module")
-def docker_composer():
+def docker_composer() -> DockerComposer:
     with DockerComposer() as d:
         yield d
 
 
 @pytest.fixture
-def ca_root_certificate():
-    return CA_ROOT_CERTIFICATE
+def ca_root_certificate() -> str:
+    yield CA_ROOT_CERTIFICATE
 
 
 @pytest.fixture
@@ -474,7 +480,7 @@ def monkey_patched_dns():
 
 
 @pytest.fixture
-def docker_compose(monkey_patched_dns, docker_composer, docker_compose_file):
+def docker_compose(monkey_patched_dns, docker_composer, docker_compose_file) -> DockerClient:
     """Ensures containers described in a docker compose file are started.
 
     A custom docker compose file name can be specified by overriding the `docker_compose_file`
@@ -488,7 +494,7 @@ def docker_compose(monkey_patched_dns, docker_composer, docker_compose_file):
 
 
 @pytest.fixture()
-def nginxproxy():
+def nginxproxy() -> RequestsForDocker:
     """
     Provides the `nginxproxy` object that can be used in the same way the requests module is:
 
@@ -505,11 +511,11 @@ def nginxproxy():
 
 
 @pytest.fixture()
-def acme_challenge_path():
+def acme_challenge_path() -> str:
     """
     Provides fake Let's Encrypt ACME challenge path used in certain tests
     """
-    return ".well-known/acme-challenge/test-filename"
+    yield ".well-known/acme-challenge/test-filename"
 
 ###############################################################################
 #
