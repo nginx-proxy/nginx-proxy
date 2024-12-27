@@ -4,7 +4,7 @@ services:
     expose:
       - "80"
     environment:
-      WEB_PORTS: 80
+      WEB_PORTS: "80"
       VIRTUAL_HOST: http3-vhost-enabled.nginx-proxy.tld
     labels:
       com.github.nginx-proxy.nginx-proxy.http3.enable: "true"
@@ -14,7 +14,7 @@ services:
     expose:
       - "80"
     environment:
-      WEB_PORTS: 80
+      WEB_PORTS: "80"
       VIRTUAL_HOST: http3-vhost-disabled.nginx-proxy.tld
     labels:
       com.github.nginx-proxy.nginx-proxy.http3.enable: "false"
@@ -24,7 +24,7 @@ services:
     expose:
       - "80"
     environment:
-      WEB_PORTS: 80
+      WEB_PORTS: "80"
       VIRTUAL_HOST: http3-vhost-default-disabled.nginx-proxy.tld
 
   sut:

@@ -4,7 +4,7 @@ services:
     expose:
       - "81"
     environment:
-      WEB_PORTS: 81
+      WEB_PORTS: "81"
       VIRTUAL_HOST: webA.nginx-proxy.tld,webB.nginx-proxy.tld
 
   sut:

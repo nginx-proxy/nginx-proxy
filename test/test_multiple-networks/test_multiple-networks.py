@@ -21,6 +21,5 @@ def test_multipath(docker_compose, nginxproxy):
     assert r.text == "answer from port 83\n"
     cfg = nginxproxy.get_conf().decode()
     lines = cfg.splitlines()
-    web3_server_lines = [l for l in lines
-                         if re.search(r'(?m)^\s*server\s+[^\s]*:83;\s*$', l)]
+    web3_server_lines = [l for l in lines if re.search(r'(?m)^\s*server\s+\S*:83;\s*$', l)]
     assert len(web3_server_lines) == 1

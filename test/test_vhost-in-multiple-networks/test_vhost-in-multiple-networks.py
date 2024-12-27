@@ -1,5 +1,5 @@
 import logging
-import time
+from time import sleep
 
 import pytest
 
@@ -13,11 +13,11 @@ def test_nginx_config_remains_the_same_after_restart(docker_compose, nginxproxy)
     """
     Restarts the Web container and returns nginx-proxy config after restart
     """
-    def get_conf_after_web_container_restart():
+    def get_conf_after_web_container_restart() -> bytes:
         web_containers = docker_compose.containers.list(filters={"ancestor": "web:latest"})
         assert len(web_containers) == 1
         web_containers[0].restart()
-        time.sleep(3)
+        sleep(3)
 
         return nginxproxy.get_conf()
 

@@ -16,7 +16,7 @@ services:
     expose:
       - "80"
     environment:
-      WEB_PORTS: 80
+      WEB_PORTS: "80"
       VIRTUAL_HOST: ipv4only.nginx-proxy.tld
     networks:
       ipv4net:

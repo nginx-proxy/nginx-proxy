@@ -18,7 +18,7 @@ services:
     expose:
       - 81
     environment:
-      WEB_PORTS: 81
+      WEB_PORTS: "81"
       VIRTUAL_HOST: webA.nginx-proxy
 
   webB:
@@ -28,5 +28,5 @@ services:
     expose:
       - 82
     environment:
-      WEB_PORTS: 82
+      WEB_PORTS: "82"
       VIRTUAL_HOST: webB.nginx-proxy

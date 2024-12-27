@@ -5,7 +5,7 @@ services:
     expose:
       - "81"
     environment:
-      WEB_PORTS: 81
+      WEB_PORTS: "81"
       VIRTUAL_HOST: web1.tld
 
   # WHEN nginx-proxy runs with DEFAULT_HOST set to web1.tld

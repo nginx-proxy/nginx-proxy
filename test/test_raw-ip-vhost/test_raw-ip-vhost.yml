@@ -13,7 +13,7 @@ services:
     expose:
       - "81"
     environment:
-      WEB_PORTS: 81
+      WEB_PORTS: "81"
       VIRTUAL_HOST: "172.20.0.4"
     networks:
       net1:
@@ -26,7 +26,7 @@ services:
     expose:
       - "82"
     environment:
-      WEB_PORTS: 82
+      WEB_PORTS: "82"
       VIRTUAL_HOST: "[fd00::4]"
     networks:
       net1:

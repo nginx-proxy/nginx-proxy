@@ -4,7 +4,7 @@ services:
     expose:
       - "80"
     environment:
-      WEB_PORTS: 80
+      WEB_PORTS: "80"
       VIRTUAL_HOST: keepalive-disabled.nginx-proxy.test
     labels:
       com.github.nginx-proxy.nginx-proxy.keepalive: "disabled"
@@ -14,7 +14,7 @@ services:
     expose:
       - "80"
     environment:
-      WEB_PORTS: 80
+      WEB_PORTS: "80"
       VIRTUAL_HOST: keepalive-enabled.nginx-proxy.test
     labels:
       com.github.nginx-proxy.nginx-proxy.keepalive: "64"
@@ -27,7 +27,7 @@ services:
     expose:
       - "80"
     environment:
-      WEB_PORTS: 80
+      WEB_PORTS: "80"
       VIRTUAL_HOST: keepalive-auto.nginx-proxy.test
 
   sut:
