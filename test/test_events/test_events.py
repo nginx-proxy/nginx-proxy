@@ -7,7 +7,7 @@ import pytest
 from docker.errors import NotFound
 
 
-@pytest.fixture()
+@pytest.fixture
 def web1(docker_compose):
     """
     pytest fixture creating a web container with `VIRTUAL_HOST=web1.nginx-proxy` listening on port 81.
@@ -30,7 +30,7 @@ def web1(docker_compose):
     except NotFound:
         pass
 
-@pytest.fixture()
+@pytest.fixture
 def web2(docker_compose):
     """
     pytest fixture creating a web container with `VIRTUAL_HOST=nginx-proxy`, `VIRTUAL_PATH=/web2/` and `VIRTUAL_DEST=/` listening on port 82.

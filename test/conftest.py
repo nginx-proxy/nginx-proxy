@@ -6,7 +6,7 @@ import shlex
 import socket
 import subprocess
 import time
-from typing import List, Optional
+from typing import Iterator, List, Optional
 
 import backoff
 import docker.errors
@@ -330,7 +330,7 @@ def wait_for_nginxproxy_to_be_ready():
 
 
 @pytest.fixture
-def docker_compose_file(request: FixtureRequest) -> Optional[str]:
+def docker_compose_file(request: FixtureRequest) -> Iterator[Optional[str]]:
     """Fixture naming the docker compose file to consider.
 
     If a YAML file exists with the same name as the test module (with the `.py` extension replaced
@@ -462,13 +462,13 @@ class DockerComposer(contextlib.AbstractContextManager):
 
 
 @pytest.fixture(scope="module")
-def docker_composer() -> DockerComposer:
+def docker_composer() ->  Iterator[DockerComposer]:
     with DockerComposer() as d:
         yield d
 
 
 @pytest.fixture
-def ca_root_certificate() -> str:
+def ca_root_certificate() -> Iterator[str]:
     yield CA_ROOT_CERTIFICATE
 
 
@@ -480,7 +480,7 @@ def monkey_patched_dns():
 
 
 @pytest.fixture
-def docker_compose(monkey_patched_dns, docker_composer, docker_compose_file) -> DockerClient:
+def docker_compose(monkey_patched_dns, docker_composer, docker_compose_file) -> Iterator[DockerClient]:
     """Ensures containers described in a docker compose file are started.
 
     A custom docker compose file name can be specified by overriding the `docker_compose_file`
@@ -493,8 +493,8 @@ def docker_compose(monkey_patched_dns, docker_composer, docker_compose_file) -> 
     yield docker_client
 
 
-@pytest.fixture()
-def nginxproxy() -> RequestsForDocker:
+@pytest.fixture
+def nginxproxy() -> Iterator[RequestsForDocker]:
     """
     Provides the `nginxproxy` object that can be used in the same way the requests module is:
 
@@ -510,8 +510,8 @@ def nginxproxy() -> RequestsForDocker:
     yield RequestsForDocker()
 
 
-@pytest.fixture()
-def acme_challenge_path() -> str:
+@pytest.fixture
+def acme_challenge_path() -> Iterator[str]:
     """
     Provides fake Let's Encrypt ACME challenge path used in certain tests
     """

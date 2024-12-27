@@ -23,7 +23,7 @@ def test_invalid_path(docker_compose, nginxproxy, stub):
     r = nginxproxy.get(f"http://{stub}/port")
     assert r.status_code in [404, 503]
 
-@pytest.fixture()
+@pytest.fixture
 def web4(docker_compose):
     """
     pytest fixture creating a web container with `VIRTUAL_HOST=nginx-proxy.test`, `VIRTUAL_PATH=/web4/` and `VIRTUAL_DEST=/` listening on port 84.
