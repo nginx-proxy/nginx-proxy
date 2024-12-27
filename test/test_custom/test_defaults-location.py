@@ -1,5 +1,3 @@
-import pytest
-
 def test_custom_default_conf_does_not_apply_to_unknown_vhost(docker_compose, nginxproxy):
     r = nginxproxy.get("http://nginx-proxy/")
     assert r.status_code == 503

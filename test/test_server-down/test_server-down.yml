@@ -4,7 +4,7 @@ services:
     expose:
       - "81"
     environment:
-      WEB_PORTS: 81
+      WEB_PORTS: "81"
       VIRTUAL_HOST: web.nginx-proxy.tld
     network_mode: "none"
 

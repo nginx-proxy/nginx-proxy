@@ -3,7 +3,7 @@
 #                                                                             #
 # This script is meant to run the test suite from a Docker container.         #
 #                                                                             #
-# This is usefull when you want to run the test suite from Mac or             #
+# This is useful when you want to run the test suite from Mac or             #
 # Docker Toolbox.                                                             #
 #                                                                             #
 ###############################################################################
