@@ -48,7 +48,7 @@ services:
     expose:
       - "84"
     environment:
-      WEB_PORTS: 84
+      WEB_PORTS: "84"
       VIRTUAL_HOST: ~^regexp.*\.debug.nginx-proxy.example
 
   debug_disabled:
