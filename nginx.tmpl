@@ -589,18 +589,31 @@ proxy_set_header Proxy "";
 
         {{- range $path, $vpath := $vhost }}
             {{- if (empty $vpath) }}
-                {{- $vpath = dict "dest" "" "port" "default" }}
+                {{- $vpath = dict
+                    "dest" ""
+                    "port" "default"
+                    "proto" "http"
+                }}
             {{- end }}
+
             {{- $dest := $vpath.dest | default "" }}
             {{- $port := $vpath.port | default "default" | toString }}
+            {{- $proto := $vpath.proto | default "http" }}
+
             {{- $path_data := get $paths $path | default (dict) }}
             {{- $path_ports := $path_data.ports | default (dict) }}
             {{- $path_port_containers := get $path_ports $port | default (list) | concat $containers }}
             {{- $_ := set $path_ports $port $path_port_containers }}
             {{- $_ := set $path_data "ports" $path_ports }}
+            
             {{- if (not (hasKey $path_data "dest")) }}
                 {{- $_ := set $path_data "dest" $dest }}
             {{- end }}
+
+            {{- if (not (hasKey $path_data "proto")) }}
+                {{- $_ := set $path_data "proto" $proto }}
+            {{- end }}
+            
             {{- $_ := set $paths $path $path_data }}
         {{- end }}
         {{- $_ := set $vhost_data "paths" $paths }}
@@ -635,6 +648,8 @@ proxy_set_header Proxy "";
 
     {{- range $path, $containers := $tmp_paths }}
         {{- $dest := groupByKeys $containers "Env.VIRTUAL_DEST" | first | default "" }}
+        {{- $proto := groupByKeys $containers "Env.VIRTUAL_PROTO" | first | default "http" | trim }}
+
         {{- $path_data := get $paths $path | default (dict) }}
         {{- $path_ports := $path_data.ports | default (dict) }}
         {{- range $port, $containers := groupByWithDefault $containers "Env.VIRTUAL_PORT" "default" }}
@@ -642,9 +657,15 @@ proxy_set_header Proxy "";
             {{- $_ := set $path_ports $port $path_port_containers }}
         {{- end }}
         {{- $_ := set $path_data "ports" $path_ports }}
+
         {{- if (not (hasKey $path_data "dest")) }}
             {{- $_ := set $path_data "dest" $dest }}
         {{- end }}
+
+        {{- if (not (hasKey $path_data "proto")) }}
+            {{- $_ := set $path_data "proto" $proto }}
+        {{- end }}
+        
         {{- $_ := set $paths $path $path_data }}
     {{- end }}
     {{- $_ := set $vhost_data "paths" $paths }}
@@ -664,8 +685,6 @@ proxy_set_header Proxy "";
             {{ $vpath_containers = concat $vpath_containers $vport_containers }}
         {{- end }}
 
-        {{- /* Get the VIRTUAL_PROTO defined by containers w/ the same vhost-vpath, falling back to "http". */}}
-        {{- $proto := groupByKeys $vpath_containers "Env.VIRTUAL_PROTO" | first | default "http" | trim }}
         {{- /* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external". */}}
         {{- $network_tag := groupByKeys $vpath_containers "Env.NETWORK_ACCESS" | first | default "external" }}
 
@@ -678,7 +697,6 @@ proxy_set_header Proxy "";
             {{- $upstream = printf "%s-%s" $upstream $sum }}
         {{- end }}
 
-        {{- $_ := set $vpath_data "proto" $proto }}
         {{- $_ := set $vpath_data "network_tag" $network_tag }}
         {{- $_ := set $vpath_data "upstream" $upstream }}
         {{- $_ := set $vpath_data "loadbalance" $loadbalance }}
