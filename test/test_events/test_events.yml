@@ -1,6 +1,3 @@
-include:
-  - ../compose.base.yml
-
 networks:
   default:
     name: test_events-net

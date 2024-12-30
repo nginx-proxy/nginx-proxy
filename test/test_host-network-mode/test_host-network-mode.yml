@@ -24,5 +24,3 @@ services:
       VIRTUAL_HOST: "host-network.nginx-proxy.tld"
       VIRTUAL_PORT: "8080"
     network_mode: host
-
-
