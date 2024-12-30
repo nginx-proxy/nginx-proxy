@@ -23,6 +23,7 @@ from packaging.version import Version
 from requests import Response
 from urllib3.util.connection import HAS_IPV6
 
+
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('backoff').setLevel(logging.INFO)
 logging.getLogger('DNS').setLevel(logging.DEBUG)
@@ -403,6 +404,7 @@ def docker_compose_files(request: FixtureRequest) -> List[str]:
     logging.debug(f"using docker compose files {compose_files}")
     return compose_files
 
+
 def connect_to_network(network: Network) -> Optional[Network]:
     """
     If we are running from a container, connect our container to the given network
@@ -507,14 +509,14 @@ class DockerComposer(contextlib.AbstractContextManager):
 
 
 @pytest.fixture(scope="module")
-def docker_composer() ->  Iterator[DockerComposer]:
+def docker_composer() -> Iterator[DockerComposer]:
     with DockerComposer() as d:
         yield d
 
 
 @pytest.fixture
-def ca_root_certificate() -> Iterator[str]:
-    yield CA_ROOT_CERTIFICATE
+def ca_root_certificate() -> str:
+    return CA_ROOT_CERTIFICATE.as_posix()
 
 
 @pytest.fixture
@@ -569,11 +571,11 @@ def nginxproxy() -> Iterator[RequestsForDocker]:
 
 
 @pytest.fixture
-def acme_challenge_path() -> Iterator[str]:
+def acme_challenge_path() -> str:
     """
     Provides fake Let's Encrypt ACME challenge path used in certain tests
     """
-    yield ".well-known/acme-challenge/test-filename"
+    return ".well-known/acme-challenge/test-filename"
 
 ###############################################################################
 #

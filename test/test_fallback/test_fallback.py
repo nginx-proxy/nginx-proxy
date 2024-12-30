@@ -1,10 +1,11 @@
 import pathlib
 import re
-from typing import List
+from typing import List, Callable
 
 import backoff
 import pytest
 import requests
+from requests import Response
 
 
 @pytest.fixture
@@ -17,21 +18,15 @@ def docker_compose_files(compose_file) -> List[str]:
 
 
 @pytest.fixture
-def docker_compose_file(data_dir, compose_file):
-    return os.path.join(data_dir, compose_file)
-
-
-@pytest.fixture
-def get(docker_compose, nginxproxy, want_err_re):
-
+def get(docker_compose, nginxproxy, want_err_re: re.Pattern[str]) -> Callable[[str], Response]:
     @backoff.on_exception(
         backoff.constant,
         requests.exceptions.SSLError,
-        giveup=lambda e: want_err_re and want_err_re.search(str(e)),
+        giveup=lambda e: want_err_re and bool(want_err_re.search(str(e))),
         interval=.3,
         max_tries=30,
         jitter=None)
-    def _get(url):
+    def _get(url) -> Response:
         return nginxproxy.get(url, allow_redirects=False)
 
     return _get
