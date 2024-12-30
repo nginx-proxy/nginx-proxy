@@ -3,6 +3,9 @@ services:
     environment:
       HTTP_PORT: 8080
       HTTPS_PORT: 8443
+    ports:
+      - "8080:8080"
+      - "8443:8443"
 
   web1:
     image: web

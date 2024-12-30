@@ -2,6 +2,7 @@ import contextlib
 import logging
 import os
 import pathlib
+import platform
 import re
 import shlex
 import socket
@@ -219,8 +220,8 @@ def nginx_proxy_dns_resolver(domain_name: str) -> Optional[str]:
 
 def docker_container_dns_resolver(domain_name: str) -> Optional[str]:
     """
-    if domain name is of the form "XXX.container.docker" or "anything.XXX.container.docker", return the ip address of the docker container
-    named XXX.
+    if domain name is of the form "XXX.container.docker" or "anything.XXX.container.docker",
+    return the ip address of the docker container named XXX.
 
     :return: IP or None
     """
@@ -250,7 +251,10 @@ def monkey_patch_urllib_dns_resolver():
     """
     Alter the behavior of the urllib DNS resolver so that any domain name
     containing substring 'nginx-proxy' will resolve to the IP address
-    of the container created from image 'nginxproxy/nginx-proxy:test'.
+    of the container created from image 'nginxproxy/nginx-proxy:test',
+    or to 127.0.0.1 on Darwin.
+
+    see https://docs.docker.com/desktop/features/networking/#i-want-to-connect-to-a-container-from-the-host
     """
     prv_getaddrinfo = socket.getaddrinfo
     dns_cache = {}
@@ -264,7 +268,12 @@ def monkey_patch_urllib_dns_resolver():
             pytest.skip("This system does not support IPv6")
 
         # custom DNS resolvers
-        ip = nginx_proxy_dns_resolver(args[0])
+        ip = None
+        # Docker Desktop can't route traffic directly to Linux containers.
+        if platform.system() == "Darwin":
+            ip = "127.0.0.1"
+        if ip is None:
+            ip = nginx_proxy_dns_resolver(args[0])
         if ip is None:
             ip = docker_container_dns_resolver(args[0])
         if ip is not None:

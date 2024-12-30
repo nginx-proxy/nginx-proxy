@@ -1,3 +1,4 @@
+import platform
 import re
 import subprocess
 
@@ -7,6 +8,10 @@ import pytest
 
 docker_client = docker.from_env()
 
+pytestmark = pytest.mark.skipif(
+    platform.system() == "Darwin",
+    reason="Those tests rely entirely on being able to directly contact container's IP"
+)
 
 ###############################################################################
 #

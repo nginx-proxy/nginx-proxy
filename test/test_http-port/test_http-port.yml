@@ -2,6 +2,8 @@ services:
   nginx-proxy:
     environment:
       HTTP_PORT: 8080
+    ports:
+      - "8080:8080"
 
   web1:
     image: web

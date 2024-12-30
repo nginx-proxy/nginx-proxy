@@ -4,3 +4,6 @@ services:
     container_name: nginx-proxy
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+    ports:
+      - "80:80"
+      - "443:443"
