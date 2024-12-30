@@ -1,13 +1,16 @@
-version: "3"
+# In this scenario, we have a wildcard certificate for `*.web.nginx-proxy.tld` and 3 web containers:
+# - 1.web.nginx-proxy.tld
+# - 2.web.nginx-proxy.tld
+# - 3.web.nginx-proxy.tld
+#
+# We want web containers 1 and 2 to support SSL, but 3 should not (using `HTTPS_METHOD=nohttps`)
 
 services:
-
-  proxy:
-    image: nginxproxy/nginx-proxy:test
+  nginx-proxy:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs:/etc/nginx/certs:ro
-      - ./acme_root:/usr/share/nginx/html:ro
+      - ${PYTEST_MODULE_PATH}/certs_wildcard_nohttps:/etc/nginx/certs:ro
+      - ${PYTEST_MODULE_PATH}/acme_root:/usr/share/nginx/html:ro
 
   web1:
     image: web

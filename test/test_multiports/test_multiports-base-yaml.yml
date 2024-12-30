@@ -52,8 +52,3 @@ services:
           "/customdest":
             port: 10002
             dest: "/port"
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro

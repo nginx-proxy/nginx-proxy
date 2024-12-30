@@ -1,11 +1,15 @@
+volumes:
+  nginx_conf:
+
+
 services:
-  nginx:
+  nginx-proxy-nginx:
     image: nginx
     container_name: nginx
     volumes:
       - nginx_conf:/etc/nginx/conf.d:ro
 
-  dockergen:
+  nginx-proxy-dockergen:
     image: nginxproxy/docker-gen
     command: -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
     volumes:
@@ -21,6 +25,3 @@ services:
     environment:
       WEB_PORTS: "80"
       VIRTUAL_HOST: whoami.nginx.container.docker
-
-volumes:
-  nginx_conf:

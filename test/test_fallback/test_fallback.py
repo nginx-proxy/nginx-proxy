@@ -1,5 +1,6 @@
-import os.path
+import pathlib
 import re
+from typing import List
 
 import backoff
 import pytest
@@ -7,8 +8,12 @@ import requests
 
 
 @pytest.fixture
-def data_dir():
-    return f"{os.path.splitext(__file__)[0]}.data"
+def docker_compose_files(compose_file) -> List[str]:
+    data_dir = pathlib.Path(__file__).parent.joinpath("test_fallback.data")
+    return [
+        data_dir.joinpath("compose.base.yml"),
+        data_dir.joinpath(compose_file).as_posix()
+    ]
 
 
 @pytest.fixture
@@ -108,7 +113,7 @@ INTERNAL_ERR_RE = re.compile("TLSV1_UNRECOGNIZED_NAME")
     # should prefer that server for handling requests for unknown vhosts.
     ("custom-fallback.yml", "http://unknown.nginx-proxy.test/", 418, None),
 ])
-def test_fallback(get, url, want_code, want_err_re):
+def test_fallback(get, compose_file, url, want_code, want_err_re):
     if want_err_re is None:
         r = get(url)
         assert r.status_code == want_code

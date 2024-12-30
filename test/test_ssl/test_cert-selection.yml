@@ -1,5 +1,13 @@
 services:
-  base: 
+  nginx-proxy:
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ${PYTEST_MODULE_PATH}/cert_selection:/etc/nginx/certs:ro
+      - ${PYTEST_MODULE_PATH}/acme_root:/usr/share/nginx/html:ro
+    environment:
+      DEBUG_ENDPOINT: "true"
+
+  base:
       image: web
       environment:
         WEB_PORTS: "80"
@@ -10,7 +18,7 @@ services:
       environment:
         WEB_PORTS: "80"
         VIRTUAL_HOST: "www.nginx-proxy.tld"
-  
+
   sub-www:
       image: web
       environment:
@@ -22,12 +30,3 @@ services:
       environment:
         WEB_PORTS: "80"
         VIRTUAL_HOST: "web1.nginx-proxy.tld"
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./cert_selection:/etc/nginx/certs:ro
-      - ./acme_root:/usr/share/nginx/html:ro
-    environment:
-      DEBUG_ENDPOINT: "true"

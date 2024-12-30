@@ -1,9 +1,4 @@
 services:
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-
   web1:
     image: web
     expose:

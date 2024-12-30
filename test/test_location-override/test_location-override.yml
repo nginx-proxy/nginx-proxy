@@ -1,9 +1,8 @@
 services:
-  sut:
-    image: nginxproxy/nginx-proxy:test
+  nginx-proxy:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./vhost.d:/etc/nginx/vhost.d:ro
+      - ${PYTEST_MODULE_PATH}/vhost.d:/etc/nginx/vhost.d:ro
 
   explicit-root:
     image: web

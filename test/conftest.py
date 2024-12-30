@@ -1,11 +1,13 @@
 import contextlib
 import logging
 import os
+import pathlib
 import re
 import shlex
 import socket
 import subprocess
 import time
+from io import StringIO
 from typing import Iterator, List, Optional
 
 import backoff
@@ -25,7 +27,7 @@ logging.getLogger('backoff').setLevel(logging.INFO)
 logging.getLogger('DNS').setLevel(logging.DEBUG)
 logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.WARN)
 
-CA_ROOT_CERTIFICATE = os.path.join(os.path.dirname(__file__), 'certs/ca-root.crt')
+CA_ROOT_CERTIFICATE = pathlib.Path(__file__).parent.joinpath("certs/ca-root.crt")
 PYTEST_RUNNING_IN_CONTAINER = os.environ.get('PYTEST_RUNNING_IN_CONTAINER') == "1"
 FORCE_CONTAINER_IPV6 = False  # ugly global state to consider containers' IPv6 address instead of IPv4
 
@@ -71,8 +73,8 @@ class RequestsForDocker:
     """
     def __init__(self):
         self.session = requests.Session()
-        if os.path.isfile(CA_ROOT_CERTIFICATE):
-            self.session.verify = CA_ROOT_CERTIFICATE
+        if CA_ROOT_CERTIFICATE.is_file():
+            self.session.verify = CA_ROOT_CERTIFICATE.as_posix()
 
     @staticmethod
     def get_nginx_proxy_container() -> Container:
@@ -298,20 +300,40 @@ def get_nginx_conf_from_container(container: Container) -> bytes:
         return conffile.read()
 
 
-def docker_compose_up(compose_file: str):
-    logging.info(f'{DOCKER_COMPOSE} -f {compose_file} up -d')
+def __prepare_and_execute_compose_cmd(compose_files: List[str], project_name: str, cmd: str):
+    """
+    Prepare and execute the Docker Compose command with the provided compose files and project name.
+    """
+    compose_cmd = StringIO()
+    compose_cmd.write(DOCKER_COMPOSE)
+    compose_cmd.write(f" --project-name {project_name}")
+    for compose_file in compose_files:
+        compose_cmd.write(f" --file {compose_file}")
+    compose_cmd.write(f" {cmd}")
+
+    logging.info(compose_cmd.getvalue())
     try:
-        subprocess.check_output(shlex.split(f'{DOCKER_COMPOSE} -f {compose_file} up -d'), stderr=subprocess.STDOUT)
+        subprocess.check_output(shlex.split(compose_cmd.getvalue()), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        pytest.fail(f"Error while running '{DOCKER_COMPOSE} -f {compose_file} up -d':\n{e.output}", pytrace=False)
+        pytest.fail(f"Error while running '{compose_cmd.getvalue()}':\n{e.output}", pytrace=False)
 
 
-def docker_compose_down(compose_file: str):
-    logging.info(f'{DOCKER_COMPOSE} -f {compose_file} down -v')
-    try:
-        subprocess.check_output(shlex.split(f'{DOCKER_COMPOSE} -f {compose_file} down -v'), stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError as e:
-        pytest.fail(f"Error while running '{DOCKER_COMPOSE} -f {compose_file} down -v':\n{e.output}", pytrace=False)
+def docker_compose_up(compose_files: List[str], project_name: str):
+    """
+    Execute compose up --detach with the provided compose files and project name.
+    """
+    if compose_files is None or len(compose_files) == 0:
+        pytest.fail(f"No compose file passed to docker_compose_up", pytrace=False)
+    __prepare_and_execute_compose_cmd(compose_files, project_name, cmd="up --detach")
+
+
+def docker_compose_down(compose_files: List[str], project_name: str):
+    """
+    Execute compose down --volumes with the provided compose files and project name.
+    """
+    if compose_files is None or len(compose_files) == 0:
+        pytest.fail(f"No compose file passed to docker_compose_up", pytrace=False)
+    __prepare_and_execute_compose_cmd(compose_files, project_name, cmd="down --volumes")
 
 
 def wait_for_nginxproxy_to_be_ready():
@@ -330,36 +352,47 @@ def wait_for_nginxproxy_to_be_ready():
 
 
 @pytest.fixture
-def docker_compose_file(request: FixtureRequest) -> Iterator[Optional[str]]:
-    """Fixture naming the docker compose file to consider.
+def docker_compose_files(request: FixtureRequest) -> List[str]:
+    """Fixture returning the docker compose files to consider:
 
-    If a YAML file exists with the same name as the test module (with the `.py` extension replaced
-    with `.yml` or `.yaml`), use that.  Otherwise, use `docker-compose.yml` in the same directory
-    as the test module.
+    If a YAML file exists with the same name as the test module (with the `.py` extension
+    replaced with `.base.yml`, ie `test_foo.py`-> `test_foo.base.yml`) and in the same
+    directory as the test module, use only that file.
+
+    Otherwise, merge the following files in this order:
+
+    - the `compose.base.yml` file in the parent `test` directory.
+    - if present in the same directory as the test module, the `compose.base.override.yml` file.
+    - the YAML file named after the current test module (ie `test_foo.py`-> `test_foo.yml`)
 
     Tests can override this fixture to specify a custom location.
     """
-    test_module_dir = os.path.dirname(request.module.__file__)
-    yml_file = os.path.join(test_module_dir, f"{request.module.__name__}.yml")
-    yaml_file = os.path.join(test_module_dir, f"{request.module.__name__}.yaml")
-    default_file = os.path.join(test_module_dir, 'docker-compose.yml')
+    compose_files: List[str] = []
+    test_module_path = pathlib.Path(request.module.__file__).parent
 
-    docker_compose_file = None
+    module_base_file = test_module_path.joinpath(f"{request.module.__name__}.base.yml")
+    if module_base_file.is_file():
+        return [module_base_file.as_posix()]
 
-    if os.path.isfile(yml_file):
-        docker_compose_file = yml_file
-    elif os.path.isfile(yaml_file):
-        docker_compose_file = yaml_file
-    elif os.path.isfile(default_file):
-        docker_compose_file = default_file
+    global_base_file = test_module_path.parent.joinpath("compose.base.yml")
+    if global_base_file.is_file():
+        compose_files.append(global_base_file.as_posix())
 
-    if docker_compose_file is None:
-        logging.error("Could not find any docker compose file named either '{0}.yml', '{0}.yaml' or 'docker-compose.yml'".format(request.module.__name__))
-    else:
-        logging.debug(f"using docker compose file {docker_compose_file}")
+    module_base_override_file = test_module_path.joinpath("compose.base.override.yml")
+    if module_base_override_file.is_file():
+        compose_files.append(module_base_override_file.as_posix())
 
-    yield docker_compose_file
+    module_compose_file = test_module_path.joinpath(f"{request.module.__name__}.yml")
+    if module_compose_file.is_file():
+        compose_files.append(module_compose_file.as_posix())
 
+    if not module_base_file.is_file() and not module_compose_file.is_file():
+        logging.error(
+            f"Could not find any docker compose file named '{module_base_file.name}' or '{module_compose_file.name}'"
+        )
+
+    logging.debug(f"using docker compose files {compose_files}")
+    return compose_files
 
 def connect_to_network(network: Network) -> Optional[Network]:
     """
@@ -428,30 +461,33 @@ def connect_to_all_networks() -> List[Network]:
 class DockerComposer(contextlib.AbstractContextManager):
     def __init__(self):
         self._networks = None
-        self._docker_compose_file = None
+        self._docker_compose_files = None
+        self._project_name = None
 
     def __exit__(self, *exc_info):
         self._down()
 
     def _down(self):
-        if self._docker_compose_file is None:
+        if self._docker_compose_files is None:
             return
         for network in self._networks:
             disconnect_from_network(network)
-        docker_compose_down(self._docker_compose_file)
+        docker_compose_down(self._docker_compose_files, self._project_name)
         self._docker_compose_file = None
+        self._project_name = None
 
-    def compose(self, docker_compose_file: Optional[str]):
-        if docker_compose_file == self._docker_compose_file:
+    def compose(self, docker_compose_files: List[str], project_name: str):
+        if docker_compose_files == self._docker_compose_files and project_name == self._project_name:
             return
         self._down()
-        if docker_compose_file is None:
+        if docker_compose_files is None or project_name is None:
             return
-        docker_compose_up(docker_compose_file)
+        docker_compose_up(docker_compose_files, project_name)
         self._networks = connect_to_all_networks()
         wait_for_nginxproxy_to_be_ready()
         time.sleep(3)  # give time to containers to be ready
-        self._docker_compose_file = docker_compose_file
+        self._docker_compose_files = docker_compose_files
+        self._project_name = project_name
 
 
 ###############################################################################
@@ -480,16 +516,29 @@ def monkey_patched_dns():
 
 
 @pytest.fixture
-def docker_compose(monkey_patched_dns, docker_composer, docker_compose_file) -> Iterator[DockerClient]:
-    """Ensures containers described in a docker compose file are started.
-
-    A custom docker compose file name can be specified by overriding the `docker_compose_file`
-    fixture.
-
-    Also, in the case where pytest is running from a docker container, this fixture makes sure
-    our container will be attached to all the docker networks.
+def docker_compose(
+        request: FixtureRequest,
+        monkeypatch,
+        monkey_patched_dns,
+        docker_composer,
+        docker_compose_files
+) -> Iterator[DockerClient]:
     """
-    docker_composer.compose(docker_compose_file)
+    Ensures containers necessary for the test module are started in a compose project,
+    and set the environment variable `PYTEST_MODULE_PATH` to the test module's parent folder.
+
+    A list of custom docker compose files path can be specified by overriding
+    the `docker_compose_file` fixture.
+
+    Also, in the case where pytest is running from a docker container, this fixture
+    makes sure our container will be attached to all the docker networks.
+    """
+    pytest_module_path = pathlib.Path(request.module.__file__).parent
+    monkeypatch.setenv("PYTEST_MODULE_PATH", pytest_module_path.as_posix())
+
+    project_name = request.module.__name__
+    docker_composer.compose(docker_compose_files, project_name)
+
     yield docker_client
 
 
