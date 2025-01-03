@@ -1,4 +1,9 @@
 services:
+  nginx-proxy:
+    environment:
+      HTTP_PORT: 8888
+    network_mode: host
+
   host-network-1:
     image: web
     environment:
@@ -13,12 +18,4 @@ services:
       WEB_PORTS: "8181"
       VIRTUAL_HOST: "host-network-2.nginx-proxy.tld"
       VIRTUAL_PORT: "8181"
-    network_mode: host
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-    environment:
-      HTTP_PORT: 8888
     network_mode: host

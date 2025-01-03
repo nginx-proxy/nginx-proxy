@@ -1,6 +1,5 @@
 services:
-  sut:
-    image: nginxproxy/nginx-proxy:test
+  nginx-proxy:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./nodefault.certs:/etc/nginx/certs:ro

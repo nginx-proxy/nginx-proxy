@@ -1,0 +1,6 @@
+services:
+  nginx-proxy:
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ${PYTEST_MODULE_PATH}/certs:/etc/nginx/certs:ro
+      - ${PYTEST_MODULE_PATH}/acme_root:/usr/share/nginx/html:ro

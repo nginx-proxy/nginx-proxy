@@ -39,8 +39,3 @@ services:
       WEB_PORTS: "83"
       VIRTUAL_HOST: "nginx-proxy.test"
       VIRTUAL_PATH: "/"
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro

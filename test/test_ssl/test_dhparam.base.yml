@@ -1,3 +1,7 @@
+networks:
+  default:
+    name: test_dhparam-net
+
 services:
   web5:
     image: web

@@ -34,10 +34,3 @@ services:
       VIRTUAL_HOST: "web4.nginx-proxy.tld"
       HTTPS_METHOD: noredirect
       ACME_HTTP_CHALLENGE_LOCATION: "false"
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs:/etc/nginx/certs:ro
-      - ./acme_root:/usr/share/nginx/html:ro

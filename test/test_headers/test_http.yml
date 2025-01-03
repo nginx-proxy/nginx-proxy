@@ -15,8 +15,3 @@ services:
       WEB_PORTS: "80"
       VIRTUAL_HOST: web-server-tokens-off.nginx-proxy.tld
       SERVER_TOKENS: "off"
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro

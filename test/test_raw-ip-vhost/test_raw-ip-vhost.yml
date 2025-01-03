@@ -7,6 +7,14 @@ networks:
         - subnet: fd00::/80
 
 services:
+  nginx-proxy:
+    environment:
+      ENABLE_IPV6: "true"
+    networks:
+      net1:
+        ipv4_address: 172.20.0.4
+        ipv6_address: fd00::4
+
   web1:
     container_name: web1
     image: web
@@ -14,7 +22,7 @@ services:
       - "81"
     environment:
       WEB_PORTS: "81"
-      VIRTUAL_HOST: "172.20.0.4"
+      VIRTUAL_HOST: "172.20.0.1"
     networks:
       net1:
         ipv4_address: 172.20.0.2
@@ -27,19 +35,9 @@ services:
       - "82"
     environment:
       WEB_PORTS: "82"
-      VIRTUAL_HOST: "[fd00::4]"
+      VIRTUAL_HOST: "[fd00::1]"
     networks:
       net1:
         ipv4_address: 172.20.0.3
         ipv6_address: fd00::3
 
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    environment:
-      ENABLE_IPV6: "true"
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-    networks:
-      net1:
-        ipv4_address: 172.20.0.4
-        ipv6_address: fd00::4

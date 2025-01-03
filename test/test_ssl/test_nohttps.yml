@@ -7,9 +7,3 @@ services:
       WEB_PORTS: "83"
       VIRTUAL_HOST: "web.nginx-proxy.tld"
       HTTPS_METHOD: nohttps
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./acme_root:/usr/share/nginx/html:ro

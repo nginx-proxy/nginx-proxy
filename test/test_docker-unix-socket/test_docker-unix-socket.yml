@@ -1,4 +1,10 @@
 services:
+  nginx-proxy:
+    volumes:
+      - /var/run/docker.sock:/f00.sock:ro
+    environment:
+      DOCKER_HOST: unix:///f00.sock
+
   web1:
     image: web
     expose:
@@ -14,10 +20,3 @@ services:
     environment:
       WEB_PORTS: "82"
       VIRTUAL_HOST: web2.nginx-proxy.tld
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/f00.sock:ro
-    environment:
-      DOCKER_HOST: unix:///f00.sock

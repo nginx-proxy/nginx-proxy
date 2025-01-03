@@ -18,10 +18,3 @@ services:
       VIRTUAL_HOST: "www.nginx-proxy.tld"
       VIRTUAL_PATH: "/web2/"
       VIRTUAL_DEST: "/"
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs:/etc/nginx/certs:ro
-      - ./acme_root:/usr/share/nginx/html:ro

@@ -3,13 +3,10 @@ networks:
   netB:
 
 services:
-  reverseproxy:
+  nginx-proxy:
     container_name: reverseproxy
     networks:
       - netA
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
 
   webA:
     networks:

@@ -44,9 +44,3 @@ services:
       VIRTUAL_HOST: http3-vhost-enabled.nginx-proxy.tld
     labels:
       com.github.nginx-proxy.nginx-proxy.http3.enable: "true"
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs:/etc/nginx/certs:ro
