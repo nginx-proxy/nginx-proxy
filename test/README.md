@@ -57,13 +57,39 @@ This test suite uses [pytest](http://doc.pytest.org/en/latest/). The [conftest.p
 
 ### docker_compose fixture
 
-When using the `docker_compose` fixture in a test, pytest will try to find a yml file named after your test module filename. For instance, if your test module is `test_example.py`, then the `docker_compose` fixture will try to load a `test_example.yml` [docker compose file](https://docs.docker.com/compose/compose-file/).
+When using the `docker_compose` fixture in a test, pytest will try to start the [Docker Compose](https://docs.docker.com/compose/) services corresponding to the current test module, based on the test module filename.
 
-Once the docker compose file found, the fixture will remove all containers, run `docker compose up`, and finally your test will be executed.
+By default, if your test module file is `test/test_subdir/test_example.py`, then the `docker_compose` fixture will try to load the following files, [merging them](https://docs.docker.com/reference/compose-file/merge/) in this order:
 
-The fixture will run the _docker compose_ command with the `-f` option to load the given compose file. So you can test your docker compose file syntax by running it yourself with:
+1. `test/compose.base.yml`
+2. `test/test_subdir/compose.base.override.yml` (if it exists)
+3. `test/test_subdir/test_example.yml`
 
-    docker compose -f test_example.yml up -d
+The fixture will run the _docker compose_ command with the `-f` option to load the given compose files. So you can test your docker compose file syntax by running it yourself with:
+
+    docker compose -f test/compose.base.yml -f test/test_subdir/test_example.yml up -d
+
+The first file contains the base configuration of the nginx-proxy container common to most tests:
+
+```yaml
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy:test
+    container_name: nginx-proxy
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    ports:
+      - "80:80"
+      - "443:443"
+```
+
+The second optional file allow you to override this base configuration for all test modules in a subfolder.
+
+The third file contains the services and overrides specific to a given test module.
+
+This automatic merge can be bypassed by using a file named `test_example.base.yml` (instead of `test_example.yml`). When this file exist, it will be the only one used by the test and no merge with other compose files will automatically occur.
+
+The `docker_compose` fixture also set the `PYTEST_MODULE_PATH` environment variable to the absolute path of the current test module directory, so it can be used to mount files or directory relatives to the current test.
 
 In the case you are running pytest from within a docker container, the `docker_compose` fixture will make sure the container running pytest is attached to all docker networks. That way, your test will be able to reach any of them.
 
@@ -71,7 +97,10 @@ In your tests, you can use the `docker_compose` variable to query and command th
 
 Also this fixture alters the way the python interpreter resolves domain names to IP addresses in the following ways:
 
-Any domain name containing the substring `nginx-proxy` will resolve to the IP address of the container that was created from the `nginxproxy/nginx-proxy:test` image. So all the following domain names will resolve to the nginx-proxy container in tests:
+Any domain name containing the substring `nginx-proxy` will resolve to `127.0.0.1` if the tests are executed on a Darwin (macOS) system, otherwise the IP address of the container that was created from the `nginxproxy/nginx-proxy:test` image.
+
+So, in tests, all the following domain names will resolve to either localhost or the nginx-proxy container's IP:
+
 - `nginx-proxy`
 - `nginx-proxy.com`
 - `www.nginx-proxy.com`
@@ -80,13 +109,15 @@ Any domain name containing the substring `nginx-proxy` will resolve to the IP ad
 - `whatever.nginx-proxyooooooo`
 - ...
 
-Any domain name ending with `XXX.container.docker` will resolve to the IP address of the XXX container.
+Any domain name ending with `XXX.container.docker` will resolve to `127.0.0.1` if the tests are executed on a Darwin (macOS) system, otherwise the IP address of the container named `XXX`.
+
+So, on a non-Darwin system:
+
 - `web1.container.docker` will resolve to the IP address of the `web1` container
 - `f00.web1.container.docker` will resolve to the IP address of the `web1` container
 - `anything.whatever.web2.container.docker` will resolve to the IP address of the `web2` container
 
 Otherwise, domain names are resoved as usual using your system DNS resolver.
-
 
 ### nginxproxy fixture
 
