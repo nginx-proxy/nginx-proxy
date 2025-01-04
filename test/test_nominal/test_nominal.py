@@ -23,7 +23,7 @@ def test_forwards_to_web2(docker_compose, nginxproxy):
 
 @pytest.mark.skipif(
     platform.system() == "Darwin",
-    reason="This test rely on being able to directly contact the container's IP"
+    reason="This test depends on direct communication with the container's IP"
 )
 def test_ipv6_is_disabled_by_default(docker_compose, nginxproxy):
     with pytest.raises(ConnectionError):

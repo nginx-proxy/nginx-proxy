@@ -2,7 +2,7 @@ services:
   nginx-proxy:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./withdefault.certs:/etc/nginx/certs:ro
+      - ${PYTEST_MODULE_PATH}/test_fallback.data/withdefault.certs:/etc/nginx/certs:ro
     environment:
       HTTPS_METHOD: redirect
 

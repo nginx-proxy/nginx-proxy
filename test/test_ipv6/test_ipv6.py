@@ -4,7 +4,7 @@ import pytest
 
 pytestmark = pytest.mark.skipif(
     platform.system() == "Darwin",
-    reason="Those tests rely entirely on being able to directly contact container's IP"
+    reason="Those tests rely entirely on being able to directly contact the container's IP"
 )
 
 

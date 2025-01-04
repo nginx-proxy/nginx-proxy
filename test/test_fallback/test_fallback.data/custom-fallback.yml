@@ -2,7 +2,7 @@ services:
   nginx-proxy:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./custom-fallback.conf:/etc/nginx/conf.d/zzz-custom-fallback.conf:ro
+      - ${PYTEST_MODULE_PATH}/test_fallback.data/custom-fallback.conf:/etc/nginx/conf.d/zzz-custom-fallback.conf:ro
 
   http-only:
     image: web
