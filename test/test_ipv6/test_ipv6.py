@@ -1,3 +1,13 @@
+import platform
+
+import pytest
+
+pytestmark = pytest.mark.skipif(
+    platform.system() == "Darwin",
+    reason="Those tests rely entirely on being able to directly contact the container's IP"
+)
+
+
 def test_unknown_virtual_host_ipv4(docker_compose, nginxproxy):
     r = nginxproxy.get("http://nginx-proxy/port")
     assert r.status_code == 503

@@ -1,8 +1,5 @@
 services:
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
+  nginx-proxy:
     environment:
       HTTPS_METHOD: nohttps
 

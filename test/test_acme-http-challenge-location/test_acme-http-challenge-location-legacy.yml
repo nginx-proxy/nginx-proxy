@@ -1,4 +1,8 @@
 services:
+  nginx-proxy:
+    environment:
+      ACME_HTTP_CHALLENGE_LOCATION: "legacy"
+
   web1:
     image: web
     expose:
@@ -15,12 +19,3 @@ services:
       WEB_PORTS: "82"
       VIRTUAL_HOST: "web2.nginx-proxy.tld"
       HTTPS_METHOD: noredirect
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    environment:
-      ACME_HTTP_CHALLENGE_LOCATION: "legacy"
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs:/etc/nginx/certs:ro
-      - ./acme_root:/usr/share/nginx/html:ro

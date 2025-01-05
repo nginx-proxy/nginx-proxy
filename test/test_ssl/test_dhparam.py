@@ -1,3 +1,4 @@
+import platform
 import re
 import subprocess
 
@@ -7,6 +8,10 @@ import pytest
 
 docker_client = docker.from_env()
 
+pytestmark = pytest.mark.skipif(
+    platform.system() == "Darwin",
+    reason="Those tests rely entirely on being able to directly contact container's IP"
+)
 
 ###############################################################################
 #
@@ -61,7 +66,7 @@ def require_openssl(required_version):
 @require_openssl("1.0.2")
 def negotiate_cipher(sut_container, additional_params='', grep='Cipher is'):
     sut_container.reload()
-    host = f"{sut_container.attrs['NetworkSettings']['Networks']['test_ssl_default']['IPAddress']}:443"
+    host = f"{sut_container.attrs['NetworkSettings']['Networks']['test_dhparam-net']['IPAddress']}:443"
 
     try:
         # Enforce TLS 1.2 as newer versions don't support custom dhparam or ciphersuite preference.

@@ -1,9 +1,3 @@
 networks:
   default:
     name: test_events-net
-
-services:
-  nginxproxy:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro

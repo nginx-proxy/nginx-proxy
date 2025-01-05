@@ -20,8 +20,3 @@ services:
       VIRTUAL_HOST: loadbalance-disabled.nginx-proxy.tld
     deploy:
       replicas: 2
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro

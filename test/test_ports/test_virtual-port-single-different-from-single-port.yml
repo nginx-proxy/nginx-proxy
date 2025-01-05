@@ -7,8 +7,3 @@ services:
       WEB_PORTS: "81"
       VIRTUAL_HOST: "web.nginx-proxy.tld"
       VIRTUAL_PORT: "90"
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
