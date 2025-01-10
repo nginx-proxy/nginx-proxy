@@ -280,6 +280,7 @@
 
 {{- define "location" }}
     {{- $vpath := .VPath }}
+    {{- /* TODO: largest suffix match location_override (same as for include_file and htpasswd_file) */}}
     {{- $override := printf "/etc/nginx/vhost.d/%s_%s_location_override" .Host (sha1 .Path) }}
     {{- if and (eq .Path "/") (not (exists $override)) }}
         {{- $override = printf "/etc/nginx/vhost.d/%s_location_override" .Host }}
@@ -322,14 +323,16 @@
         set $upstream_keepalive {{ if ne $keepalive "disabled" }}true{{ else }}false{{ end }};
         {{- end }}
 
+	{{- /* TODO: largest suffix match for host_sha1path too? */}}
         {{- if (exists (printf "/etc/nginx/htpasswd/%s_%s" .Host (sha1 .Path) )) }}
         auth_basic "Restricted {{ .Host }}{{ .Path }}";
         auth_basic_user_file {{ (printf "/etc/nginx/htpasswd/%s_%s" .Host (sha1 .Path)) }};
-        {{- else if (exists (printf "/etc/nginx/htpasswd/%s" .Host)) }}
+        {{- else if (ne .HtpasswdFile "") }}
         auth_basic "Restricted {{ .HostIsRegexp | ternary "access" .Host }}";
-        auth_basic_user_file {{ (printf "/etc/nginx/htpasswd/%s" .Host) }};
+        auth_basic_user_file {{ .HtpasswdFile }};
         {{- end }}
 
+        {{- /* TODO: largest suffix match location_override (same as for include_file and htpasswd_file) */}}
         {{- if (exists (printf "/etc/nginx/vhost.d/%s_%s_location" .Host (sha1 .Path) )) }}
         include {{ printf "/etc/nginx/vhost.d/%s_%s_location" .Host (sha1 .Path) }};
         {{- else if (exists (printf "/etc/nginx/vhost.d/%s_location" .Host)) }}
@@ -739,6 +742,36 @@ proxy_set_header Proxy "";
     {{- /* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
     {{- $vhost_root := groupByKeys $vhost_containers "Env.VIRTUAL_ROOT" | first | default "/var/www/public" }}
 
+    {{- /* Get the best matching vhost.d include file */}}
+    {{- $include_file := "" }}
+    {{- range (dir "/etc/nginx/vhost.d") }}
+        {{- if (and (hasSuffix . $hostname) (gt (len .) (len $include_file))) }}
+            {{- $include_file = . }}
+        {{- end }}
+    {{- end }}
+    {{- $include_file = when (ne $include_file "") (print "/etc/nginx/vhost.d/" $include_file) "" }}
+    {{- $include_file = when (exists $include_file) $include_file "" }}
+
+    {{- /* Get the best matching vhost.d location include file */}}
+    {{- $location_file := "" }}
+    {{- range (dir "/etc/nginx/vhost.d") }}
+        {{- if (and (hasSuffix . (print $hostname "_location")) (gt (len .) (len $location_file))) }}
+            {{- $location_file = . }}
+        {{- end }}
+    {{- end }}
+    {{- $location_file = when (ne $location_file "") (print "/etc/nginx/vhost.d/" $location_file) "" }}
+    {{- $location_file = when (exists $location_file) $location_file "" }}
+
+    {{- /* Get the best matching htpasswd file */}}
+    {{- $htpasswd_file := "" }}
+    {{- range (dir "/etc/nginx/htpasswd") }}
+        {{- if (and (hasSuffix . $hostname) (gt (len .) (len $htpasswd_file))) }}
+            {{- $htpasswd_file = . }}
+        {{- end }}
+    {{- end }}
+    {{- $htpasswd_file = when (ne $htpasswd_file "") (print "/etc/nginx/htpasswd/" $htpasswd_file) "" }}
+    {{- $htpasswd_file = when (exists $htpasswd_file) $htpasswd_file "" }}
+
     {{- $vhost_data = merge $vhost_data (dict
         "cert" $cert
         "cert_ok" $cert_ok
@@ -756,6 +789,9 @@ proxy_set_header Proxy "";
         "trust_default_cert" $trust_default_cert
         "upstream_name" $upstream_name
         "vhost_root" $vhost_root
+	"include_file" $include_file
+	"location_file" $location_file
+	"htpasswd_file" $htpasswd_file
     ) }}
     {{- $_ := set $globals.vhosts $hostname $vhost_data }}
 {{- end }}
@@ -897,6 +933,7 @@ server {
 
 server {
     {{- if $vhost.is_regexp }}
+    {{- /* TODO: largest suffix match? what does this if-block even do? */}}
         {{- if or
             (printf "/etc/nginx/vhost.d/%s" $hostname | exists)
             (printf "/etc/nginx/vhost.d/%s_location" $hostname | exists)
@@ -988,10 +1025,10 @@ server {
         {{- end }}
     {{- end }}
 
-    {{- $vhostFileName :=  $vhost.is_regexp | ternary (sha1 $hostname) $hostname }}
+    {{- $vhostFileName :=  $vhost.is_regexp | ternary (print "/etc/nginx/vhost.d/" (sha1 $hostname)) $vhost.include_file }}
 
-    {{- if (exists (printf "/etc/nginx/vhost.d/%s" $vhostFileName)) }}
-    include {{ printf "/etc/nginx/vhost.d/%s" $vhostFileName }};
+    {{- if (ne $vhostFileName "") }}
+    include {{ $vhostFileName }};
     {{- else if (exists "/etc/nginx/vhost.d/default") }}
     include /etc/nginx/vhost.d/default;
     {{- end }}
@@ -1003,10 +1040,12 @@ server {
     {{- range $path, $vpath := $vhost.paths }}
         {{- template "location" (dict
             "Path" $path
-            "Host" $vhostFileName
+            "Host" ($vhost.is_regexp | ternary (sha1 $hostname) $hostname)
             "HostIsRegexp" $vhost.is_regexp
             "VhostRoot" $vhost.vhost_root
             "VPath" $vpath
+	    "LocationFile" $vhost.location_file
+	    "HtpasswdFile" $vhost.htpasswd_file
         ) }}
     {{- end }}
 
