@@ -6,9 +6,3 @@ services:
     environment:
       WEB_PORTS: "81"
       VIRTUAL_HOST: "nginx-proxy.tld"
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs:/etc/nginx/certs:ro

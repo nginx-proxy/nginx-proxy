@@ -1,4 +1,8 @@
 services:
+  nginx-proxy:
+    environment:
+      NON_GET_REDIRECT: 308
+
   web1:
     image: web
     expose:
@@ -16,11 +20,3 @@ services:
       VIRTUAL_HOST: "web2.nginx-proxy.tld"
     labels:
       com.github.nginx-proxy.nginx-proxy.non-get-redirect: 307
-
-  sut:
-    image: nginxproxy/nginx-proxy:test
-    environment:
-      NON_GET_REDIRECT: 308
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs:/etc/nginx/certs:ro
