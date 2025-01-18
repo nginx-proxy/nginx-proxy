@@ -1,0 +1,25 @@
+services:
+  ssl-app-single-port:
+    image: nginx:alpine
+    volumes:
+      - ${PYTEST_MODULE_PATH}/ssl-app-single-port.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${PYTEST_MODULE_PATH}/nginx-proxy.tld.crt:/etc/nginx/certs/server.crt:ro
+      - ${PYTEST_MODULE_PATH}/nginx-proxy.tld.key:/etc/nginx/certs/server.key:ro
+    environment:
+      VIRTUAL_HOST: "web1.nginx-proxy.tld"
+      VIRTUAL_PROTO: "https"
+      VIRTUAL_PORT: "443"
+
+  ssl-app-multi-ports:
+    image: nginx:alpine
+    volumes:
+      - ${PYTEST_MODULE_PATH}/ssl-app-multi-ports.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${PYTEST_MODULE_PATH}/nginx-proxy.tld.crt:/etc/nginx/certs/server.crt:ro
+      - ${PYTEST_MODULE_PATH}/nginx-proxy.tld.key:/etc/nginx/certs/server.key:ro
+    environment:
+      VIRTUAL_HOST_MULTIPORTS: |-
+        web2.nginx-proxy.tld:
+        web3.nginx-proxy.tld:
+          "/":
+            port: 443
+            proto: "https"
