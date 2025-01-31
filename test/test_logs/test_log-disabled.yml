@@ -1,7 +1,7 @@
 services:
   nginx-proxy:
     environment:
-      DISABLE_ACCESS_LOGS: true
+      DISABLE_ACCESS_LOGS: "true"
 
   web1:
     image: web
