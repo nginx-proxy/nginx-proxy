@@ -805,6 +805,25 @@ For legacy compatibility reasons, `nginx-proxy` forwards any client-supplied `X-
 
 The default for `TRUST_DOWNSTREAM_PROXY` may change to `false` in a future version of `nginx-proxy`. If you require it to be enabled, you are encouraged to explicitly set it to `true` to avoid compatibility problems when upgrading.
 
+### Proxy Protocol Support
+
+`nginx-proxy` has support for the [Proxy Protocol](https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt). This allows a separate proxy to send requests to `nginx-proxy` and encode information about the client connection without relying on HTTP headers. This can be enabled by setting `ENABLE_PROXY_PROTOCOL=true` on the main `nginx-proxy` container. It's important to note that enabling the proxy protocol will require all connections to `nginx-proxy` to use the protocol.
+
+You can use this feature in conjunction with the `realip` module in nginx. This will allow for setting the `$remote_addr` and `$remote_port` nginx variables to the IP and port that are provided from the protocol message. Documenation for this functionality can be found in the [nginx documentation](https://nginx.org/en/docs/http/ngx_http_realip_module.html).
+
+A simple example is as follows:
+
+1. Create a configuration file for nginx, this can be global (in `conf.d`) or host specific (in `vhost.d`)
+2. Add your `realip` configuration:
+
+```nginx
+# Your proxy server ip address
+set_real_ip_from  192.168.1.0/24;
+
+# Where to replace `$remote_addr` and `$remote_port` from
+real_ip_header proxy_protocol;
+```
+
 ⬆️ [back to table of contents](#table-of-contents)
 
 ## Custom Nginx Configuration
@@ -1451,6 +1470,7 @@ curl -s -H "Host: test.nginx-proxy.tld" localhost/nginx-proxy-debug | jq
     "enable_debug_endpoint": "true",
     "enable_http2": "true",
     "enable_http3": "false",
+    "enable_proxy_protocol": "false",
     "enable_http_on_missing_cert": "true",
     "enable_ipv6": false,
     "enable_json_logs": false,
