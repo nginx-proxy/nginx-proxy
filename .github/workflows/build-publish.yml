@@ -25,7 +25,7 @@ jobs:
       matrix:
         base: [alpine, debian]
     runs-on: ubuntu-latest
-    if: (github.event_name == "schedule" && github.repository == "nginx-proxy/nginx-proxy") || (github.event_name != "schedule")
+    if: (github.event_name == 'schedule' && github.repository == 'nginx-proxy/nginx-proxy') || (github.event_name != 'schedule')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
