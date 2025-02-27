@@ -489,7 +489,7 @@ class DockerComposer(contextlib.AbstractContextManager):
             for network in self._networks:
                 disconnect_from_network(network)
         docker_compose_down(self._docker_compose_files, self._project_name)
-        self._docker_compose_file = None
+        self._docker_compose_files = None
         self._project_name = None
         self._networks = []
 
