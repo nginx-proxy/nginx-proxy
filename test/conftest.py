@@ -428,9 +428,15 @@ def connect_to_network(network: Network) -> Optional[Network]:
         # Make sure our container is connected to the nginx-proxy's network,
         # but avoid connecting to `none` network (not valid) with `test_server-down` tests
         if network.name not in my_networks and network.name != 'none':
-            logging.info(f"Connecting to docker network: {network.name}")
-            network.connect(my_container)
-            return network
+            try:
+                logging.info(f"Connecting to docker network: {network.name}")
+                network.connect(my_container)
+                return network
+            except docker.errors.APIError as e:
+                logging.warning(f"Failed to connect to network {network.name}: {e}")
+                return network  # Ensure the network is still tracked for later removal
+
+    return None
 
 
 def disconnect_from_network(network: Network = None):
