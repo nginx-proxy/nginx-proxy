@@ -1,0 +1,69 @@
+services:
+  mtls-vhost-enabled:
+    image: web
+    expose:
+      - "81"
+    environment:
+      WEB_PORTS: "81"
+      VIRTUAL_HOST: "mtls-enabled.nginx-proxy.tld,global-mtls-enabled.nginx-proxy.tld"
+
+  mtls-vhost-optional:
+    image: web
+    expose:
+      - "82"
+    environment:
+      WEB_PORTS: "82"
+      VIRTUAL_HOST_MULTIPORTS: |-
+        mtls-optional.nginx-proxy.tld:
+          "/":
+            dest: "/"
+          "/foo":
+            dest: "/"
+        global-mtls-optional.nginx-proxy.tld:
+          "/":
+            dest: "/"
+          "/foo":
+            dest: "/"
+    labels:
+      com.github.nginx-proxy.nginx-proxy.ssl_verify_client: "optional"
+
+  mtls-vpath-enabled:
+    image: web
+    expose:
+      - "83"
+    environment:
+      WEB_PORTS: "83"
+      VIRTUAL_HOST: "mtls-enabled.nginx-proxy.tld"
+      VIRTUAL_PATH: /bar/
+      VIRTUAL_DEST: /
+
+  mtls-vpath-optional:
+    image: web
+    expose:
+      - "84"
+    environment:
+      WEB_PORTS: "84"
+      VIRTUAL_HOST_MULTIPORTS: |-
+        mtls-optional.nginx-proxy.tld:
+          "/bar":
+            dest: "/"
+          "/foo/bar":
+            dest: "/"
+    labels:
+      com.github.nginx-proxy.nginx-proxy.ssl_verify_client: "optional"
+
+  mtls-regex-enabled:
+    image: web
+    expose:
+      - "85"
+    environment:
+      WEB_PORTS: "85"
+      VIRTUAL_HOST: ~^regex.*\.nginx-proxy\.tld$
+      CERT_NAME: nginx-proxy.tld
+
+  nginx-proxy:
+    volumes:
+      - ${PYTEST_MODULE_PATH}/certs_mtls:/etc/nginx/certs:ro
+      - ${PYTEST_MODULE_PATH}/certs_mtls/mtls-optional-foo-bar_location:/etc/nginx/vhost.d/mtls-optional.nginx-proxy.tld_6dbd548cc03e44b8b44b6e68e56255ce4273ae49_location:ro #/foo
+      - ${PYTEST_MODULE_PATH}/certs_mtls/mtls-optional-foo-bar_location:/etc/nginx/vhost.d/mtls-optional.nginx-proxy.tld_a82cce35fd860de6f63f97e6c482dc6a14d002e8_location:ro #/bar
+      - ${PYTEST_MODULE_PATH}/certs_mtls/mtls-optional-foo-bar_location:/etc/nginx/vhost.d/global-mtls-optional.nginx-proxy.tld_6dbd548cc03e44b8b44b6e68e56255ce4273ae49_location:ro #/foo
