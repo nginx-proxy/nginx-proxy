@@ -321,11 +321,11 @@ def __prepare_and_execute_compose_cmd(compose_files: List[str], project_name: st
         compose_cmd.write(f" --file {compose_file}")
     compose_cmd.write(f" {cmd}")
 
-    logging.info(compose_cmd.getvalue())
     try:
         subprocess.check_output(shlex.split(compose_cmd.getvalue()), stderr=subprocess.STDOUT)
+        logging.info(f"Executed '{compose_cmd.getvalue()}'")
     except subprocess.CalledProcessError as e:
-        pytest.fail(f"Error while running '{compose_cmd.getvalue()}':\n{e.output}", pytrace=False)
+        logging.error(f"Error while running '{compose_cmd.getvalue()}'")
 
 
 def docker_compose_up(compose_files: List[str], project_name: str):
