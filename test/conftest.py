@@ -511,6 +511,11 @@ class DockerComposer(contextlib.AbstractContextManager):
             wait_for_nginxproxy_to_be_ready()
             time.sleep(3)  # give time to containers to be ready
 
+        except KeyboardInterrupt:
+            logging.warning("KeyboardInterrupt detected! Force cleanup...")
+            self._down()  # Ensure proper shutdown
+            raise  # Re-raise to allow pytest to exit cleanly
+
         except docker.errors.APIError as e:
             logging.error(f"Docker API error ({e.status_code}): {e.explanation}")
             logging.debug(f"Full error message: {str(e)}")
