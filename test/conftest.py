@@ -169,7 +169,7 @@ def container_ip(container: Container) -> str:
         net_info = container.attrs["NetworkSettings"]["Networks"]
         if "bridge" in net_info:
             return net_info["bridge"]["IPAddress"]
-        
+
         # container is running in host network mode
         if "host" in net_info:
             return "127.0.0.1"
@@ -186,7 +186,7 @@ def container_ipv6(container: Container) -> str:
     net_info = container.attrs["NetworkSettings"]["Networks"]
     if "bridge" in net_info:
         return net_info["bridge"]["GlobalIPv6Address"]
-    
+
     # container is running in host network mode
     if "host" in net_info:
         return "::1"
@@ -527,7 +527,7 @@ class DockerComposer(contextlib.AbstractContextManager):
             logging.debug(f"Full error message: {str(e)}")
             self._down()  # Ensure proper cleanup even on failure
             pytest.fail(f"Docker Compose setup failed due to Docker API error: {e.explanation}")
-            
+
         except RuntimeError as e:
             logging.error(f"RuntimeEror encountered in: {project_name}")
             logging.debug(f"Full error message: {str(e)}")
