@@ -169,7 +169,7 @@ def container_ip(container: Container) -> str:
         net_info = container.attrs["NetworkSettings"]["Networks"]
         if "bridge" in net_info:
             return net_info["bridge"]["IPAddress"]
-        
+
         # container is running in host network mode
         if "host" in net_info:
             return "127.0.0.1"
@@ -186,7 +186,7 @@ def container_ipv6(container: Container) -> str:
     net_info = container.attrs["NetworkSettings"]["Networks"]
     if "bridge" in net_info:
         return net_info["bridge"]["GlobalIPv6Address"]
-    
+
     # container is running in host network mode
     if "host" in net_info:
         return "::1"
@@ -321,11 +321,11 @@ def __prepare_and_execute_compose_cmd(compose_files: List[str], project_name: st
         compose_cmd.write(f" --file {compose_file}")
     compose_cmd.write(f" {cmd}")
 
-    logging.info(compose_cmd.getvalue())
     try:
         subprocess.check_output(shlex.split(compose_cmd.getvalue()), stderr=subprocess.STDOUT)
+        logging.info(f"Executed '{compose_cmd.getvalue()}'")
     except subprocess.CalledProcessError as e:
-        pytest.fail(f"Error while running '{compose_cmd.getvalue()}':\n{e.output}", pytrace=False)
+        logging.error(f"Error while running '{compose_cmd.getvalue()}'")
 
 
 def docker_compose_up(compose_files: List[str], project_name: str):
@@ -428,9 +428,15 @@ def connect_to_network(network: Network) -> Optional[Network]:
         # Make sure our container is connected to the nginx-proxy's network,
         # but avoid connecting to `none` network (not valid) with `test_server-down` tests
         if network.name not in my_networks and network.name != 'none':
-            logging.info(f"Connecting to docker network: {network.name}")
-            network.connect(my_container)
-            return network
+            try:
+                logging.info(f"Connecting to docker network: {network.name}")
+                network.connect(my_container)
+                return network
+            except docker.errors.APIError as e:
+                logging.warning(f"Failed to connect to network {network.name}: {e}")
+                return network  # Ensure the network is still tracked for later removal
+
+    return None
 
 
 def disconnect_from_network(network: Network = None):
@@ -471,34 +477,62 @@ def connect_to_all_networks() -> List[Network]:
 
 class DockerComposer(contextlib.AbstractContextManager):
     def __init__(self):
+        logging.debug("DockerComposer __init__")
         self._networks = None
         self._docker_compose_files = None
         self._project_name = None
 
     def __exit__(self, *exc_info):
+        logging.debug("DockerComposer __exit__")
         self._down()
 
     def _down(self):
+        logging.debug(f"DockerComposer _down {self._docker_compose_files} {self._project_name} {self._networks}")
         if self._docker_compose_files is None:
+            logging.debug("docker_compose_files is None, nothing to cleanup")
             return
-        for network in self._networks:
-            disconnect_from_network(network)
+        if self._networks:
+            for network in self._networks:
+                disconnect_from_network(network)
         docker_compose_down(self._docker_compose_files, self._project_name)
-        self._docker_compose_file = None
+        self._docker_compose_files = None
         self._project_name = None
+        self._networks = []
 
     def compose(self, docker_compose_files: List[str], project_name: str):
         if docker_compose_files == self._docker_compose_files and project_name == self._project_name:
+            logging.info(f"Skipping compose: {docker_compose_files} (already running under project {project_name})")
+            return
+        if docker_compose_files is None or project_name is None:
+            logging.info(f"Skipping compose: no compose file specified")
             return
         self._down()
-        if docker_compose_files is None or project_name is None:
-            return
-        docker_compose_up(docker_compose_files, project_name)
-        self._networks = connect_to_all_networks()
-        wait_for_nginxproxy_to_be_ready()
-        time.sleep(3)  # give time to containers to be ready
         self._docker_compose_files = docker_compose_files
         self._project_name = project_name
+        logging.debug(f"DockerComposer compose {self._docker_compose_files} {self._project_name} {self._networks}")
+
+        try:
+            docker_compose_up(docker_compose_files, project_name)
+            self._networks = connect_to_all_networks()
+            wait_for_nginxproxy_to_be_ready()
+            time.sleep(3)  # give time to containers to be ready
+
+        except KeyboardInterrupt:
+            logging.warning("KeyboardInterrupt detected! Force cleanup...")
+            self._down()  # Ensure proper shutdown
+            raise  # Re-raise to allow pytest to exit cleanly
+
+        except docker.errors.APIError as e:
+            logging.error(f"Docker API error ({e.status_code}): {e.explanation}")
+            logging.debug(f"Full error message: {str(e)}")
+            self._down()  # Ensure proper cleanup even on failure
+            pytest.fail(f"Docker Compose setup failed due to Docker API error: {e.explanation}")
+
+        except RuntimeError as e:
+            logging.error(f"RuntimeEror encountered in: {project_name}")
+            logging.debug(f"Full error message: {str(e)}")
+            self._down()  # Ensure proper cleanup even on failure
+            pytest.fail(f"Docker Compose setup failed due to RuntimeError in: {project_name}")
 
 
 ###############################################################################
