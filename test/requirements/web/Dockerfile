@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Docker Image running one (or multiple) webservers listening on all given ports from WEB_PORTS environment variable
 
 FROM python:3-alpine
