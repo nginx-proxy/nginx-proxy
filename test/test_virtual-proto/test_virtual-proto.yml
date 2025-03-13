@@ -2,7 +2,7 @@ services:
   ssl-app-single-port:
     image: nginx:alpine
     volumes:
-      - ${PYTEST_MODULE_PATH}/ssl-app-single-port.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${PYTEST_MODULE_PATH}/ssl-app-single-port.conf:/etc/nginx/conf.d/50-default.conf:ro
       - ${PYTEST_MODULE_PATH}/nginx-proxy.tld.crt:/etc/nginx/certs/server.crt:ro
       - ${PYTEST_MODULE_PATH}/nginx-proxy.tld.key:/etc/nginx/certs/server.key:ro
     environment:
@@ -13,7 +13,7 @@ services:
   ssl-app-multi-ports:
     image: nginx:alpine
     volumes:
-      - ${PYTEST_MODULE_PATH}/ssl-app-multi-ports.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${PYTEST_MODULE_PATH}/ssl-app-multi-ports.conf:/etc/nginx/conf.d/50-default.conf:ro
       - ${PYTEST_MODULE_PATH}/nginx-proxy.tld.crt:/etc/nginx/certs/server.crt:ro
       - ${PYTEST_MODULE_PATH}/nginx-proxy.tld.key:/etc/nginx/certs/server.key:ro
     environment:
