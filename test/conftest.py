@@ -297,16 +297,16 @@ def restore_urllib_dns_resolver(getaddrinfo_func):
 
 def get_nginx_conf_from_container(container: Container) -> bytes:
     """
-    return the nginx /etc/nginx/conf.d/default.conf file content from a container
+    return the nginx /etc/nginx/conf.d/50-default.conf file content from a container
     """
     import tarfile
     from io import BytesIO
 
-    strm_generator, stat = container.get_archive('/etc/nginx/conf.d/default.conf')
+    strm_generator, stat = container.get_archive('/etc/nginx/conf.d/50-default.conf')
     strm_fileobj = BytesIO(b"".join(strm_generator))
 
     with tarfile.open(fileobj=strm_fileobj) as tf:
-        conffile = tf.extractfile('default.conf')
+        conffile = tf.extractfile('50-default.conf')
         return conffile.read()
 
 
