@@ -858,6 +858,22 @@ server {
     ssl_reject_handshake on;
         {{- end }}
 
+        {{- $acme_http_challenge := $globals.config.acme_http_challenge }}
+        {{- $acme_http_challenge_legacy := eq $acme_http_challenge "legacy" }}
+        {{- $acme_http_challenge_enabled := false }}
+        {{- if (not $acme_http_challenge_legacy) }}
+            {{- $acme_http_challenge_enabled = parseBool $acme_http_challenge }}
+        {{- end }}
+        {{- if (or $acme_http_challenge_legacy $acme_http_challenge_enabled) }}
+    location ^~ /.well-known/acme-challenge/ {
+        auth_basic off;
+        allow all;
+        root /usr/share/nginx/html;
+        try_files $uri =404;
+        break;
+    }
+        {{- end }}
+
         {{- if (exists "/usr/share/nginx/html/errors/50x.html") }}
     error_page 500 502 503 504 /50x.html;
     location /50x.html {

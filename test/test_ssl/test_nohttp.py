@@ -3,11 +3,10 @@ def test_web2_http_is_connection_refused(docker_compose, nginxproxy):
     assert r.status_code == 503
 
 
-def test_web2_http_is_connection_refused_for_acme_challenge(
-    docker_compose, nginxproxy, acme_challenge_path
-):
+def test_web2_acme_challenge_does_work(docker_compose, nginxproxy, acme_challenge_path):
+    # By default, ACME challenges are handled in all cases
     r = nginxproxy.get(f"http://web2.nginx-proxy.tld/{acme_challenge_path}", allow_redirects=False)
-    assert r.status_code == 503
+    assert r.status_code == 200
 
 
 def test_web2_https_is_forwarded(docker_compose, nginxproxy):

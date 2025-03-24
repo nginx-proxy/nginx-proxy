@@ -431,6 +431,8 @@ By default nginx-proxy generates location blocks to handle ACME HTTP Challenge. 
 - `false`: do not handle ACME HTTP Challenge at all.
 - `legacy`: legacy behavior for compatibility with older (<= `2.3`) versions of acme-companion, only handle ACME HTTP challenge when there is a certificate for the domain and `HTTPS_METHOD=redirect`.
 
+By default nginx-proxy generates a location block to handle ACME HTTP Challenge for unknown virtual hosts as well. This can be disabled by setting global `ACME_HTTP_CHALLENGE_LOCATION` environment variable to `false`.
+
 ### Diffie-Hellman Groups
 
 [RFC7919 groups](https://datatracker.ietf.org/doc/html/rfc7919#appendix-A) with key lengths of 2048, 3072, and 4096 bits are [provided by `nginx-proxy`](https://github.com/nginx-proxy/nginx-proxy/dhparam). The ENV `DHPARAM_BITS` can be set to `2048` or `3072` to change from the default 4096-bit key. The DH key file will be located in the container at `/etc/nginx/dhparam/dhparam.pem`. Mounting a different `dhparam.pem` file at that location will override the RFC7919 key.
