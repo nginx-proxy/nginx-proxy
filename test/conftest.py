@@ -303,19 +303,23 @@ def get_nginx_conf_from_container(container: Container) -> bytes:
     import tarfile
     from io import BytesIO
 
-    chunks = []
+    content = b""
+
     try:
-        upstream_strm_generator, stat = container.get_archive('/etc/nginx/conf.d/10-upstream.conf')
-        chunks.append(upstream_strm_generator)
+        strm_generator, stat = container.get_archive('/etc/nginx/conf.d/10-upstream.conf')
+        strm_fileobj = BytesIO(b"".join(strm_generator))
+
+        with tarfile.open(fileobj=strm_fileobj) as tf:
+            upstream_conf = tf.extractfile('10-upstream.conf')
+            content += upstream_conf.read()
     except Exception as e:
         logging.error(f"Failed to get 10-upstream.conf from container: {e}")
     strm_generator, stat = container.get_archive('/etc/nginx/conf.d/default.conf')
-    chunks.append(strm_generator)
-    strm_fileobj = BytesIO(b"".join(chunks))
+    strm_fileobj = BytesIO(b"".join(strm_generator))
 
     with tarfile.open(fileobj=strm_fileobj) as tf:
         conffile = tf.extractfile('default.conf')
-        return conffile.read()
+        return content + conffile.read()
 
 
 def __prepare_and_execute_compose_cmd(compose_files: List[str], project_name: str, cmd: str):
