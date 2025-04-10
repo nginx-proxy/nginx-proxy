@@ -581,8 +581,12 @@ proxy_set_header Proxy "";
         {{- range $container := $containers }}
             {{- $containerNames = append $containerNames $container.Name }}
         {{- end }}
+        {{- /* start target server */}}
+        {{- if ne $.Env.TARGET "upstream" }}
 # /!\ WARNING: the VIRTUAL_HOST_MULTIPORTS environment variable used for {{ len $containerNames | plural "this container" "those containers" }} is not a valid YAML string:
 # {{ $containerNames | join ", " }}
+        {{- /* end target server */}}
+        {{- end }}
         {{- continue }}
     {{- end }}
 
