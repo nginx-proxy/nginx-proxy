@@ -1,4 +1,5 @@
 # nginx-proxy{{ if $.Env.NGINX_PROXY_VERSION }} version : {{ $.Env.NGINX_PROXY_VERSION }}{{ end }}
+# target: {{ $.Env.TARGET }}
 
 {{- /*
      * Global values. Values are stored in this map rather than in individual
@@ -436,6 +437,9 @@ upstream {{ $vpath.upstream }} {
     {{- when .Enable "access_log /var/log/nginx/access.log vhost;" "" }}
 {{- end }}
 
+{{- /* start target server */}}
+{{- if ne $.Env.TARGET "upstream" }}
+
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
 map $http_x_forwarded_proto $proxy_x_forwarded_proto {
@@ -564,6 +568,9 @@ proxy_set_header X-Original-URI $request_uri;
 
 # Mitigate httpoxy attack (see README for details)
 proxy_set_header Proxy "";
+{{- end }}
+
+{{- /* end target server */}}
 {{- end }}
 
 {{- /* Precompute and store some information about vhost that use VIRTUAL_HOST_MULTIPORTS. */}}
@@ -784,6 +791,9 @@ proxy_set_header Proxy "";
 {{- end }}
 
 
+{{- /* start target server */}}
+{{- if ne $.Env.TARGET "upstream" }}
+
 {{- /*
      * If needed, create a catch-all fallback server to send an error code to
      * clients that request something from an unknown vhost.
@@ -872,13 +882,25 @@ server {
     {{- end }}
 {{- end }}
 
+{{- /* end target server */}}
+{{- end }}
+
 {{- range $hostname, $vhost := $globals.vhosts }}
     {{- $default_server := when $vhost.default "default_server" "" }}
+
+    {{- /* start target server */}}
+    {{- if ne $.Env.TARGET "server" }}
 
     {{- range $path, $vpath := $vhost.paths }}
 # {{ $hostname }}{{ $path }}
         {{ template "upstream" (dict "globals" $globals "Path" $path "VPath" $vpath) }}
     {{- end }}
+
+    {{- /* end target server */}}
+    {{- end }}
+
+    {{- /* start target server */}}
+    {{- if ne $.Env.TARGET "upstream" }}
 
     {{- if (eq $vhost.https_method "redirect") }}
 server {
@@ -1042,4 +1064,6 @@ server {
     }
     {{- end }}
 }
+    {{- /* end target server */}}
+    {{- end }}
 {{- end }}
