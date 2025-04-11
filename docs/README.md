@@ -816,6 +816,11 @@ services:
 
 </details>
 
+> [!NOTE]
+> The filenames of extra configuration files affect the order in which configuration is applied.
+> nginx reads configuration from `/etc/nginx/conf.d` directory in alphabetical order.
+> Note that the configuration managed by nginx-proxy is placed at `/etc/nginx/conf.d/default.conf`.
+
 ### Per-VIRTUAL_HOST
 
 To add settings on a per-`VIRTUAL_HOST` basis, add your configuration file under `/etc/nginx/vhost.d`. Unlike in the proxy-wide case, which allows multiple config files with any name ending in `.conf`, the per-`VIRTUAL_HOST` file must be named exactly after the `VIRTUAL_HOST`, or if `VIRTUAL_HOST` is a regex, after the sha1 hash of the regex.
