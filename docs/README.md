@@ -1052,22 +1052,12 @@ If you want to proxy non-HTTP traffic, you can use nginx's stream module. Write 
 ```nginx
 # stream.conf
 stream {
-    upstream stream_backend {
-        server backend1.example.com:12345;
-        server backend2.example.com:12345;
-        server backend3.example.com:12346;
-        # ...
-    }
+    # auto generated upstream.conf for stream block.
+    include stream.conf.d/10-upstream.conf;
     server {
-        listen     12345;
-        #TCP traffic will be forwarded to the "stream_backend" upstream group
-        proxy_pass stream_backend;
-    }
-
-    server {
-        listen     12346;
-        #TCP traffic will be forwarded to the specified server
-        proxy_pass backend.example.com:12346;
+        listen     8000;
+        #TCP traffic will be forwarded to the upstream group
+        proxy_pass web1.nginx-proxy.example;
     }
 
     upstream dns_servers {
@@ -1088,8 +1078,7 @@ stream {
 docker run --detach \
     --name nginx-proxy \
     --publish 80:80 \
-    --publish 12345:12345 \
-    --publish 12346:12346 \
+    --publish 8000:8000 \
     --publish 53:53:udp \
     --volume /var/run/docker.sock:/tmp/docker.sock:ro \
     --volume ./stream.conf:/etc/nginx/toplevel.conf.d/stream.conf:ro \
