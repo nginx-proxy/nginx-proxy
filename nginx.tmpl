@@ -438,7 +438,7 @@ upstream {{ $vpath.upstream }} {
 {{- end }}
 
 {{- /* start target server */}}
-{{- if eq $.Env.TARGET "" }}
+{{- if not $.Env.TARGET }}
 
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
@@ -792,7 +792,7 @@ proxy_set_header Proxy "";
 
 
 {{- /* start target server */}}
-{{- if eq $.Env.TARGET "" }}
+{{- if not $.Env.TARGET }}
 
 {{- /*
      * If needed, create a catch-all fallback server to send an error code to
@@ -889,7 +889,7 @@ server {
     {{- $default_server := when $vhost.default "default_server" "" }}
 
     {{- /* start target stream upstream */}}
-    {{- if or (eq $.Env.TARGET "streamupstream") (eq $.Env.TARGET "") }}
+    {{- if or (eq $.Env.TARGET "streamupstream") (not $.Env.TARGET) }}
 
     {{- range $path, $vpath := $vhost.paths }}
 # {{ $hostname }}{{ $path }}
@@ -900,7 +900,7 @@ server {
     {{- end }}
 
     {{- /* start target server */}}
-    {{- if eq $.Env.TARGET "" }}
+    {{- if not $.Env.TARGET }}
 
     {{- if (eq $vhost.https_method "redirect") }}
 server {
