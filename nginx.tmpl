@@ -369,10 +369,11 @@ upstream {{ $vpath.upstream }} {
     {{- /* nginx-proxy/nginx-proxy#1105 */}}
     {{- if lt $servers 1 }}
     # Fallback entry
-    server 127.0.0.1 down;
+    server 127.0.0.1:80 down;
     {{- end }}
     {{- $keepalive := $vpath.keepalive }}
-    {{- if and (ne $keepalive "disabled") (gt $servers 0) }}
+    {{- /* only http upstream support keepalive */}}
+    {{- if and (ne $keepalive "disabled") (gt $servers 0) (eq $.Env.TARGET "upstream") }}
         {{- if eq $keepalive "auto" }}
     keepalive {{ mul $servers 2 }};
         {{- else }}
@@ -437,7 +438,7 @@ upstream {{ $vpath.upstream }} {
 {{- end }}
 
 {{- /* start target server */}}
-{{- if ne $.Env.TARGET "upstream" }}
+{{- if or (eq $.Env.TARGET "server") (eq $.Env.TARGET "") }}
 
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
@@ -791,7 +792,7 @@ proxy_set_header Proxy "";
 
 
 {{- /* start target server */}}
-{{- if ne $.Env.TARGET "upstream" }}
+{{- if or (eq $.Env.TARGET "server") (eq $.Env.TARGET "") }}
 
 {{- /*
      * If needed, create a catch-all fallback server to send an error code to
@@ -887,19 +888,19 @@ server {
 {{- range $hostname, $vhost := $globals.vhosts }}
     {{- $default_server := when $vhost.default "default_server" "" }}
 
-    {{- /* start target server */}}
-    {{- if ne $.Env.TARGET "server" }}
+    {{- /* start target upstream or stream upstream */}}
+    {{- if or (eq $.Env.TARGET "upstream") (eq $.Env.TARGET "streamupstream") (eq $.Env.TARGET "") }}
 
     {{- range $path, $vpath := $vhost.paths }}
 # {{ $hostname }}{{ $path }}
         {{ template "upstream" (dict "globals" $globals "Path" $path "VPath" $vpath) }}
     {{- end }}
 
-    {{- /* end target server */}}
+    {{- /* end target upstream or stream upstream */}}
     {{- end }}
 
     {{- /* start target server */}}
-    {{- if ne $.Env.TARGET "upstream" }}
+    {{- if or (eq $.Env.TARGET "server") (eq $.Env.TARGET "") }}
 
     {{- if (eq $vhost.https_method "redirect") }}
 server {
