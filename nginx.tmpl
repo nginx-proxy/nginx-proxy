@@ -373,7 +373,7 @@ upstream {{ $vpath.upstream }} {
     {{- end }}
     {{- $keepalive := $vpath.keepalive }}
     {{- /* only http upstream support keepalive */}}
-    {{- if and (ne $keepalive "disabled") (gt $servers 0) (ne $.Env.TARGET "streamupstream") }}
+    {{- if and (ne $keepalive "disabled") (gt $servers 0) (not $.TARGET) }}
         {{- if eq $keepalive "auto" }}
     keepalive {{ mul $servers 2 }};
         {{- else }}
@@ -893,7 +893,7 @@ server {
 
     {{- range $path, $vpath := $vhost.paths }}
 # {{ $hostname }}{{ $path }}
-        {{ template "upstream" (dict "globals" $globals "Path" $path "VPath" $vpath) }}
+        {{ template "upstream" (dict "globals" $globals "Path" $path "VPath" $vpath "TARGET" $.Env.TARGET) }}
     {{- end }}
 
     {{- /* end target upstream or stream upstream */}}
