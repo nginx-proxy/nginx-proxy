@@ -373,7 +373,7 @@ upstream {{ $vpath.upstream }} {
     {{- end }}
     {{- $keepalive := $vpath.keepalive }}
     {{- /* only http upstream support keepalive */}}
-    {{- if and (ne $keepalive "disabled") (gt $servers 0) (eq $.Env.TARGET "upstream") }}
+    {{- if and (ne $keepalive "disabled") (gt $servers 0) (ne $.Env.TARGET "streamupstream") }}
         {{- if eq $keepalive "auto" }}
     keepalive {{ mul $servers 2 }};
         {{- else }}
@@ -438,7 +438,7 @@ upstream {{ $vpath.upstream }} {
 {{- end }}
 
 {{- /* start target server */}}
-{{- if or (eq $.Env.TARGET "server") (eq $.Env.TARGET "") }}
+{{- if eq $.Env.TARGET "" }}
 
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
@@ -792,7 +792,7 @@ proxy_set_header Proxy "";
 
 
 {{- /* start target server */}}
-{{- if or (eq $.Env.TARGET "server") (eq $.Env.TARGET "") }}
+{{- if eq $.Env.TARGET "" }}
 
 {{- /*
      * If needed, create a catch-all fallback server to send an error code to
@@ -888,8 +888,8 @@ server {
 {{- range $hostname, $vhost := $globals.vhosts }}
     {{- $default_server := when $vhost.default "default_server" "" }}
 
-    {{- /* start target upstream or stream upstream */}}
-    {{- if or (eq $.Env.TARGET "upstream") (eq $.Env.TARGET "streamupstream") (eq $.Env.TARGET "") }}
+    {{- /* start target stream upstream */}}
+    {{- if or (eq $.Env.TARGET "streamupstream") (eq $.Env.TARGET "") }}
 
     {{- range $path, $vpath := $vhost.paths }}
 # {{ $hostname }}{{ $path }}
@@ -900,7 +900,7 @@ server {
     {{- end }}
 
     {{- /* start target server */}}
-    {{- if or (eq $.Env.TARGET "server") (eq $.Env.TARGET "") }}
+    {{- if eq $.Env.TARGET "" }}
 
     {{- if (eq $vhost.https_method "redirect") }}
 server {
