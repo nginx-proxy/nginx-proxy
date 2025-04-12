@@ -298,16 +298,28 @@ def restore_urllib_dns_resolver(getaddrinfo_func):
 def get_nginx_conf_from_container(container: Container) -> bytes:
     """
     return the nginx /etc/nginx/conf.d/default.conf file content from a container
+    will merge 10-upstream.conf and default.conf
     """
     import tarfile
     from io import BytesIO
 
+    content = b""
+
+    try:
+        strm_generator, stat = container.get_archive('/etc/nginx/conf.d/10-upstream.conf')
+        strm_fileobj = BytesIO(b"".join(strm_generator))
+
+        with tarfile.open(fileobj=strm_fileobj) as tf:
+            upstream_conf = tf.extractfile('10-upstream.conf')
+            content += upstream_conf.read()
+    except Exception as e:
+        logging.error(f"Failed to get 10-upstream.conf from container: {e}")
     strm_generator, stat = container.get_archive('/etc/nginx/conf.d/default.conf')
     strm_fileobj = BytesIO(b"".join(strm_generator))
 
     with tarfile.open(fileobj=strm_fileobj) as tf:
         conffile = tf.extractfile('default.conf')
-        return conffile.read()
+        return content + conffile.read()
 
 
 def __prepare_and_execute_compose_cmd(compose_files: List[str], project_name: str, cmd: str):
