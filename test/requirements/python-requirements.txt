@@ -3,4 +3,4 @@ docker==7.1.0
 packaging==24.2
 pytest==8.3.5
 requests==2.32.3
-urllib3==2.3.0
+urllib3==2.4.0
