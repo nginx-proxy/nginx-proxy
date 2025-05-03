@@ -333,7 +333,7 @@ See the [nginx keepalive documentation](https://nginx.org/en/docs/http/ngx_http_
 ## Basic Authentication Support
 
 In order to be able to secure your virtual host, you have to create a file named as its equivalent `VIRTUAL_HOST` variable (or if using a regex `VIRTUAL_HOST`, as the sha1 hash of the regex) in directory
-`/etc/nginx/htpasswd/{$VIRTUAL_HOST}`
+`/etc/nginx/htpasswd/`. Example: `/etc/nginx/htpasswd/app.example.com`.
 
 ```console
 docker run -d -p 80:80 -p 443:443 \
