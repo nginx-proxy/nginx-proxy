@@ -1,6 +1,6 @@
 backoff==2.2.1
 docker==7.1.0
-packaging==24.2
+packaging==25.0
 pytest==8.3.5
 requests==2.32.3
 urllib3==2.3.0
