@@ -1136,31 +1136,65 @@ I'm 5b129ab83266
 
 To run nginx proxy as a separate container you'll need to have [nginx.tmpl](https://github.com/nginx-proxy/nginx-proxy/blob/main/nginx.tmpl) on your host system.
 
-First start nginx with a volume:
+First start nginx with a volume mounted to `/etc/nginx/conf.d`:
 
 ```console
-docker run -d -p 80:80 --name nginx -v /tmp/nginx:/etc/nginx/conf.d -t nginx
+docker run --detach \
+    --name nginx \
+    --publish 80:80 \
+    --volume /tmp/nginx:/etc/nginx/conf.d \
+    nginx
 ```
 
 Then start the docker-gen container with the shared volume and template:
 
 ```console
-docker run --volumes-from nginx \
-    -v /var/run/docker.sock:/tmp/docker.sock:ro \
-    -v $(pwd):/etc/docker-gen/templates \
-    -t nginxproxy/docker-gen -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+docker run --detach \
+    --name docker-gen \
+    --volumes-from nginx \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    --volume $(pwd):/etc/docker-gen/templates \
+    nginxproxy/docker-gen -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
 ```
 
 Finally, start your containers with `VIRTUAL_HOST` environment variables.
 
 ```console
-docker run -e VIRTUAL_HOST=foo.bar.com  ...
+docker run --env VIRTUAL_HOST=foo.bar.com  ...
 ```
+
+### Network segregation
 
 To allow for network segregation of the nginx and docker-gen containers, the label `com.github.nginx-proxy.nginx-proxy.nginx` must be applied to the nginx container, otherwise it is assumed that nginx and docker-gen share the same network:
 
 ```console
-docker run -d -p 80:80 --name nginx -l "com.github.nginx-proxy.nginx-proxy.nginx" -v /tmp/nginx:/etc/nginx/conf.d -t nginx
+docker run --detach \
+    --name nginx \
+    --publish 80:80 \
+    --label "com.github.nginx-proxy.nginx-proxy.nginx" \
+    --volume /tmp/nginx:/etc/nginx/conf.d \
+    nginx
+```
+
+Network segregation make it possible to run the docker-gen container in an [internal network](https://docs.docker.com/reference/cli/docker/network/create/#internal), unreachable from the outside.
+
+You can also customise the label being used by docker-gen to find the nginx container with the `NGINX_CONTAINER_LABEL`environment variable (on the docker-gen container):
+
+```console
+docker run --detach \
+    --name docker-gen \
+    --volumes-from nginx \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    --volume $(pwd):/etc/docker-gen/templates \
+    --env "NGINX_CONTAINER_LABEL=com.github.foobarbuzz" \
+    nginxproxy/docker-gen -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+
+docker run --detach \
+    --name nginx \
+    --publish 80:80 \
+    --label "com.github.foobarbuzz" \
+    --volume "/tmp/nginx:/etc/nginx/conf.d" \
+    nginx
 ```
 
 ⬆️ [back to table of contents](#table-of-contents)
