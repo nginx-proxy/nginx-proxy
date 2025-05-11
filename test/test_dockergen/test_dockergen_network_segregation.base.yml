@@ -1,3 +1,12 @@
+networks:
+  proxy:
+  private:
+    internal: true
+
+volumes:
+  nginx_conf:
+
+
 services:
   nginx-proxy-nginx:
     image: nginx
@@ -20,7 +29,7 @@ services:
       - ../../nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl
       - nginx_conf:/etc/nginx/conf.d
     networks:
-      - internal
+      - private
 
   web:
     image: web
@@ -32,10 +41,3 @@ services:
       VIRTUAL_HOST: whoami2.nginx.container.docker
     networks:
       - proxy
-
-networks:
-  proxy:
-  internal:
-
-volumes:
-  nginx_conf:
