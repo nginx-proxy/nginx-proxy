@@ -10,11 +10,10 @@
 {{- $_ := set $globals "containers" $ }}
 {{- $_ := set $globals "Env" $.Env }}
 {{- $_ := set $globals "Docker" $.Docker }}
-{{- $_ := set $globals "CurrentContainer" (where $globals.containers "ID" $globals.Docker.CurrentContainerID | first) }}
-{{- $_ := set $globals "NginxContainer" (whereLabelExists $globals.containers "com.github.nginx-proxy.nginx-proxy.nginx" | first) }}
 
 {{- $config := dict }}
 {{- $_ := set $config "nginx_proxy_version" $.Env.NGINX_PROXY_VERSION }}
+{{- $_ := set $config "nginx_container_label" ($.Env.NGINX_CONTAINER_LABEL | default "com.github.nginx-proxy.nginx-proxy.nginx") }}
 {{- $_ := set $config "default_cert_ok" (and (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}
 {{- $_ := set $config "external_http_port" ($globals.Env.HTTP_PORT | default "80") }}
 {{- $_ := set $config "external_https_port" ($globals.Env.HTTPS_PORT | default "443") }}
@@ -45,33 +44,29 @@
 
 {{- $_ := set $globals "vhosts" (dict) }}
 {{- $_ := set $globals "networks" (dict) }}
-# Networks available to the container labeled "com.github.nginx-proxy.nginx-proxy.nginx" or the one running docker-gen (which are assumed to
-# match the networks available to the container running nginx):
+
+{{- $currentContainer := where $globals.containers "ID" $globals.Docker.CurrentContainerID | first }}
+{{- $labeledContainer := whereLabelExists $globals.containers $globals.config.nginx_container_label | first }}
+{{- $_ := set $globals "NetworkContainer" ($labeledContainer | default $currentContainer) }}
+# Networks available to the container labeled "{{ $globals.config.nginx_container_label }}" or the one running docker-gen
+# (which are assumed to match the networks available to the container running nginx):
 {{- /*
-     * Note: $globals.CurrentContainer may be nil in some circumstances due to
-     * <https://github.com/nginx-proxy/docker-gen/issues/458>.  For more context
-     * see <https://github.com/nginx-proxy/nginx-proxy/issues/2189>.
+     * Note:
+     * $globals.NetworkContainer may be nil in some circumstances due to https://github.com/nginx-proxy/docker-gen/issues/458.
+     * For more context see https://github.com/nginx-proxy/nginx-proxy/issues/2189.
      */}}
-{{- if $globals.NginxContainer }}
-    {{- range sortObjectsByKeysAsc $globals.NginxContainer.Networks "Name" }}
-        {{- $_ := set $globals.networks .Name . }}
-#     {{ .Name }}
-    {{- else }}
-#     (none)
-    {{- end }}
-{{- else if $globals.CurrentContainer }}
-    {{- range sortObjectsByKeysAsc $globals.CurrentContainer.Networks "Name" }}
+{{- if $globals.NetworkContainer }}
+    {{- range sortObjectsByKeysAsc $globals.NetworkContainer.Networks "Name" }}
         {{- $_ := set $globals.networks .Name . }}
 #     {{ .Name }}
     {{- else }}
 #     (none)
     {{- end }}
 {{- else }}
-# /!\ WARNING: Failed to find the Docker container running docker-gen.  All
-#              upstream (backend) application containers will appear to be
-#              unreachable.  Try removing the -only-exposed and -only-published
-#              arguments to docker-gen if you pass either of those.  See
-#              <https://github.com/nginx-proxy/docker-gen/issues/458>.
+# /!\ WARNING: Failed to find the Docker container labeled "{{ $globals.config.nginx_container_label }}" or the one running docker-gen. 
+#              All upstream (backend) application containers will appear to be unreachable.
+#              Try removing the -only-exposed and -only-published arguments to docker-gen if you pass either of those. 
+#              See https://github.com/nginx-proxy/docker-gen/issues/458.
 {{- end }}
 
 {{- /*
@@ -105,21 +100,11 @@
                 {{- $ipv4 = "127.0.0.1" }}
                 {{- continue }}
             {{- end }}
-            {{- if $.globals.NginxContainer }}
-                {{- range sortObjectsByKeysAsc $.globals.NginxContainer.Networks "Name" }}
-                    {{- if and . .Gateway (not .Internal) }}
+            {{- range sortObjectsByKeysAsc $.globals.NetworkContainer.Networks "Name" }}
+                {{- if and . .Gateway (not .Internal) }}
     #         container is in host network mode, using {{ .Name }} gateway IP
-                        {{- $ipv4 = .Gateway }}
-                        {{- break }}
-                    {{- end }}
-                {{- end }}
-            {{- else }}
-                {{- range sortObjectsByKeysAsc $.globals.CurrentContainer.Networks "Name" }}
-                    {{- if and . .Gateway (not .Internal) }}
-    #         container is in host network mode, using {{ .Name }} gateway IP
-                        {{- $ipv4 = .Gateway }}
-                        {{- break }}
-                    {{- end }}
+                    {{- $ipv4 = .Gateway }}
+                    {{- break }}
                 {{- end }}
             {{- end }}
             {{- if $ipv4 }}
