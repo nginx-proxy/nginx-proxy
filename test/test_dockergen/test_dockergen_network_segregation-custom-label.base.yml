@@ -1,0 +1,45 @@
+networks:
+  proxy:
+  private:
+    internal: true
+
+volumes:
+  nginx_conf:
+
+
+services:
+  nginx-proxy-nginx:
+    image: nginx
+    container_name: nginx
+    volumes:
+      - nginx_conf:/etc/nginx/conf.d:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - proxy
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.foobarbuzz"
+
+  nginx-proxy-dockergen:
+    image: nginxproxy/docker-gen
+    command: -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ../../nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl
+      - nginx_conf:/etc/nginx/conf.d
+    environment:
+      NGINX_CONTAINER_LABEL: "com.github.nginx-proxy.nginx-proxy.foobarbuzz"
+    networks:
+      - private
+
+  web:
+    image: web
+    container_name: whoami2
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: whoami2.nginx.container.docker
+    networks:
+      - proxy
