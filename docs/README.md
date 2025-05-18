@@ -33,13 +33,19 @@ You can also use wildcards at the beginning and the end of host name, like `*.ba
 To set the default host for nginx use the env var `DEFAULT_HOST=foo.bar.com` for example
 
 ```console
-docker run -d -p 80:80 -e DEFAULT_HOST=foo.bar.com -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+docker run --detach \
+    --publish 80:80 \
+    --env DEFAULT_HOST=foo.bar.com \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    nginxproxy/nginx-proxy
 ```
 
 nginx-proxy will then redirect all requests to a container where `VIRTUAL_HOST` is set to `DEFAULT_HOST`, if they don't match any (other) `VIRTUAL_HOST`. Using the example above requests without matching `VIRTUAL_HOST` will be redirected to a plain nginx instance after running the following command:
 
 ```console
-docker run -d -e VIRTUAL_HOST=foo.bar.com nginx
+docker run --detach \
+    --env VIRTUAL_HOST=foo.bar.com \
+    nginx
 ```
 
 ### Virtual Ports
@@ -179,7 +185,12 @@ If the application runs natively on this sub-path or has a setting to do so, `VI
 If the requests are expected to not contain a sub-path and the generated links contain the sub-path, `VIRTUAL_DEST=/` should be used.
 
 ```console
-$ docker run -d -e VIRTUAL_HOST=example.tld -e VIRTUAL_PATH=/app1/ -e VIRTUAL_DEST=/ --name app1 app
+docker run --detach \
+    --name app1 \
+    --env VIRTUAL_HOST=example.tld \
+    --env VIRTUAL_PATH=/app1/ \
+    --env VIRTUAL_DEST=/ \
+    app
 ```
 
 In this example, the incoming request `http://example.tld/app1/foo` will be proxied as `http://app1/foo` instead of `http://app1/app1/foo`.
@@ -221,7 +232,13 @@ Nginx variables such as `$scheme`, `$host`, and `$request_uri` can be used. Howe
 If you want to use `nginx-proxy` with different external ports that the default ones of `80` for `HTTP` traffic and `443` for `HTTPS` traffic, you'll have to use the environment variable(s) `HTTP_PORT` and/or `HTTPS_PORT` in addition to the changes to the Docker port mapping. If you change the `HTTPS` port, the redirect for `HTTPS` traffic will also be configured to redirect to the custom port. Typical usage, here with the custom ports `1080` and `10443`:
 
 ```console
-docker run -d -p 1080:1080 -p 10443:10443 -e HTTP_PORT=1080 -e HTTPS_PORT=10443 -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+docker run --detach \
+    --publish 1080:1080 \
+    --publish 10443:10443 \
+    --env HTTP_PORT=1080 \
+    --env HTTPS_PORT=10443 \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    nginxproxy/nginx-proxy
 ```
 
 ### Multiple Networks
@@ -231,8 +248,12 @@ With the addition of [overlay networking](https://docs.docker.com/engine/usergui
 If you want your `nginx-proxy` container to be attached to a different network, you must pass the `--net=my-network` option in your `docker create` or `docker run` command. At the time of this writing, only a single network can be specified at container creation time. To attach to other networks, you can use the `docker network connect` command after your container is created:
 
 ```console
-docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro \
-    --name my-nginx-proxy --net my-network nginxproxy/nginx-proxy
+docker run --detach \
+    --name my-nginx-proxy \
+    --publish 80:80 \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    --net my-network \
+    nginxproxy/nginx-proxy
 docker network connect my-other-network my-nginx-proxy
 ```
 
@@ -336,10 +357,12 @@ In order to be able to secure your virtual host, you have to create a file named
 `/etc/nginx/htpasswd/`. Example: `/etc/nginx/htpasswd/app.example.com`.
 
 ```console
-docker run -d -p 80:80 -p 443:443 \
-    -v /path/to/htpasswd:/etc/nginx/htpasswd \
-    -v /path/to/certs:/etc/nginx/certs \
-    -v /var/run/docker.sock:/tmp/docker.sock:ro \
+docker run --detach \
+    --publish 80:80 \
+    --publish 443:443 \
+    --volume /path/to/htpasswd:/etc/nginx/htpasswd \
+    --volume /path/to/certs:/etc/nginx/certs \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
     nginxproxy/nginx-proxy
 ```
 
@@ -399,10 +422,10 @@ To remove colors from the container log output, set the [`NO_COLOR` environment 
 
 ```console
 docker run --detach \
-  --publish 80:80 \
-  --env NO_COLOR=1 \
-  --volume /var/run/docker.sock:/tmp/docker.sock:ro \
-  nginxproxy/nginx-proxy
+    --publish 80:80 \
+    --env NO_COLOR=1 \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    nginxproxy/nginx-proxy
 ```
 
 ⬆️ [back to table of contents](#table-of-contents)
@@ -414,7 +437,12 @@ SSL is supported using single host, wildcard and SAN certificates using naming c
 To enable SSL:
 
 ```console
-docker run -d -p 80:80 -p 443:443 -v /path/to/certs:/etc/nginx/certs -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+docker run --detach \
+    --publish 80:80 \
+    --publish 443:443 \
+    --volume /path/to/certs:/etc/nginx/certs \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    nginxproxy/nginx-proxy
 ```
 
 The contents of `/path/to/certs` should contain the certificates and private keys for any virtual hosts in use. The certificate and keys should be named after the virtual host with a `.crt` and `.key` extension. For example, a container with `VIRTUAL_HOST=foo.bar.com` should have a `foo.bar.com.crt` and `foo.bar.com.key` file in the certs directory.
@@ -445,7 +473,7 @@ In the separate container setup, no pre-generated key will be available and neit
 Set `DHPARAM_SKIP` environment variable to `true` to disable using default Diffie-Hellman parameters. The default value is `false`.
 
 ```console
-docker run -e DHPARAM_SKIP=true ....
+docker run --env DHPARAM_SKIP=true ....
 ```
 
 ### Wildcard Certificates
@@ -661,7 +689,11 @@ IPv4 and IPv6 are never both used at the same time on containers that use both I
 By default the nginx-proxy container will only listen on IPv4. To enable listening on IPv6 too, set the `ENABLE_IPV6` environment variable to `true`:
 
 ```console
-docker run -d -p 80:80 -e ENABLE_IPV6=true -v /var/run/docker.sock:/tmp/docker.sock:ro nginxproxy/nginx-proxy
+docker run --detach \
+    --publish 80:80 \
+    --env ENABLE_IPV6=true \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    nginxproxy/nginx-proxy
 ```
 
 ### Scoped IPv6 Resolvers
@@ -694,8 +726,11 @@ More reading on the potential TCP head-of-line blocking issue with HTTP/2: [HTTP
 HTTP/3 use the QUIC protocol over UDP (unlike HTTP/1.1 and HTTP/2 which work over TCP), so if you want to use HTTP/3 you'll have to explicitely publish the 443/udp port of the proxy in addition to the 443/tcp port:
 
 ```console
-docker run -d -p 80:80 -p 443:443/tcp -p 443:443/udp \
-    -v /var/run/docker.sock:/tmp/docker.sock:ro \
+docker run --detach \
+    --publish 80:80 \
+    --publish 443:443/tcp \
+    --publish 443:443/udp \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
     nginxproxy/nginx-proxy
 ```
 
@@ -788,12 +823,12 @@ client_max_body_size 100m;
 
 ```console
 docker run --detach \
-  --name nginx-proxy \
-  --publish 80:80 \
-  --publish 443:443 \
-  --volume /var/run/docker.sock:/tmp/docker.sock:ro \
-  --volume /path/to/my_proxy.conf:/etc/nginx/conf.d/my_proxy.conf:ro \
-  nginxproxy/nginx-proxy
+    --name nginx-proxy \
+    --publish 80:80 \
+    --publish 443:443 \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    --volume /path/to/my_proxy.conf:/etc/nginx/conf.d/my_proxy.conf:ro \
+    nginxproxy/nginx-proxy
 ```
 
 </details>
@@ -842,12 +877,12 @@ client_max_body_size 100m;
 
 ```console
 docker run --detach \
-  --name nginx-proxy \
-  --publish 80:80 \
-  --publish 443:443 \
-  --volume /var/run/docker.sock:/tmp/docker.sock:ro \
-  --volume /path/to/custom-vhost-config.conf:/etc/nginx/vhost.d/app.example.com:ro \
-  nginxproxy/nginx-proxy
+    --name nginx-proxy \
+    --publish 80:80 \
+    --publish 443:443 \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    --volume /path/to/custom-vhost-config.conf:/etc/nginx/vhost.d/app.example.com:ro \
+    nginxproxy/nginx-proxy
 ```
 
 </details>
@@ -877,13 +912,13 @@ If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=e
 
 ```console
 docker run --detach \
-  --name nginx-proxy \
-  --publish 80:80 \
-  --publish 443:443 \
-  --volume /path/to/custom-vhost-config.conf:/etc/nginx/vhost.d/example.com:ro \
-  --volume /path/to/custom-vhost-config.conf:/etc/nginx/vhost.d/www.example.com:ro \
-  --volume /var/run/docker.sock:/tmp/docker.sock:ro \
-  nginxproxy/nginx-proxy
+    --name nginx-proxy \
+    --publish 80:80 \
+    --publish 443:443 \
+    --volume /path/to/custom-vhost-config.conf:/etc/nginx/vhost.d/example.com:ro \
+    --volume /path/to/custom-vhost-config.conf:/etc/nginx/vhost.d/www.example.com:ro \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    nginxproxy/nginx-proxy
 ```
 
 </details>
@@ -933,12 +968,12 @@ proxy_cache_valid 404 1m;
 
 ```console
 docker run --detach \
-  --name nginx-proxy \
-  --publish 80:80 \
-  --publish 443:443 \
-  --volume /var/run/docker.sock:/tmp/docker.sock:ro \
-  --volume /path/to/custom-vhost-location-config.conf:/etc/nginx/vhost.d/app.example.com_location:ro \
-  nginxproxy/nginx-proxy
+    --name nginx-proxy \
+    --publish 80:80 \
+    --publish 443:443 \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    --volume /path/to/custom-vhost-location-config.conf:/etc/nginx/vhost.d/app.example.com_location:ro \
+    nginxproxy/nginx-proxy
 ```
 
 </details>
@@ -968,13 +1003,13 @@ If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=e
 
 ```console
 docker run --detach \
-  --name nginx-proxy \
-  --publish 80:80 \
-  --publish 443:443 \
-  --volume /var/run/docker.sock:/tmp/docker.sock:ro \
-  --volume /path/to/custom-vhost-location-config.conf:/etc/nginx/vhost.d/example.com_location:ro \
-  --volume /path/to/custom-vhost-location-config.conf:/etc/nginx/vhost.d/www.example.com_location:ro \
-  nginxproxy/nginx-proxy
+    --name nginx-proxy \
+    --publish 80:80 \
+    --publish 443:443 \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    --volume /path/to/custom-vhost-location-config.conf:/etc/nginx/vhost.d/example.com_location:ro \
+    --volume /path/to/custom-vhost-location-config.conf:/etc/nginx/vhost.d/www.example.com_location:ro \
+    nginxproxy/nginx-proxy
 ```
 
 </details>
@@ -1245,14 +1280,14 @@ Pay attention to the `upstream` definition blocks, which should look like this:
 ```nginx
 # foo.example.com
 upstream foo.example.com {
-	## Can be connected with "my_network" network
-	# Exposed ports: [{   <exposed_port1>  tcp } {   <exposed_port2>  tcp } ...]
-	# Default virtual port: <exposed_port|80>
-	# VIRTUAL_PORT: <VIRTUAL_PORT>
-	# foo
-	server 172.18.0.9:<Port>;
-	# Fallback entry
-	server 127.0.0.1 down;
+  ## Can be connected with "my_network" network
+  # Exposed ports: [{   <exposed_port1>  tcp } {   <exposed_port2>  tcp } ...]
+  # Default virtual port: <exposed_port|80>
+  # VIRTUAL_PORT: <VIRTUAL_PORT>
+  # foo
+  server 172.18.0.9:<Port>;
+  # Fallback entry
+  server 127.0.0.1 down;
 }
 ```
 
