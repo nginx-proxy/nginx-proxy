@@ -1215,25 +1215,6 @@ docker run --detach \
 
 Network segregation make it possible to run the docker-gen container in an [internal network](https://docs.docker.com/reference/cli/docker/network/create/#internal), unreachable from the outside.
 
-You can also customise the label being used by docker-gen to find the nginx container with the `NGINX_CONTAINER_LABEL`environment variable (on the docker-gen container):
-
-```console
-docker run --detach \
-    --name docker-gen \
-    --volumes-from nginx \
-    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
-    --volume $(pwd):/etc/docker-gen/templates \
-    --env "NGINX_CONTAINER_LABEL=com.github.foobarbuzz" \
-    nginxproxy/docker-gen -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
-
-docker run --detach \
-    --name nginx \
-    --publish 80:80 \
-    --label "com.github.foobarbuzz" \
-    --volume "/tmp/nginx:/etc/nginx/conf.d" \
-    nginx
-```
-
 ⬆️ [back to table of contents](#table-of-contents)
 
 ## Docker Compose
