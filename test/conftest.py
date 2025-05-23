@@ -199,25 +199,47 @@ def container_ipv6(container: Container) -> str:
 def nginx_proxy_dns_resolver(domain_name: str) -> Optional[str]:
     """
     if "nginx-proxy" if found in host, return the ip address of the docker container
-    issued from the docker image nginxproxy/nginx-proxy:test.
+    issued from the docker image nginxproxy/nginx-proxy:test or nginx:latest.
 
     :return: IP or None
     """
     log = logging.getLogger('DNS')
     log.debug(f"nginx_proxy_dns_resolver({domain_name!r})")
+
     if 'nginx-proxy' in domain_name:
         nginxproxy_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "nginxproxy/nginx-proxy:test"})
-        if len(nginxproxy_containers) == 0:
-            log.warning(f"no container found from image nginxproxy/nginx-proxy:test while resolving {domain_name!r}")
+        nginx_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "nginx:latest"})
+
+        if len(nginxproxy_containers) == 0 and len(nginx_containers) == 0:
+            log.warning(f"no runninf container found from image nginxproxy/nginx-proxy:test or nginx:latest while resolving {domain_name!r}")
+
             exited_nginxproxy_containers = docker_client.containers.list(filters={"status": "exited", "ancestor": "nginxproxy/nginx-proxy:test"})
+            exited_nginx_containers = docker_client.containers.list(filters={"status": "exited", "ancestor": "nginx:latest"})
+
             if len(exited_nginxproxy_containers) > 0:
                 exited_nginxproxy_container_logs = exited_nginxproxy_containers[0].logs()
                 log.warning(f"nginxproxy/nginx-proxy:test container might have exited unexpectedly. Container logs: " + "\n" + exited_nginxproxy_container_logs.decode())
+            if len(exited_nginx_containers) > 0:
+                exited_nginx_container_logs = exited_nginx_containers[0].logs()
+                log.warning(f"nginx:latest container might have exited unexpectedly. Container logs: " + "\n" + exited_nginx_container_logs.decode())
+
             return None
-        nginxproxy_container = nginxproxy_containers[0]
-        ip = container_ip(nginxproxy_container)
-        log.info(f"resolving domain name {domain_name!r} as IP address {ip} of nginx-proxy container {nginxproxy_container.name}")
+
+        container = None
+        container_type = "nginx-proxy"
+
+        if len(nginxproxy_containers) >= 1:
+            container = nginxproxy_containers[0]
+        if len(nginx_containers) >= 1:
+            container = nginx_containers[0]
+            container_type = "nginx"
+
+        ip = container_ip(container)
+        log.info(f"resolving domain name {domain_name!r} as IP address {ip} of {container_type} container {container.name}")
         return ip
+
+    return None
+
 
 def docker_container_dns_resolver(domain_name: str) -> Optional[str]:
     """
