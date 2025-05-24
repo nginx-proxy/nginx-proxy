@@ -108,7 +108,7 @@ class RequestsForDocker:
     def _with_backoff(self, method_name: str, predicate: Callable[[Any], bool], *args, **kwargs) -> Response:
         """Apply backoff retry logic to any session HTTP method."""
         with ipv6(kwargs.pop('ipv6', False)):
-            @backoff.on_predicate(backoff.constant, predicate, interval=.25, max_tries=20, jitter = None)
+            @backoff.on_predicate(backoff.constant, predicate, interval=.25, max_tries=40, jitter = None)
             def _request(*_args, **_kwargs):
                 return getattr(self.session, method_name)(*_args, **_kwargs)
             return _request(*args, **kwargs)
