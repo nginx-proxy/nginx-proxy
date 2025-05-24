@@ -8,8 +8,9 @@ import shlex
 import socket
 import subprocess
 import time
+from collections.abc import Callable
 from io import StringIO
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Optional, Any
 
 import backoff
 import docker.errors
@@ -104,48 +105,39 @@ class RequestsForDocker:
         nginx_proxy_container = self.get_nginx_proxy_container()
         return container_ip(nginx_proxy_container)
 
-    def get_unknown_host(self, *args, **kwargs) -> Response:
-        with ipv6(kwargs.pop('ipv6', False)):
-            @backoff.on_predicate(
-                backoff.constant,
-                lambda r: r.status_code != 503 or r.headers.get("X-Powered-By") != "nginx-proxy",
-                interval=.25,
-                max_tries=20
-            )
-            def _request(*_args, **_kwargs):
-                return self.session.get(*_args, **_kwargs)
-            return _request(*args, **kwargs)
-
-    def _with_backoff(self, method_name, *args, **kwargs) -> Response:
+    def _with_backoff(self, method_name: str, predicate: Callable[[Any], bool], *args, **kwargs) -> Response:
         """Apply backoff retry logic to any session HTTP method."""
         with ipv6(kwargs.pop('ipv6', False)):
-            @backoff.on_predicate(
-                backoff.constant,
-                lambda r: r.status_code in (404, 502),
-                interval=.25,
-                max_tries=20
-            )
+            @backoff.on_predicate(backoff.constant, predicate, interval=.25, max_tries=20)
             def _request(*_args, **_kwargs):
                 return getattr(self.session, method_name)(*_args, **_kwargs)
             return _request(*args, **kwargs)
+
+    def get_unknown_host(self, *args, **kwargs) -> Response:
+        return self._with_backoff(
+            'get',
+            lambda r: r.status_code != 503 or r.headers.get("X-Powered-By") != "nginx-proxy",
+            *args,
+            **kwargs
+        )
     
     def get(self, *args, **kwargs) -> Response:
-        return self._with_backoff('get', *args, **kwargs)
+        return self._with_backoff('get', lambda r: r.status_code in (404, 502), *args, **kwargs)
 
     def post(self, *args, **kwargs) -> Response:
-        return self._with_backoff('post', *args, **kwargs)
+        return self._with_backoff('post', lambda r: r.status_code in (404, 502), *args, **kwargs)
 
     def put(self, *args, **kwargs) -> Response:
-        return self._with_backoff('put', *args, **kwargs)
+        return self._with_backoff('put', lambda r: r.status_code in (404, 502), *args, **kwargs)
 
     def head(self, *args, **kwargs) -> Response:
-        return self._with_backoff('head', *args, **kwargs)
+        return self._with_backoff('head', lambda r: r.status_code in (404, 502), *args, **kwargs)
 
     def delete(self, *args, **kwargs) -> Response:
-        return self._with_backoff('delete', *args, **kwargs)
+        return self._with_backoff('delete', lambda r: r.status_code in (404, 502), *args, **kwargs)
 
     def options(self, *args, **kwargs) -> Response:
-        return self._with_backoff('options', *args, **kwargs)
+        return self._with_backoff('options', lambda r: r.status_code in (404, 502), *args, **kwargs)
 
     def __getattr__(self, name):
         return getattr(requests, name)
