@@ -211,7 +211,7 @@ def nginx_proxy_dns_resolver(domain_name: str) -> Optional[str]:
         nginx_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "nginx:latest"})
 
         if len(nginxproxy_containers) == 0 and len(nginx_containers) == 0:
-            log.warning(f"no runninf container found from image nginxproxy/nginx-proxy:test or nginx:latest while resolving {domain_name!r}")
+            log.warning(f"no running container found from image nginxproxy/nginx-proxy:test or nginx:latest while resolving {domain_name!r}")
 
             exited_nginxproxy_containers = docker_client.containers.list(filters={"status": "exited", "ancestor": "nginxproxy/nginx-proxy:test"})
             exited_nginx_containers = docker_client.containers.list(filters={"status": "exited", "ancestor": "nginx:latest"})
