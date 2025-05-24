@@ -1,5 +1,5 @@
 def test_unknown_virtual_host_is_503(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://unknown.nginx-proxy.tld/port")
+    r = nginxproxy.get_unknown_host("http://unknown.nginx-proxy.tld/port")
     assert r.status_code == 503
 
 def test_webA_is_forwarded(docker_compose, nginxproxy):

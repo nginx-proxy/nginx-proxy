@@ -2,7 +2,7 @@ import re
 
 
 def test_unknown_virtual_host(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://nginx-proxy/")
+    r = nginxproxy.get_unknown_host("http://nginx-proxy/")
     assert r.status_code == 503
 
 def test_forwards_to_web1(docker_compose, nginxproxy):

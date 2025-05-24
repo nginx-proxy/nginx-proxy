@@ -104,6 +104,18 @@ class RequestsForDocker:
         nginx_proxy_container = self.get_nginx_proxy_container()
         return container_ip(nginx_proxy_container)
 
+    def get_unknown_host(self, *args, **kwargs) -> Response:
+        with ipv6(kwargs.pop('ipv6', False)):
+            @backoff.on_predicate(
+                backoff.constant,
+                lambda r: r.status_code != 503 or r.headers.get("X-Powered-By") != "nginx-proxy",
+                interval=.25,
+                max_tries=20
+            )
+            def _request(*_args, **_kwargs):
+                return self.session.get(*_args, **_kwargs)
+            return _request(*args, **kwargs)
+
     def _with_backoff(self, method_name, *args, **kwargs) -> Response:
         """Apply backoff retry logic to any session HTTP method."""
         with ipv6(kwargs.pop('ipv6', False)):

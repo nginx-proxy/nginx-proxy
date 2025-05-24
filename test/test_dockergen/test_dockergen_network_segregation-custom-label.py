@@ -11,7 +11,7 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_unknown_virtual_host_is_503(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://unknown.nginx-proxy.tld/")
+    r = nginxproxy.get_unknown_host("http://unknown.nginx-proxy.tld/")
     assert r.status_code == 503
 
 

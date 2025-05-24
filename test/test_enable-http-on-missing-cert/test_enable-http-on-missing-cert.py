@@ -1,5 +1,5 @@
 def test_nohttp_missing_cert_disabled(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://nohttp-missing-cert-disabled.nginx-proxy.tld/", allow_redirects=False)
+    r = nginxproxy.get_unknown_host("http://nohttp-missing-cert-disabled.nginx-proxy.tld/", allow_redirects=False)
     assert r.status_code == 503
 
 def test_nohttp_missing_cert_enabled(docker_compose, nginxproxy):

@@ -2,9 +2,9 @@ import re
 
 
 def test_virtual_hosts_with_syntax_error_should_not_be_reachable(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://test1.nginx-proxy.tld")
+    r = nginxproxy.get_unknown_host("http://test1.nginx-proxy.tld")
     assert r.status_code == 503
-    r = nginxproxy.get("http://test2.nginx-proxy.tld")
+    r = nginxproxy.get_unknown_host("http://test2.nginx-proxy.tld")
     assert r.status_code == 503
 
 

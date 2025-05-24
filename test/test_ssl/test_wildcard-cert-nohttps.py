@@ -31,7 +31,7 @@ def test_https_request_to_nohttps_vhost_goes_to_fallback_server(docker_compose, 
     assert """certificate is not valid for '3.web.nginx-proxy.tld'""" in str(excinfo.value) or \
            """hostname '3.web.nginx-proxy.tld' doesn't match 'nginx-proxy.tld'""" in str(excinfo.value)
 
-    r = nginxproxy.get("https://3.web.nginx-proxy.tld/port", verify=False)
+    r = nginxproxy.get_unknown_host("https://3.web.nginx-proxy.tld/port", verify=False)
     assert r.status_code == 503
 
 

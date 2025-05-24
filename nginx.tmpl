@@ -880,6 +880,7 @@ server {
     }
         {{- end }}
     location ^~ / {
+        add_header X-Powered-By "nginx-proxy";
         return 503;
     }
 }

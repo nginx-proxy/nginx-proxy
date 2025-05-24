@@ -28,5 +28,5 @@ def test_wildcard_prefix(docker_compose, nginxproxy, host, expected_port):
     "web4.whatever.nginx-proxy.regexp-to-infinity-and-beyond"
 ])
 def test_non_matching_host_is_503(docker_compose, nginxproxy, host):
-    r = nginxproxy.get(f"http://{host}/port")
+    r = nginxproxy.get_unknown_host(f"http://{host}/port")
     assert r.status_code == 503, r.text

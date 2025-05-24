@@ -10,7 +10,7 @@ def test_default_nginx_welcome_page_should_not_be_served(docker_compose, nginxpr
 
 
 def test_unknown_virtual_host_is_503(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://unknown.nginx-proxy/", allow_redirects=False)
+    r = nginxproxy.get_unknown_host("http://unknown.nginx-proxy/", allow_redirects=False)
     assert r.status_code == 503
 
 

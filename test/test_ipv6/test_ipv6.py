@@ -9,7 +9,7 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_unknown_virtual_host_ipv4(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://nginx-proxy/port")
+    r = nginxproxy.get_unknown_host("http://nginx-proxy/port")
     assert r.status_code == 503
 
 
@@ -26,7 +26,7 @@ def test_forwards_to_web2_ipv4(docker_compose, nginxproxy):
 
 
 def test_unknown_virtual_host_ipv6(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://nginx-proxy/port", ipv6=True)
+    r = nginxproxy.get_unknown_host("http://nginx-proxy/port", ipv6=True)
     assert r.status_code == 503
 
 
