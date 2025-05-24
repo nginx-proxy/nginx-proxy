@@ -370,27 +370,19 @@ def docker_compose_down(compose_files: List[str], project_name: str):
 
 def wait_for_nginxproxy_to_be_ready():
     """
-    If one (and only one) container started from image nginxproxy/nginx-proxy:test
-    or nginxproxy/docker-gen:latest is found, wait for its log to contain the substring "Watching docker events"
+    Wait for running container started from image nginxproxy/nginx-proxy:test
+    and nginxproxy/docker-gen:latest logs to contain the substring "Watching docker events"
     """
-    nginx_proxy_containers = docker_client.containers.list(filters={"ancestor": "nginxproxy/nginx-proxy:test"})
-    docker_gen_containers = docker_client.containers.list(filters={"ancestor": "nginxproxy/docker-gen:latest"})
+    nginx_proxy_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "nginxproxy/nginx-proxy:test"})
+    docker_gen_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "nginxproxy/docker-gen:latest"})
 
-    container_name = "nginx-proxy"
+    containers = nginx_proxy_containers + docker_gen_containers
 
-    if len(nginx_proxy_containers) == 1:
-        container = nginx_proxy_containers.pop()
-    elif len(docker_gen_containers) == 1:
-        container = docker_gen_containers.pop()
-        container_name = "docker-gen"
-    else:
-        logging.debug("Either more than one or no nginx-proxy or docker-gen container found, skipping container readiness check")
-        return
-
-    for line in container.logs(stream=True):
-        if b"Watching docker events" in line:
-            logging.debug(f"{container_name} ready")
-            break
+    for container in containers:
+        for line in container.logs(stream=True):
+            if b"Watching docker events" in line:
+                logging.debug(f"container {container.name} is ready")
+                break
 
 
 @pytest.fixture
@@ -547,7 +539,6 @@ class DockerComposer(contextlib.AbstractContextManager):
             docker_compose_up(docker_compose_files, project_name)
             self._networks = connect_to_all_networks()
             wait_for_nginxproxy_to_be_ready()
-            time.sleep(3)  # give time to containers to be ready
 
         except KeyboardInterrupt:
             logging.warning("KeyboardInterrupt detected! Force cleanup...")
