@@ -15,6 +15,7 @@
 - [Unhashed vs SHA1 upstream names](#unhashed-vs-sha1-upstream-names)
 - [Separate Containers](#separate-containers)
 - [Docker Compose](#docker-compose)
+- [Configuration Summary](#configuration-summary)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 
@@ -1266,6 +1267,74 @@ Example output:
 ```console
 I'm 5b129ab83266
 ```
+
+⬆️ [back to table of contents](#table-of-contents)
+
+## Configuration summary
+
+This section summarize the configurations available on the proxy and proxied container.
+
+### Proxy container
+
+Configuration available either on the nginx-proxy container, or the docker-gen container in a [separate containers setup](#separate-containers):
+
+| Environment Variable | Default Value |
+|---------------------|---------------|
+| [`ACME_HTTP_CHALLENGE_LOCATION`](#ssl-support-using-an-acme-ca) | `true` |
+| [`ACME_HTTP_CHALLENGE_ACCEPT_UNKNOWN_HOST`](#ssl-support-using-an-acme-ca) | `false` |
+| [`DEBUG_ENDPOINT`](#debug-endpoint) | `false` |
+| [`DEFAULT_HOST`](#default-host) | no default value |
+| [`DEFAULT_ROOT`](#default_root) | `404` |
+| [`DHPARAM_SKIP`](#diffie-hellman-groups) | `false` |
+| [`DHPARAM_BITS`](#diffie-hellman-groups) | `4096` |
+| [`DISABLE_ACCESS_LOGS`](#disable-access-logs) | `false` |
+| [`ENABLE_HTTP_ON_MISSING_CERT`](#default-and-missing-certificate) | `true` |
+| [`ENABLE_HTTP2`](#http2-support) | `true` |
+| [`ENABLE_HTTP3`](#http3-support) | `false` |
+| [`ENABLE_IPV6`](#listening-on-ipv6) | `false` |
+| [`HTTP_PORT`](#custom-external-httphttps-ports) | `80` |
+| [`HTTPS_PORT`](#custom-external-httphttps-ports) | `443` |
+| [`HTTPS_METHOD`](#how-ssl-support-works) | `redirect` |
+| [`HSTS`](#how-ssl-support-works) | `max-age=31536000` |
+| [`LOG_FORMAT`](#custom-log-format) | no default value |
+| [`LOG_FORMAT_ESCAPE`](#log-format-escaping) | no default value |
+| [`LOG_JSON`](#json-log-format) | `false` |
+| [`NGINX_CONTAINER_LABEL`](#network-segregation) | `com.github.nginx-proxy.nginx-proxy.nginx` |
+| [`NON_GET_REDIRECT`](#how-ssl-support-works) | `301` |
+| [`PREFER_IPV6_NETWORK`](#ipv6-docker-networks) | `false` |
+| `RESOLVERS` | no default value |
+| [`SHA1_UPSTREAM_NAME`](#unhashed-vs-sha1-upstream-names) | `false` |
+| [`SSL_POLICY`](#how-ssl-support-works) | `Mozilla-Intermediate` |
+| [`TRUST_DEFAULT_CERT`](#default-and-missing-certificate) | `true` |
+| [`TRUST_DOWNSTREAM_PROXY`](#trusting-downstream-proxy-headers) | `true` |
+
+### Proxyied container
+
+Configuration available on each proxied container, either by environment variable or by label:
+
+| Environment Variable | Label | Default Value |
+|---------------------|---------------|---------------|
+| [`ACME_HTTP_CHALLENGE_LOCATION`](#ssl-support-using-an-acme-ca) | n/a | global (proxy) value |
+| [`CERT_NAME`](#san-certificates) | n/a | no default value |
+| n/a | [`com.github.nginx-proxy.nginx-proxy.debug-endpoint`](#debug-endpoint) | global (proxy) value |
+| [`ENABLE_HTTP_ON_MISSING_CERT`](#default-and-missing-certificate) | n/a | global (proxy) value |
+| [`HSTS`](#how-ssl-support-works) | n/a | global (proxy) value |
+| n/a | [`com.github.nginx-proxy.nginx-proxy.http2.enable`](#http2-support) | global (proxy) value |
+| n/a | [`com.github.nginx-proxy.nginx-proxy.http3.enable`](#http3-support) | global (proxy) value |
+| [`HTTPS_METHOD`](#how-ssl-support-works) | n/a | global (proxy) value |
+| n/a | [`com.github.nginx-proxy.nginx-proxy.keepalive`](#upstream-server-http-keep-alive-support) | `auto` |
+| n/a | [`com.github.nginx-proxy.nginx-proxy.loadbalance`](#upstream-server-http-load-balancing-support) | no default value |
+| n/a | [`com.github.nginx-proxy.nginx-proxy.non-get-redirect`](#how-ssl-support-works) | global (proxy) value |
+| [`SERVER_TOKENS`](#per-virtual_host-server_tokens-configuration) | n/a | no default value |
+| [`SSL_POLICY`](#how-ssl-support-works) | n/a | global (proxy) value |
+| n/a | [`com.github.nginx-proxy.nginx-proxy.trust-default-cert`](#default-and-missing-certificate) | global (proxy) value |
+| [`VIRTUAL_DEST`](#virtual_dest) | n/a | `empty string` |
+| [`VIRTUAL_HOST`](#virtual-hosts-and-ports) | n/a | no default value |
+| [`VIRTUAL_HOST_MULTIPORTS`](#multiple-ports) | n/a | no default value |
+| [`VIRTUAL_PATH`](#path-based-routing) | n/a | `/` |
+| [`VIRTUAL_PORT`](#virtual-ports) | n/a | no default value |
+| [`VIRTUAL_PROTO`](#upstream-backend-features) | n/a | `http` |
+| [`VIRTUAL_ROOT`](#fastcgi-file-root-directory) | n/a | `/var/www/public` |
 
 ⬆️ [back to table of contents](#table-of-contents)
 
