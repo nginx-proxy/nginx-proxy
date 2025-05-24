@@ -104,47 +104,36 @@ class RequestsForDocker:
         nginx_proxy_container = self.get_nginx_proxy_container()
         return container_ip(nginx_proxy_container)
 
-    def get(self, *args, **kwargs) -> Response:
+    def _with_backoff(self, method_name, *args, **kwargs) -> Response:
+        """Apply backoff retry logic to any session HTTP method."""
         with ipv6(kwargs.pop('ipv6', False)):
-            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
-            def _get(*_args, **_kwargs):
-                return self.session.get(*_args, **_kwargs)
-            return _get(*args, **kwargs)
+            @backoff.on_predicate(
+                backoff.constant,
+                lambda r: r.status_code in (404, 502),
+                interval=.25,
+                max_tries=20
+            )
+            def _request(*_args, **_kwargs):
+                return getattr(self.session, method_name)(*_args, **_kwargs)
+            return _request(*args, **kwargs)
+    
+    def get(self, *args, **kwargs) -> Response:
+        return self._with_backoff('get', *args, **kwargs)
 
     def post(self, *args, **kwargs) -> Response:
-        with ipv6(kwargs.pop('ipv6', False)):
-            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
-            def _post(*_args, **_kwargs):
-                return self.session.post(*_args, **_kwargs)
-            return _post(*args, **kwargs)
+        return self._with_backoff('post', *args, **kwargs)
 
     def put(self, *args, **kwargs) -> Response:
-        with ipv6(kwargs.pop('ipv6', False)):
-            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
-            def _put(*_args, **_kwargs):
-                return self.session.put(*_args, **_kwargs)
-            return _put(*args, **kwargs)
+        return self._with_backoff('put', *args, **kwargs)
 
     def head(self, *args, **kwargs) -> Response:
-        with ipv6(kwargs.pop('ipv6', False)):
-            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
-            def _head(*_args, **_kwargs):
-                return self.session.head(*_args, **_kwargs)
-            return _head(*args, **kwargs)
+        return self._with_backoff('head', *args, **kwargs)
 
     def delete(self, *args, **kwargs) -> Response:
-        with ipv6(kwargs.pop('ipv6', False)):
-            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
-            def _delete(*_args, **_kwargs):
-                return self.session.delete(*_args, **_kwargs)
-            return _delete(*args, **kwargs)
+        return self._with_backoff('delete', *args, **kwargs)
 
     def options(self, *args, **kwargs) -> Response:
-        with ipv6(kwargs.pop('ipv6', False)):
-            @backoff.on_predicate(backoff.constant, lambda r: r.status_code in (404, 502), interval=.3, max_tries=30, jitter=None)
-            def _options(*_args, **_kwargs):
-                return self.session.options(*_args, **_kwargs)
-            return _options(*args, **kwargs)
+        return self._with_backoff('options', *args, **kwargs)
 
     def __getattr__(self, name):
         return getattr(requests, name)
