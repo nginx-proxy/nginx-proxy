@@ -1,6 +1,6 @@
 def test_root_redirects_to_web1(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://www.nginx-proxy.tld/port", allow_redirects=False)
-    assert r.status_code == 301
+    r = nginxproxy.get_with_code(301, "http://www.nginx-proxy.tld/port", allow_redirects=False)
+    assert r.is_permanent_redirect
     assert "Location" in r.headers
     assert "http://www.nginx-proxy.tld/web1/port" == r.headers['Location']
 

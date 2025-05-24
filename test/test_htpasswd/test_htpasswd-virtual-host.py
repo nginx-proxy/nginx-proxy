@@ -1,5 +1,5 @@
 def test_htpasswd_virtual_host_is_restricted(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://htpasswd.nginx-proxy.tld/port")
+    r = nginxproxy.get_with_code(401, "http://htpasswd.nginx-proxy.tld/port")
     assert r.status_code == 401
     assert "WWW-Authenticate" in r.headers
     assert r.headers["WWW-Authenticate"] == 'Basic realm="Restricted htpasswd.nginx-proxy.tld"'

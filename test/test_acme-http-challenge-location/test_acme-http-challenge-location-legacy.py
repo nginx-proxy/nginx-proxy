@@ -6,7 +6,8 @@ def test_redirect_acme_challenge_location_legacy(docker_compose, nginxproxy, acm
     assert r.status_code == 200
 
 def test_noredirect_acme_challenge_location_legacy(docker_compose, nginxproxy, acme_challenge_path):
-    r = nginxproxy.get(
+    r = nginxproxy.get_with_code(
+        404,
         f"http://web2.nginx-proxy.tld/{acme_challenge_path}",
         allow_redirects=False
     )

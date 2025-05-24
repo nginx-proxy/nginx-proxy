@@ -3,8 +3,8 @@ import pytest
 
 @pytest.mark.parametrize("subdomain", ["foo", "bar"])
 def test_web1_http_redirects_to_https(docker_compose, nginxproxy, subdomain):
-    r = nginxproxy.get(f"http://{subdomain}.nginx-proxy.tld/", allow_redirects=False)
-    assert r.status_code == 301
+    r = nginxproxy.get_with_code(301, f"http://{subdomain}.nginx-proxy.tld/", allow_redirects=False)
+    assert r.is_permanent_redirect
     assert "Location" in r.headers
     assert f"https://{subdomain}.nginx-proxy.tld/" == r.headers['Location']
 

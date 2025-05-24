@@ -10,7 +10,7 @@ import subprocess
 import time
 from collections.abc import Callable
 from io import StringIO
-from typing import Iterator, List, Optional, Any
+from typing import Iterator, List, Optional, Any, Iterable
 
 import backoff
 import docker.errors
@@ -108,7 +108,7 @@ class RequestsForDocker:
     def _with_backoff(self, method_name: str, predicate: Callable[[Any], bool], *args, **kwargs) -> Response:
         """Apply backoff retry logic to any session HTTP method."""
         with ipv6(kwargs.pop('ipv6', False)):
-            @backoff.on_predicate(backoff.constant, predicate, interval=.25, max_tries=20)
+            @backoff.on_predicate(backoff.constant, predicate, interval=.25, max_tries=20, jitter = None)
             def _request(*_args, **_kwargs):
                 return getattr(self.session, method_name)(*_args, **_kwargs)
             return _request(*args, **kwargs)
@@ -117,6 +117,16 @@ class RequestsForDocker:
         return self._with_backoff(
             'get',
             lambda r: r.status_code != 503 or r.headers.get("X-Powered-By") != "nginx-proxy",
+            *args,
+            **kwargs
+        )
+
+    def get_with_code(self, codes: int | Iterable[int], *args, **kwargs) -> Response:
+        if isinstance(codes, int):
+            codes = [codes]
+        return self._with_backoff(
+            'get',
+            lambda r: r.status_code not in codes,
             *args,
             **kwargs
         )

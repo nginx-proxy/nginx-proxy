@@ -1,5 +1,5 @@
 def test_htpasswd_regex_virtual_host_is_restricted(docker_compose, nginxproxy):
-    r = nginxproxy.get("http://regex.htpasswd.nginx-proxy.example/port")
+    r = nginxproxy.get_with_code(401, "http://regex.htpasswd.nginx-proxy.example/port")
     assert r.status_code == 401
     assert "WWW-Authenticate" in r.headers
     assert r.headers["WWW-Authenticate"] == 'Basic realm="Restricted access"'

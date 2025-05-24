@@ -14,7 +14,8 @@ def test_https_is_disabled(docker_compose, nginxproxy):
 
 
 def test_http_acme_challenge_does_not_work(docker_compose, nginxproxy, acme_challenge_path):
-    r = nginxproxy.get(
+    r = nginxproxy.get_with_code(
+        404,
         f"http://web.nginx-proxy.tld/{acme_challenge_path}",
         allow_redirects=False
     )

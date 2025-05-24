@@ -44,7 +44,8 @@ def test_acme_challenge_works(
     docker_compose, nginxproxy, acme_challenge_path, subdomain, acme_should_work
 ):
     if acme_should_work:
-        r = nginxproxy.get(
+        r = nginxproxy.get_with_code(
+            404,
             f"https://{subdomain}.web.nginx-proxy.tld/{acme_challenge_path}",
             allow_redirects=False
         )

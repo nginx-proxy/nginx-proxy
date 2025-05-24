@@ -74,7 +74,7 @@ def test_new_container_is_detected_vpath(web2, nginxproxy):
     r = nginxproxy.get("http://nginx-proxy/web2/port")
     assert r.status_code == 200
     assert "answer from port 82\n" == r.text
-    r = nginxproxy.get("http://nginx-proxy/port")
+    r = nginxproxy.get_with_code([404, 503],"http://nginx-proxy/port")
     assert r.status_code in [404, 503]
 
     web2.remove(force=True)
