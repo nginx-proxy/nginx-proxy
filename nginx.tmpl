@@ -865,6 +865,7 @@ server {
         {{- if $globals.config.acme_http_challenge_accept_unknown_host }}
     location ^~ /.well-known/acme-challenge/ {
         auth_basic off;
+        auth_request off;
         allow all;
         root /usr/share/nginx/html;
         try_files $uri =404;
@@ -970,6 +971,7 @@ server {
         {{- if (and (eq $vhost.https_method "noredirect") $vhost.acme_http_challenge_enabled) }}
     location /.well-known/acme-challenge/ {
         auth_basic off;
+        auth_request off;
         allow all;
         root /usr/share/nginx/html;
         try_files $uri =404;
