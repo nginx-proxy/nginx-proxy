@@ -40,6 +40,6 @@ services:
       - "80"
     environment:
       WEB_PORTS: "80"
-      VIRTUAL_HOST: whoami2.nginx.container.docker
+      VIRTUAL_HOST: whoami2.nginx-proxy.tld
     networks:
       - proxy
