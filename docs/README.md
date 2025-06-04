@@ -5,6 +5,7 @@
 - [Docker Networking](#docker-networking)
 - [Upstream (Backend) features](#upstream-backend-features)
 - [Basic Authentication Support](#basic-authentication-support)
+- [mTLS client side certificate authentication](#mtls-client-side-certificate-authentication)
 - [Logging](#logging)
 - [SSL Support](#ssl-support)
 - [IPv6 Support](#ipv6-nat)
@@ -371,6 +372,36 @@ If you want to define basic authentication for a `VIRTUAL_PATH`, you have to cre
 (where `$VIRTUAL_PATH_SHA1` is the SHA1 hash for the virtual path, you can use any SHA1 online generator to calculate it).
 
 You'll need apache2-utils on the machine where you plan to create the htpasswd file. Follow these [instructions](http://httpd.apache.org/docs/programs/htpasswd.html)
+
+⬆️ [back to table of contents](#table-of-contents)
+
+## mTLS client side certificate authentication
+In mTLS, both the client and server have a certificate, and both sides authenticate using their public/private key pair.
+A "root" TLS certificate is necessary for mTLS; this enables an organization to be their own certificate authority. The certificates used by authorized clients and servers have to correspond to this root certificate. The root certificate is self-signed, meaning that the organization creates it themselves.
+Make sure you have a root certificate (CA) and client public/private key pair. There is a [howto in the wiki](https://github.com/nginx-proxy/nginx-proxy/wiki/mTLS-client-side-certificate-authentication).
+
+### Certificate Authority (CA)
+#### Per-VIRTUAL_HOST CA
+In order to secure a virtual host, you have to copy your CA certificate file (ca.crt) named as its equivalent `VIRTUAL_HOST` variable or if `VIRTUAL_HOST` is a regex, after the sha1 hash of the regex with the suffix `.ca.crt` in directory
+`/etc/nginx/certs/`. Example: `/etc/nginx/certs/app.example.com.ca.crt`.
+Or if your `VIRTUAL_HOST` is a regex: `/etc/nginx/certs/9ae5d1b655182b052fed458ec701f9ae1524e1c2.ca.crt`.
+
+#### Global CA
+If you want to secure everything globally you can copy your CA certificate file (ca.crt) named as `ca.crt` in directory
+`/etc/nginx/certs/`. Example: `/etc/nginx/certs/ca.crt`.
+
+### Certificate Revocation List (CRL)
+#### Per-VIRTUAL_HOST CRL
+In order to use a certificate revocation list, you have to copy your CRL file named as its equivalent `VIRTUAL_HOST` variable or if `VIRTUAL_HOST` is a regex, after the sha1 hash of the regex with the suffix `.crl.pem` in directory
+`/etc/nginx/certs/`. Example: `/etc/nginx/certs/app.example.com.crl.pem`.
+Or if your `VIRTUAL_HOST` is a regex: `/etc/nginx/certs/9ae5d1b655182b052fed458ec701f9ae1524e1c2.crl.pem`.
+
+#### Global CRL
+If you want to use a global CRL file you have to copy your CRL file named as `ca.crl.pem` in directory
+`/etc/nginx/certs/`. Example: `/etc/nginx/certs/ca.crl.pem`.
+
+### optional ssl_verify_client
+Optional [`ssl_verify_client`](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_verify_client) can be activated by using the `com.github.nginx-proxy.nginx-proxy.ssl_verify_client: "optional"` label on a proxied container. If this label is set on a proxied container access is not blocked but the result of the mTLS verify is stored in the [$ssl_client_verify](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#var_ssl_client_verify) variable which you can use this in the [Per-VIRTUAL_HOST location](https://github.com/nginx-proxy/nginx-proxy/tree/main/docs#per-virtual_host-location-configuration) and [Per-VIRTUAL_PATH location](https://github.com/nginx-proxy/nginx-proxy/tree/main/docs#per-virtual_path-location-configuration) configurations.
 
 ⬆️ [back to table of contents](#table-of-contents)
 
@@ -1327,6 +1358,7 @@ Configuration available on each proxied container, either by environment variabl
 | n/a | [`com.github.nginx-proxy.nginx-proxy.non-get-redirect`](#how-ssl-support-works) | global (proxy) value |
 | [`SERVER_TOKENS`](#per-virtual_host-server_tokens-configuration) | n/a | no default value |
 | [`SSL_POLICY`](#how-ssl-support-works) | n/a | global (proxy) value |
+| n/a | [`com.github.nginx-proxy.nginx-proxy.ssl_verify_client`](#optional-ssl_verify_client) | `on` |
 | n/a | [`com.github.nginx-proxy.nginx-proxy.trust-default-cert`](#default-and-missing-certificate) | global (proxy) value |
 | [`VIRTUAL_DEST`](#virtual_dest) | n/a | `empty string` |
 | [`VIRTUAL_HOST`](#virtual-hosts-and-ports) | n/a | no default value |
