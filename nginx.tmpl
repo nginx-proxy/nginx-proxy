@@ -759,6 +759,9 @@ proxy_set_header Proxy "";
     {{- /* Get the SSL_POLICY defined by containers w/ the same vhost, falling back to empty string (use default). */}}
     {{- $ssl_policy := groupByKeys $vhost_containers "Env.SSL_POLICY" | first | default "" }}
 
+    {{- /* Get ssl_verify_client defined by containers w/ the same vhost, falling back to "on" */}}
+    {{- $ssl_verify_client := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.ssl_verify_client" | keys | first | default "on" }}																						   
+
     {{- /* Get the HSTS defined by containers w/ the same vhost, falling back to "max-age=31536000". */}}
     {{- $hsts := groupByKeys $vhost_containers "Env.HSTS" | first | default $globals.config.hsts }}
 
@@ -780,6 +783,7 @@ proxy_set_header Proxy "";
         "acme_http_challenge_enabled" $acme_http_challenge_enabled
         "server_tokens" $server_tokens
         "ssl_policy" $ssl_policy
+        "ssl_verify_client" $ssl_verify_client											  
         "trust_default_cert" $trust_default_cert
         "upstream_name" $upstream_name
         "vhost_root" $vhost_root
@@ -1037,6 +1041,25 @@ server {
     {{- else if (exists "/etc/nginx/vhost.d/default") }}
     include /etc/nginx/vhost.d/default;
     {{- end }}
+
+    {{/* SSL Client Certificate Validation */}}
+    {{/* If vhost(hash).ca.crt exists, include CA */}}
+    {{- if (exists (printf "/etc/nginx/certs/%s.ca.crt" $vhostFileName)) }}
+    ssl_client_certificate {{ printf "/etc/nginx/certs/%s.ca.crt" $vhostFileName }}; 
+    ssl_verify_client {{ $vhost.ssl_verify_client }};
+        {{/* If vhost(hash).crl.pem exists, include CRL */}}
+        {{- if (exists (printf "/etc/nginx/certs/%s.crl.pem" $vhostFileName)) }}
+    ssl_crl {{ printf "/etc/nginx/certs/%s.crl.pem" $vhostFileName }}; 
+        {{ end }}
+    {{/* Else if no vhost CA file exists, but a global ca.crt exists include it */}}
+    {{ else if (exists "/etc/nginx/certs/ca.crt") }}
+    ssl_client_certificate /etc/nginx/certs/ca.crt;
+    ssl_verify_client {{ $vhost.ssl_verify_client }};
+        {{/* If no vhost CA file exists, but a global ca.crl.pem exists include it */}}
+        {{ if (exists "/etc/nginx/certs/ca.crl.pem")}}
+    ssl_crl /etc/nginx/certs/ca.crl.pem;
+        {{ end }}
+    {{ end }}
 
     {{- if $vhost.enable_debug_endpoint }}
         {{ template "debug_location" (dict "GlobalConfig" $globals.config "Hostname" $hostname "VHost" $vhost) }}
