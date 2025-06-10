@@ -1047,18 +1047,18 @@ server {
     {{- if (exists (printf "/etc/nginx/certs/%s.ca.crt" $vhostFileName)) }}
     ssl_client_certificate {{ printf "/etc/nginx/certs/%s.ca.crt" $vhostFileName }}; 
     ssl_verify_client {{ $vhost.ssl_verify_client }};
-    {{/* If vhost(hash).crl.pem exists, include CRL */}}
-    {{- if (exists (printf "/etc/nginx/certs/%s.crl.pem" $vhostFileName)) }}
+        {{/* If vhost(hash).crl.pem exists, include CRL */}}
+        {{- if (exists (printf "/etc/nginx/certs/%s.crl.pem" $vhostFileName)) }}
     ssl_crl {{ printf "/etc/nginx/certs/%s.crl.pem" $vhostFileName }}; 
-    {{ end }}
-    {{/* If no vhost CA file exists, but a global ca.crt exists include it */}}
+        {{ end }}
+    {{/* Else if no vhost CA file exists, but a global ca.crt exists include it */}}
     {{ else if (exists "/etc/nginx/certs/ca.crt") }}
     ssl_client_certificate /etc/nginx/certs/ca.crt;
     ssl_verify_client {{ $vhost.ssl_verify_client }};
-    {{/* If no vhost CA file exists, but a global ca.crl.pem exists include it */}}
-    {{ if (exists "/etc/nginx/certs/ca.crl.pem")}}
+        {{/* If no vhost CA file exists, but a global ca.crl.pem exists include it */}}
+        {{ if (exists "/etc/nginx/certs/ca.crl.pem")}}
     ssl_crl /etc/nginx/certs/ca.crl.pem;
-    {{ end }}
+        {{ end }}
     {{ end }}
 
     {{- if $vhost.enable_debug_endpoint }}
