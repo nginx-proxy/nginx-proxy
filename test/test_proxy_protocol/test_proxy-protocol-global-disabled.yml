@@ -1,0 +1,12 @@
+services:
+#  nginx-proxy:
+#    environment:
+#      ENABLE_PROXY_PROTOCOL: "false"    #Disabled by default
+
+  proxy-protocol-global-disabled:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: proxy-protocol-global-disabled.nginx-proxy.tld
