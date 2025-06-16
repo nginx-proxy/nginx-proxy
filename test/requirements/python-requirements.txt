@@ -2,5 +2,5 @@ backoff==2.2.1
 docker==7.1.0
 packaging==25.0
 pytest==8.4.0
-requests==2.32.3
+requests==2.32.4
 urllib3==2.4.0
