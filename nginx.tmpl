@@ -373,10 +373,11 @@ upstream {{ $vpath.upstream }} {
     {{- /* nginx-proxy/nginx-proxy#1105 */}}
     {{- if lt $servers 1 }}
     # Fallback entry
-    server 127.0.0.1 down;
+    server 127.0.0.1:80 down;
     {{- end }}
     {{- $keepalive := $vpath.keepalive }}
-    {{- if and (ne $keepalive "disabled") (gt $servers 0) }}
+    {{- /* only http upstream support keepalive */}}
+    {{- if and (ne $keepalive "disabled") (gt $servers 0) (not $.TARGET) }}
         {{- if eq $keepalive "auto" }}
     keepalive {{ mul $servers 2 }};
         {{- else }}
@@ -439,6 +440,9 @@ upstream {{ $vpath.upstream }} {
 {{- define "access_log" }}
     {{- when .Enable "access_log /var/log/nginx/access.log vhost;" "" }}
 {{- end }}
+
+{{- /* start target server */}}
+{{- if not $.Env.TARGET }}
 
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
@@ -568,6 +572,9 @@ proxy_set_header X-Original-URI $request_uri;
 
 # Mitigate httpoxy attack (see README for details)
 proxy_set_header Proxy "";
+{{- end }}
+
+{{- /* end target server */}}
 {{- end }}
 
 {{- /* Precompute and store some information about vhost that use VIRTUAL_HOST_MULTIPORTS. */}}
@@ -792,6 +799,9 @@ proxy_set_header Proxy "";
 {{- end }}
 
 
+{{- /* start target server */}}
+{{- if not $.Env.TARGET }}
+
 {{- /*
      * If needed, create a catch-all fallback server to send an error code to
      * clients that request something from an unknown vhost.
@@ -891,13 +901,25 @@ server {
     {{- end }}
 {{- end }}
 
+{{- /* end target server */}}
+{{- end }}
+
 {{- range $hostname, $vhost := $globals.vhosts }}
     {{- $default_server := when $vhost.default "default_server" "" }}
 
+    {{- /* start target stream upstream */}}
+    {{- if or (eq $.Env.TARGET "streamupstream") (not $.Env.TARGET) }}
+
     {{- range $path, $vpath := $vhost.paths }}
 # {{ $hostname }}{{ $path }}
-        {{ template "upstream" (dict "globals" $globals "Path" $path "VPath" $vpath) }}
+        {{ template "upstream" (dict "globals" $globals "Path" $path "VPath" $vpath "TARGET" $.Env.TARGET) }}
     {{- end }}
+
+    {{- /* end target upstream or stream upstream */}}
+    {{- end }}
+
+    {{- /* start target server */}}
+    {{- if not $.Env.TARGET }}
 
     {{- if (eq $vhost.https_method "redirect") }}
 server {
@@ -1081,4 +1103,6 @@ server {
     }
     {{- end }}
 }
+    {{- /* end target server */}}
+    {{- end }}
 {{- end }}
