@@ -403,6 +403,9 @@ If you want to use a global CRL file you have to copy your CRL file named as `ca
 > [!NOTE]
 > Use Per-VIRTUAL_HOST CRL if you configured the [Per-VIRTUAL_HOST CA](#per-virtual_host-ca) or Global CRL if you configured the [Global CA](#global-ca)
 
+> [!IMPORTANT]
+> Make sure you rotate the CRL before it's expiration date, even if nothing has changed. An expired CRL will make Nginx unable to validate the certificates that were issued.
+
 ### optional ssl_verify_client
 Optional [`ssl_verify_client`](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_verify_client) can be activated by using the `com.github.nginx-proxy.nginx-proxy.ssl_verify_client: "optional"` label on a proxied container. If this label is set on a proxied container access is not blocked but the result of the mTLS verify is stored in the [$ssl_client_verify](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#var_ssl_client_verify) variable which you can use this in the [Per-VIRTUAL_HOST location](https://github.com/nginx-proxy/nginx-proxy/tree/main/docs#per-virtual_host-location-configuration) and [Per-VIRTUAL_PATH location](https://github.com/nginx-proxy/nginx-proxy/tree/main/docs#per-virtual_path-location-configuration) configurations.
 
