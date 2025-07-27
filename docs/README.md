@@ -809,7 +809,7 @@ The default for `TRUST_DOWNSTREAM_PROXY` may change to `false` in a future versi
 
 `nginx-proxy` has support for the [Proxy Protocol](https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt). This allows a separate proxy to send requests to `nginx-proxy` and encode information about the client connection without relying on HTTP headers. This can be enabled by setting `ENABLE_PROXY_PROTOCOL=true` on the main `nginx-proxy` container. It's important to note that enabling the proxy protocol will require all connections to `nginx-proxy` to use the protocol.
 
-You can use this feature in conjunction with the `realip` module in nginx. This will allow for setting the `$remote_addr` and `$remote_port` nginx variables to the IP and port that are provided from the protocol message. Documenation for this functionality can be found in the [nginx documentation](https://nginx.org/en/docs/http/ngx_http_realip_module.html).
+You can use this feature in conjunction with the `realip` module in nginx. This will allow for setting the `$remote_addr` and `$remote_port` nginx variables to the IP and port that are provided from the protocol message. Documentation for this functionality can be found in the [nginx documentation](https://nginx.org/en/docs/http/ngx_http_realip_module.html).
 
 A simple example is as follows:
 
