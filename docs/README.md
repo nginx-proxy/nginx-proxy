@@ -1348,6 +1348,7 @@ Configuration available either on the nginx-proxy container, or the docker-gen c
 | [`ENABLE_HTTP2`](#http2-support) | `true` |
 | [`ENABLE_HTTP3`](#http3-support) | `false` |
 | [`ENABLE_IPV6`](#listening-on-ipv6) | `false` |
+| [`ENABLE_PROXY_PROTOCOL`](#proxy-protocol-support) | `false` |
 | [`HTTP_PORT`](#custom-external-httphttps-ports) | `80` |
 | [`HTTPS_PORT`](#custom-external-httphttps-ports) | `443` |
 | [`HTTPS_METHOD`](#how-ssl-support-works) | `redirect` |
