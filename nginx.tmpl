@@ -321,8 +321,10 @@
             {{- end }}
         {{- else if eq $proto "grpc" }}
         grpc_pass {{ trim $proto }}://{{ trim $upstream }};
+        grpc_set_header X-Real-IP $remote_addr;
         {{- else if eq $proto "grpcs" }}
         grpc_pass {{ trim $proto }}://{{ trim $upstream }};
+        grpc_set_header X-Real-IP $remote_addr;
         {{- else }}
         proxy_pass {{ trim $proto }}://{{ trim $upstream }}{{ trim $dest }};
         set $upstream_keepalive {{ if ne $keepalive "disabled" }}true{{ else }}false{{ end }};
