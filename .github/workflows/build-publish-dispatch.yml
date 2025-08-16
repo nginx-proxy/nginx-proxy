@@ -1,5 +1,9 @@
 name: Build and publish Docker images on demand
 
+permissions:
+  contents: read
+  packages: write
+
 on:
   workflow_dispatch:
     inputs:
