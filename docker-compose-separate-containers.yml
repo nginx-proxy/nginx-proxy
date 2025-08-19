@@ -9,15 +9,20 @@ services:
       - "80:80"
     volumes:
       - nginx_conf:/etc/nginx/conf.d:ro
+      - network_internal.conf:/etc/nginx/network_internal.conf:ro
 
   dockergen:
     image: nginxproxy/docker-gen
     command: -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    # the name "nginx" between "-sighup" and "-watch" must exactly reflect the service name used for the nginx container above.
+    environment:
+      # Environment Variable (HTTP_PORT etc.) must be inserted as variables of dockergen container (not nginx container)  
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl
       - nginx_conf:/etc/nginx/conf.d
-
+    network_mode: "none"
+    
   whoami:
     image: jwilder/whoami
     environment:
