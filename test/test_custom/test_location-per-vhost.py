@@ -24,9 +24,11 @@ def test_custom_conf_applies_to_wildcard(docker_compose, nginxproxy):
     r = nginxproxy.get("http://foo.nginx-proxy.example/port")
     assert r.status_code == 200
     assert r.text == "answer from port 84\n"
-    assert "X-test" not in r.headers
+    # we should get the config from *.nginx-proxy.example_location.conf
     assert "X-test-2" in r.headers
     assert "baz" == r.headers["X-test-2"]
+    # but not the config from web1.nginx-proxy.example_location.conf
+    assert "X-test" not in r.headers
 
 def test_custom_conf_does_not_apply_to_web2(docker_compose, nginxproxy):
     r = nginxproxy.get("http://web2.nginx-proxy.example/port")
