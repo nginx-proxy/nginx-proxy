@@ -1,13 +1,13 @@
 import pytest
 
 
-@pytest.mark.xfail(reason="flaky test")
+@pytest.mark.flaky
 def test_unknown_virtual_host_is_503(docker_compose, nginxproxy):
     r = nginxproxy.get("http://unknown.nginx-proxy.tld/")
     assert r.status_code == 503
 
 
-@pytest.mark.xfail(reason="flaky test")
+@pytest.mark.flaky
 def test_forwards_to_whoami(docker_compose, nginxproxy):
     r = nginxproxy.get("http://whoami2.nginx-proxy.tld/")
     assert r.status_code == 200
