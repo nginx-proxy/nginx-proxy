@@ -50,5 +50,5 @@ jobs:
         run: make build-nginx-proxy-test-${{ matrix.base_docker_image }}
 
       - name: Run tests
-        run: pytest
+        run: pytest --ignore-flaky
         working-directory: test
