@@ -19,3 +19,11 @@ services:
     environment:
       WEB_PORTS: "82"
       VIRTUAL_HOST: web2.nginx-proxy.example
+  
+  wildcard:
+    image: web
+    expose:
+      - "83"
+    environment:
+      WEB_PORTS: "83"
+      VIRTUAL_HOST: "*.nginx-proxy.example" # wildcard for all subdomains

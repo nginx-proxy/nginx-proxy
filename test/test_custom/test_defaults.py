@@ -16,3 +16,10 @@ def test_custom_conf_applies_to_web2(docker_compose, nginxproxy):
     assert r.text == "answer from port 82\n"
     assert "X-test" in r.headers
     assert "f00" == r.headers["X-test"]
+
+def test_custom_conf_applies_to_wildcard(docker_compose, nginxproxy):
+    r = nginxproxy.get("http://wildcard.nginx-proxy.example/port")
+    assert r.status_code == 200   
+    assert r.text == "answer from port 83\n"
+    assert "X-test" in r.headers
+    assert "f00" == r.headers["X-test"]

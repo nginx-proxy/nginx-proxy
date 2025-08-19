@@ -17,10 +17,16 @@ def test_custom_default_conf_applies_to_web2(docker_compose, nginxproxy):
     assert "X-test" in r.headers
     assert "f00" == r.headers["X-test"]
 
-
 def test_custom_default_conf_is_overriden_for_web3(docker_compose, nginxproxy):
     r = nginxproxy.get("http://web3.nginx-proxy.example/port")
     assert r.status_code == 200   
     assert r.text == "answer from port 83\n"
     assert "X-test" in r.headers
     assert "bar" == r.headers["X-test"]
+
+def test_custom_default_conf_applies_to_wildcard(docker_compose, nginxproxy):
+    r = nginxproxy.get("http://wildcard.nginx-proxy.example/port")
+    assert r.status_code == 200   
+    assert r.text == "answer from port 84\n"
+    assert "X-test" in r.headers
+    assert "f00" == r.headers["X-test"]
