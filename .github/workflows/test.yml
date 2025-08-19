@@ -23,7 +23,7 @@ jobs:
 
     strategy:
       matrix:
-        base_docker_image: [alpine, debian]
+        base: [alpine, debian]
       fail-fast: false
 
     steps:
@@ -44,10 +44,18 @@ jobs:
         run: docker pull nginx:alpine
 
       - name: Build Docker web server image
-        run: make build-webserver
+        uses: docker/build-push-action@v6
+        with:
+          context: test/requirements/web
+          tags: web
 
       - name: Build Docker nginx proxy test image
-        run: make build-nginx-proxy-test-${{ matrix.base_docker_image }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.${{ matrix.base }}
+          build-args: NGINX_PROXY_VERSION=test
+          tags: nginxproxy/nginx-proxy:test
 
       - name: Run tests
         run: pytest --ignore-flaky
