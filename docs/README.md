@@ -1394,6 +1394,53 @@ Configuration available on each proxied container, either by environment variabl
 | [`VIRTUAL_PROTO`](#upstream-backend-features) | n/a | `http` |
 | [`VIRTUAL_ROOT`](#fastcgi-file-root-directory) | n/a | `/var/www/public` |
 
+### Configuration by files
+
+Additional configuration and/or features available by mounting files to the nginx-proxy container (or to both the nginx and docker-gen containers in a [separate containers setup](#separate-containers)).
+
+In the following tables, `<VIRTUAL_HOST>` is the value of the `VIRTUAL_HOST` environment variable, or the SHA-1 hash of the regex if `VIRTUAL_HOST` is a regex. `<PATH_HASH>` is the SHA-1 hash of the path, as described in [Per-Virtual Path Location Configuration](#per-virtual_path-location-configuration).
+
+#### Proxy-wide
+
+| File Path | Description |
+|-----------|-------------|
+| [`/etc/nginx/conf.d/proxy.conf`](#replacing-default-proxy-settings) | Proxy-wide configuration, replacing the default proxy settings. |
+| [`/etc/nginx/conf.d/<custom_name>.conf`](#proxy-wide) | Proxy-wide configuration, augmenting the default proxy settings. |
+| [`/etc/nginx/toplevel.conf.d/<custom_name>.conf`](#tcp-and-udp-stream) | Custom Nginx configuration, augmenting the default Nginx settings. |
+| [`/usr/share/nginx/html/errors/50x.html`](#custom-error-page) | Custom error page for 50x errors, replacing the default error page. |
+
+#### Per-VIRTUAL_HOST configuration
+
+| File Path | Description |
+|-----------|-------------|
+| [`/etc/nginx/vhost.d/<VIRTUAL_HOST>`](#per-virtual_host) | Per-`VIRTUAL_HOST` additional configuration. |
+| [`/etc/nginx/vhost.d/default`](#per-virtual_host-default-configuration) | Per-`VIRTUAL_HOST` default additional configuration. |
+| [`/etc/nginx/vhost.d/<VIRTUAL_HOST>_location`](#per-virtual_host-location-configuration) | Per-`VIRTUAL_HOST` additional location configuration. |
+| [`/etc/nginx/vhost.d/<VIRTUAL_HOST>_<PATH_HASH>_location`](#per-virtual_path-location-configuration) | Per-`VIRTUAL_PATH` additional location configuration. |
+| [`/etc/nginx/vhost.d/default_location`](#per-virtual_host-location-default-configuration) | Per-`VIRTUAL_HOST` default additional location configuration. |
+| [`/etc/nginx/vhost.d/<VIRTUAL_HOST>_location_override`](#overriding-location-blocks) | Per-`VIRTUAL_HOST` location configuration override. |
+| [`/etc/nginx/vhost.d/<VIRTUAL_HOST>_<PATH_HASH>_location_override`](#overriding-location-blocks) | Per-`VIRTUAL_PATH` location configuration override. |
+
+#### Authentication
+
+| File Path | Description |
+|-----------|-------------|
+| [`/etc/nginx/htpasswd/<VIRTUAL_HOST>`](#basic-authentication-support) | Basic authentication for a specific `VIRTUAL_HOST`. |
+| [`/etc/nginx/htpasswd/<VIRTUAL_HOST>_<PATH_HASH>`](#basic-authentication-support) | Basic authentication for a specific path within a `VIRTUAL_HOST`. |
+| [`/etc/nginx/certs/<VIRTUAL_HOST>.ca.crt`](#per-virtual_host-ca) | Per-`VIRTUAL_HOST` Certificate Authority (CA) certificate for mTLS client authentication. |
+| [`/etc/nginx/certs/<VIRTUAL_HOST>.crl.pem`](#per-virtual_host-crl) | Per-`VIRTUAL_HOST` Certificate Revocation List (CRL) for mTLS client authentication. |
+| [`/etc/nginx/certs/ca.crt`](#global-ca) | Global Certificate Authority (CA) certificate for mTLS client authentication. |
+| [`/etc/nginx/certs/ca.crl.pem`](#global-crl) | Global Certificate Revocation List (CRL) for mTLS client authentication. |
+
+#### SSL/TLS
+
+| File Path | Description |
+|-----------|-------------|
+| [`/etc/nginx/certs/<VIRTUAL_HOST>.crt`](#ssl-support) | Per-`VIRTUAL_HOST` SSL/TLS certificate. |
+| [`/etc/nginx/certs/<VIRTUAL_HOST>.key`](#ssl-support) | Per-`VIRTUAL_HOST` SSL/TLS private key. |
+| [`/etc/nginx/certs/<VIRTUAL_HOST>.dhparam.pem`](#diffie-hellman-groups) | Per-`VIRTUAL_HOST` Diffie-Hellman parameters. |
+| [`/etc/nginx/certs/dhparam.pem`](#diffie-hellman-groups) | Global Diffie-Hellman parameters. |
+
 ⬆️ [back to table of contents](#table-of-contents)
 
 ## Troubleshooting
