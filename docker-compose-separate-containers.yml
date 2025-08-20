@@ -14,9 +14,9 @@ services:
   dockergen:
     image: nginxproxy/docker-gen
     command: -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
-    # the name "nginx" between "-sighup" and "-watch" must exactly reflect the service name used for the nginx container above.
+    # the name "nginx" passed to the "-notify-sighup" flag must exactly match the container name used for the nginx container above.
     environment:
-      # Environment Variable (HTTP_PORT etc.) must be inserted as variables of dockergen container (not nginx container)  
+      # nginx-proxy environment variable (HTTP_PORT etc.) must be set on the docker-gen container (not the nginx container)  
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl
