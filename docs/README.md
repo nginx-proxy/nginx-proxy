@@ -1381,6 +1381,7 @@ Configuration available on each proxied container, either by environment variabl
 | [`HTTPS_METHOD`](#how-ssl-support-works) | n/a | global (proxy) value |
 | n/a | [`com.github.nginx-proxy.nginx-proxy.keepalive`](#upstream-server-http-keep-alive-support) | `auto` |
 | n/a | [`com.github.nginx-proxy.nginx-proxy.loadbalance`](#upstream-server-http-load-balancing-support) | no default value |
+| [`NETWORK_ACCESS`](#internet-vs-local-network-access) | n/a | `external` |
 | n/a | [`com.github.nginx-proxy.nginx-proxy.non-get-redirect`](#how-ssl-support-works) | global (proxy) value |
 | [`SERVER_TOKENS`](#per-virtual_host-server_tokens-configuration) | n/a | no default value |
 | [`SSL_POLICY`](#how-ssl-support-works) | n/a | global (proxy) value |
