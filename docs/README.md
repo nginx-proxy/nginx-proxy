@@ -14,6 +14,7 @@
 - [Custom Nginx Configuration](#custom-nginx-configuration)
 - [TCP and UDP stream](#tcp-and-udp-stream)
 - [Unhashed vs SHA1 upstream names](#unhashed-vs-sha1-upstream-names)
+- [Container Filtering](#container-filtering)
 - [Separate Containers](#separate-containers)
 - [Docker Compose](#docker-compose)
 - [Configuration Summary](#configuration-summary)
@@ -1209,6 +1210,37 @@ By default the nginx configuration `upstream` blocks will use this block's corre
 
 ⬆️ [back to table of contents](#table-of-contents)
 
+## Container Filtering
+
+By default nginx-proxy template traverses thru all containers in the docker host, you can filter the containers by using a specific label. Pass the desired string of your choosing into the CONTAINER_FILTER_LABEL environment variable of the proxy container, and add the same string as a label to each of the container you'll like to be filtered in. Only the label's key is used to filter, the label's value is not used ans has no effect in the filtering, for the next examples we choose to use `com.github.nginx-proxy.nginx-proxy.container-filter.filter` string as our label key, the label's value `true` has no effect as mentioned before.
+
+```console
+docker run --detach \
+    --name nginx-proxy \
+    --publish 80:80 \
+    --publish 443:443 \
+    --env CONTAINER_FILTER_LABEL=com.github.nginx-proxy.nginx-proxy.container-filter.filter
+    --label com.github.nginx-proxy.nginx-proxy.container-filter=true
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    nginxproxy/nginx-proxy
+```
+
+```yaml
+services:
+  proxy:
+    image: nginxproxy/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - CONTAINER_FILTER_LABEL=com.github.nginx-proxy.nginx-proxy.container-filter.filter
+    labels:
+      com.github.nginx-proxy.nginx-proxy.container-filter.filter: "true"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+```
+
 ## Separate Containers
 
 nginx-proxy can also be run as two separate containers using the [nginxproxy/docker-gen](https://hub.docker.com/r/nginxproxy/docker-gen) image and the official [nginx](https://registry.hub.docker.com/_/nginx/) image.
@@ -1338,6 +1370,7 @@ Configuration available either on the nginx-proxy container, or the docker-gen c
 |---------------------|---------------|
 | [`ACME_HTTP_CHALLENGE_LOCATION`](#ssl-support-using-an-acme-ca) | `true` |
 | [`ACME_HTTP_CHALLENGE_ACCEPT_UNKNOWN_HOST`](#ssl-support-using-an-acme-ca) | `false` |
+| [`CONTAINER_FILTER_LABEL`](#container-filtering) | no default value |
 | [`DEBUG_ENDPOINT`](#debug-endpoint) | `false` |
 | [`DEFAULT_HOST`](#default-host) | no default value |
 | [`DEFAULT_ROOT`](#default_root) | `404` |
