@@ -1,0 +1,19 @@
+services:
+
+  web:
+    image: web
+    container_name: whoami
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: whoami.nginx-proxy.tld
+
+  web2:
+    image: web
+    container_name: whoami2
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: whoami2.nginx-proxy.tld
