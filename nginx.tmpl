@@ -598,8 +598,10 @@ proxy_set_header X-Original-URI $request_uri;
 proxy_set_header Proxy "";
 {{- end }}
 
+{{- $virtualHostEnvPrefix := $globals.Env.VIRTUAL_HOST_ENV_PREFIX | default "VIRTUAL_HOST" }}
+
 {{- /* Precompute and store some information about vhost that use VIRTUAL_HOST_MULTIPORTS. */}}
-{{- range $vhosts_yaml, $containers := groupBy $globals.containers "Env.VIRTUAL_HOST_MULTIPORTS" }}
+{{- range $vhosts_yaml, $containers := groupBy $globals.containers (printf "Env.%s_MULTIPORTS" $virtualHostEnvPrefix) }}
     {{- /* Print a warning in the config if VIRTUAL_HOST_MULTIPORTS can't be parsed. */}}
     {{- $parsedVhosts := fromYaml $vhosts_yaml }}
     {{- if (empty $parsedVhosts) }}
@@ -655,7 +657,7 @@ proxy_set_header Proxy "";
 {{- end }}
 
 {{- /* Precompute and store some information about vhost that use VIRTUAL_HOST. */}}
-{{- range $hostname, $containers := groupByMulti $globals.containers "Env.VIRTUAL_HOST" "," }}
+{{- range $hostname, $containers := groupByMulti $globals.containers (printf "Env.%s" $virtualHostEnvPrefix) "," }}
     {{- /* Ignore containers with VIRTUAL_HOST set to the empty string. */}}
     {{- $hostname = trim $hostname }}
     {{- if not $hostname }}
@@ -665,7 +667,7 @@ proxy_set_header Proxy "";
     {{- /* Drop containers with both VIRTUAL_HOST and VIRTUAL_HOST_MULTIPORTS set
          * (VIRTUAL_HOST_MULTIPORTS takes precedence thanks to the previous loop).
          */}}
-    {{- range $_, $containers_to_drop := groupBy $containers "Env.VIRTUAL_HOST_MULTIPORTS" }}
+    {{- range $_, $containers_to_drop := groupBy $containers (printf "Env.%s_MULTIPORTS" $virtualHostEnvPrefix) }}
         {{- range $container := $containers_to_drop }}
             {{- $containers = without $containers $container }}
         {{- end }}

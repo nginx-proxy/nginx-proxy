@@ -1,0 +1,20 @@
+services:
+  nginx-proxy:
+    environment:
+      VIRTUAL_HOST_ENV_PREFIX: VHOST_CUSTOM
+
+  web1:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VHOST_CUSTOM: "web1.nginx-proxy.tld"
+
+  web2:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: "web2.nginx-proxy.tld"

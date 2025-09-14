@@ -1326,6 +1326,15 @@ I'm 5b129ab83266
 
 ⬆️ [back to table of contents](#table-of-contents)
 
+## Managing multiple networks
+
+It is possible to manage multiple independent networks on single host by running multiple instances of nginx-proxy.
+In order to support this, set `VIRTUAL_HOST_ENV_PREFIX` environment variable to a different value on each of nginx-proxy instance (default is `VIRTUAL_HOST`).
+The containers will then be configured using the value of `${VIRTUAL_HOST_ENV_PREFIX}` and `${VIRTUAL_HOST_ENV_PREFIX}_MULTIPORTS` environment variables instead of `VIRTUAL_HOST` and `VIRTUAL_HOST_MULTIPORTS`.
+Each nginx-proxy instance will connect only to the containers that have corresponding environment variables set.
+
+⬆️ [back to table of contents](#table-of-contents)
+
 ## Configuration summary
 
 This section summarize the configurations available on the proxy and proxied container.
@@ -1364,6 +1373,7 @@ Configuration available either on the nginx-proxy container, or the docker-gen c
 | [`SSL_POLICY`](#how-ssl-support-works) | `Mozilla-Intermediate` |
 | [`TRUST_DEFAULT_CERT`](#default-and-missing-certificate) | `true` |
 | [`TRUST_DOWNSTREAM_PROXY`](#trusting-downstream-proxy-headers) | `true` |
+| [`VIRTUAL_HOST_ENV_PREFIX`](#managing-multiple-networks) | `VIRTUAL_HOST` |
 
 ### Proxyied container
 
