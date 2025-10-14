@@ -760,9 +760,6 @@ More reading on the potential TCP head-of-line blocking issue with HTTP/2: [HTTP
 
 ### HTTP/3 support
 
-> [!WARNING]
-> HTTP/3 support [is still considered experimental in nginx](https://www.nginx.com/blog/binary-packages-for-preview-nginx-quic-http3-implementation/) and as such is considered experimental in nginx-proxy too and is disabled by default. [Feedbacks for the HTTP/3 support are welcome in #2271.](https://github.com/nginx-proxy/nginx-proxy/discussions/2271)
-
 HTTP/3 use the QUIC protocol over UDP (unlike HTTP/1.1 and HTTP/2 which work over TCP), so if you want to use HTTP/3 you'll have to explicitely publish the 443/udp port of the proxy in addition to the 443/tcp port:
 
 ```console
