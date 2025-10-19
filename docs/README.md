@@ -14,6 +14,7 @@
 - [Custom Nginx Configuration](#custom-nginx-configuration)
 - [TCP and UDP stream](#tcp-and-udp-stream)
 - [Unhashed vs SHA1 upstream names](#unhashed-vs-sha1-upstream-names)
+- [Filtering containers](#filtering-containers)
 - [Separate Containers](#separate-containers)
 - [Docker Compose](#docker-compose)
 - [Configuration Summary](#configuration-summary)
@@ -1206,6 +1207,16 @@ By default the nginx configuration `upstream` blocks will use this block's corre
 
 ⬆️ [back to table of contents](#table-of-contents)
 
+## Filtering containers
+
+By default, nginx-proxy will consider all running containers when generating the nginx configuration. You can filter which containers are considered by nginx-proxy by using the `DOCKER_CONTAINER_FILTERS` environment variable on the nginx-proxy container (or the docker-gen container in a [separate containers setup](#separate-containers)).
+
+The `DOCKER_CONTAINER_FILTERS` environment variable takes a comma separated list of `key=value` pairs.
+
+See the [Docker CLI documentation](https://docs.docker.com/reference/cli/docker/container/ls/#filter) for details on available filters.
+
+⬆️ [back to table of contents](#table-of-contents)
+
 ## Separate Containers
 
 nginx-proxy can also be run as two separate containers using the [nginxproxy/docker-gen](https://hub.docker.com/r/nginxproxy/docker-gen) image and the official [nginx](https://registry.hub.docker.com/_/nginx/) image.
@@ -1361,6 +1372,15 @@ Configuration available either on the nginx-proxy container, or the docker-gen c
 | [`SSL_POLICY`](#how-ssl-support-works) | `Mozilla-Intermediate` |
 | [`TRUST_DEFAULT_CERT`](#default-and-missing-certificate) | `true` |
 | [`TRUST_DOWNSTREAM_PROXY`](#trusting-downstream-proxy-headers) | `true` |
+
+Those environment variables are specific to docker-gen itself:
+
+| Environment Variable | Default Value |
+|---------------------|---------------|
+| `DOCKER_HOST` | `unix:///var/run/docker.sock` |
+| `DOCKER_TLS_VERIFY` | `false` |
+| `DOCKER_CERT_PATH` | no default value |
+| [`DOCKER_CONTAINER_FILTERS`](#filtering-containers) | no default value |
 
 ### Proxyied container
 
