@@ -1213,6 +1213,7 @@ By default, nginx-proxy will consider all running containers when generating the
 
 The `DOCKER_CONTAINER_FILTERS` environment variable takes a comma separated list of `key=value` pairs.
 
+For example, setting `DOCKER_CONTAINER_FILTERS` environment variable to `network=mynetwork` will cause nginx-proxy to consider only containers connected to the `mynetwork` network.
 See the [Docker CLI documentation](https://docs.docker.com/reference/cli/docker/container/ls/#filter) for details on available filters.
 
 ⬆️ [back to table of contents](#table-of-contents)
