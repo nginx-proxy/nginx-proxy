@@ -9,7 +9,7 @@ import pytest
     ("PATCH", 301),
     ("DELETE", 301),
     ("OPTIONS", 301),
-    ("CONNECT", 405),
+    ("CONNECT", 400),
     ("TRACE", 405),
 ])
 def test_default_redirect_by_method(
