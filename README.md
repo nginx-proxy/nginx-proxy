@@ -13,7 +13,7 @@ See [Automated Nginx Reverse Proxy for Docker](http://jasonwilder.com/blog/2014/
 
 To run it:
 
-```console
+```shell
 docker run --detach \
     --name nginx-proxy \
     --publish 80:80 \
@@ -23,7 +23,7 @@ docker run --detach \
 
 Then start any containers (here an nginx container) you want proxied with an env var `VIRTUAL_HOST=subdomain.yourdomain.com`
 
-```console
+```shell
 docker run --detach \
     --name your-proxied-app \
     --env VIRTUAL_HOST=foo.bar.com \
@@ -47,7 +47,7 @@ The nginx-proxy images are available in two flavors.
 
 This image is based on the nginx:mainline image, itself based on the debian slim image.
 
-```console
+```shell
 docker pull nginxproxy/nginx-proxy:1.8
 ```
 
@@ -55,7 +55,7 @@ docker pull nginxproxy/nginx-proxy:1.8
 
 This image is based on the nginx:alpine image.
 
-```console
+```shell
 docker pull nginxproxy/nginx-proxy:1.8-alpine
 ```
 
