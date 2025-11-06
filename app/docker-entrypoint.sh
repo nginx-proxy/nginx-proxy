@@ -107,6 +107,36 @@ function _setup_dhparam() {
 	cp "${RFC7919_DHPARAM_FILE}" "${DHPARAM_FILE}"
 }
 
+function _update_cloudflare_real_ip() {
+    # Generate /etc/nginx/conf.d/cloudflare.conf if updater exists
+    if [[ -x /app/scripts/update-cloudflare-real-ip.sh ]]; then
+        /app/scripts/update-cloudflare-real-ip.sh || echo 'Warning: failed to update Cloudflare real IP configuration' >&2
+    fi
+}
+
+function _setup_cf_cron() {
+    # Generate crontab for Cloudflare refresh based on CF_REFRESH_INTERVAL
+    local default_schedule
+    default_schedule="0 */12 * * *"
+
+    local interval
+    interval="${CF_REFRESH_INTERVAL:-${default_schedule}}"
+
+    local schedule
+    schedule=""
+
+    # If value looks like a 5-field cron spec, use it as-is (avoid globbing). Otherwise fallback.
+    if [ "$(printf '%s\n' "${interval}" | awk '{print NF}')" -eq 5 ]; then
+        schedule="${interval}"
+    else
+        schedule="${default_schedule}"
+    fi
+
+    mkdir -p /etc/crontabs
+    touch /var/log/cron.log
+    echo "${schedule} bash /app/scripts/refresh-cloudflare-and-reload.sh >> /var/log/cron.log 2>&1" > /etc/crontabs/root
+}
+
 # Run the init logic if the default CMD was provided
 if [[ $* == 'forego start -r' ]] || [[ $* =~ 'docker-gen -watch' ]]; then
 	_print_version
@@ -116,6 +146,10 @@ if [[ $* == 'forego start -r' ]] || [[ $* =~ 'docker-gen -watch' ]]; then
 	_resolvers
 
 	_setup_dhparam
+
+    _update_cloudflare_real_ip
+
+    _setup_cf_cron
 
 	if [ -z "${TRUST_DOWNSTREAM_PROXY}" ]; then
 		cat >&2 <<-EOT

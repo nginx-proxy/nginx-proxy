@@ -6,8 +6,6 @@ permissions:
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 0 * * 1"
   push:
     branches:
       - main
@@ -23,13 +21,10 @@ on:
       - "*.md"
 
 jobs:
-  multiarch-build:
-    name: Build and publish ${{ matrix.flavor }} image
-    strategy:
-      matrix:
-        flavor: [alpine, debian, dockergen]
+  build:
+    name: Build and publish alpine image
+    if: github.repository == 'vuongtlt13/nginx-proxy'
     runs-on: ubuntu-latest
-    if: (github.event_name == 'schedule' && github.repository == 'nginx-proxy/nginx-proxy') || (github.event_name != 'schedule')
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -40,30 +35,20 @@ jobs:
         id: nginx-proxy_version
         run: echo "VERSION=$(git describe --tags)" >> "$GITHUB_OUTPUT"
 
-      - name: Retrieve docker-gen version
-        id: docker-gen_version
-        run: sed -n -e 's;^FROM docker.io/nginxproxy/docker-gen:\([0-9.]*\).*;VERSION=\1;p' Dockerfile.${{ matrix.flavor }} >> "$GITHUB_OUTPUT"
-
       - name: Get Docker tags
         id: docker_meta
         uses: docker/metadata-action@v6
         with:
           images: |
-            ghcr.io/nginx-proxy/nginx-proxy
-            nginxproxy/nginx-proxy
-            jwilder/nginx-proxy
+            vuongtlt13/nginx-proxy
+            ghcr.io/vuongtlt13/nginx-proxy
           tags: |
-            type=semver,pattern={{version}},enable=${{ matrix.flavor == 'debian' }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ matrix.flavor == 'debian' }}
-            type=semver,suffix=-alpine,pattern={{version}},enable=${{ matrix.flavor == 'alpine' }}
-            type=semver,suffix=-alpine,pattern={{major}}.{{minor}},enable=${{ matrix.flavor == 'alpine' }}
-            type=semver,suffix=-dockergen,pattern={{version}},enable=${{ matrix.flavor == 'dockergen' }}
-            type=semver,suffix=-dockergen,pattern={{major}}.{{minor}},enable=${{ matrix.flavor == 'dockergen' }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' && matrix.flavor == 'debian' }}
-            type=raw,value=alpine,enable=${{ github.ref == 'refs/heads/main' && matrix.flavor == 'alpine' }}
-            type=raw,value=dockergen,enable=${{ github.ref == 'refs/heads/main' && matrix.flavor == 'dockergen' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=alpine,enable={{is_default_branch}}
+            type=sha
           labels: |
-            org.opencontainers.image.authors=Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag), Jason Wilder
             org.opencontainers.image.version=${{ steps.nginx-proxy_version.outputs.VERSION }}
           flavor: |
             latest=false
@@ -92,11 +77,10 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: Dockerfile.${{ matrix.flavor }}
+          file: Dockerfile.alpine
           build-args: |
             NGINX_PROXY_VERSION=${{ steps.nginx-proxy_version.outputs.VERSION }}
-            DOCKER_GEN_VERSION=${{ steps.docker-gen_version.outputs.VERSION }}
-          platforms: linux/amd64,linux/arm64,linux/s390x,linux/arm/v7
+          platforms: linux/amd64
           sbom: true
           push: true
           provenance: mode=max

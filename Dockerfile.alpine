@@ -12,28 +12,30 @@ ARG NGINX_PROXY_VERSION
 ARG DOCKER_GEN_VERSION="unknown"
 ENV NGINX_PROXY_VERSION=${NGINX_PROXY_VERSION} \
    DOCKER_GEN_VERSION=${DOCKER_GEN_VERSION} \
-   DOCKER_HOST=unix:///tmp/docker.sock
+   DOCKER_HOST=unix:///tmp/docker.sock \
+   CF_REFRESH_INTERVAL="0 */12 * * *"
 
 # Install dependencies
-RUN apk add --no-cache --virtual .run-deps bash openssl
+RUN apk add --no-cache --virtual .run-deps bash openssl curl
 
-# Configure Nginx
-RUN echo -e "\ninclude /etc/nginx/toplevel.conf.d/*.conf;" >> /etc/nginx/nginx.conf \
-   && sed -i 's/worker_connections.*;$/worker_connections   10240;/' /etc/nginx/nginx.conf \
-   && sed -i -e '/^\}$/{s//\}\nworker_rlimit_nofile 20480;/;:a' -e '$!N;$!ba' -e '}' /etc/nginx/nginx.conf \
-   && mkdir -p '/etc/nginx/toplevel.conf.d' \
+# Prepare Nginx directories
+RUN mkdir -p '/etc/nginx/toplevel.conf.d' \
    && mkdir -p '/etc/nginx/dhparam' \
    && mkdir -p '/etc/nginx/certs' \
-   && mkdir -p '/usr/share/nginx/html/errors'
+   && mkdir -p '/usr/share/nginx/html/errors' \
+   && mkdir -p '/etc/crontabs' \
+   && touch /var/log/cron.log
 
 # Install Forego + docker-gen
 COPY --from=forego /usr/local/bin/forego /usr/local/bin/forego
 COPY --from=docker-gen /usr/local/bin/docker-gen /usr/local/bin/docker-gen
 
+COPY nginx.conf /etc/nginx/nginx.conf
 COPY network_internal.conf /etc/nginx/
 
 COPY app nginx.tmpl LICENSE /app/
 WORKDIR /app/
+RUN chmod +x /app/docker-entrypoint.sh /app/scripts/update-cloudflare-real-ip.sh /app/scripts/refresh-cloudflare-and-reload.sh
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]

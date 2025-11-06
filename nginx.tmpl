@@ -654,6 +654,8 @@ proxy_set_header Proxy "";
             {{- $_ := set $path_ports $port $path_port_containers }}
             {{- $_ := set $path_data "ports" $path_ports }}
 
+            
+
             {{- if (not (hasKey $path_data "dest")) }}
                 {{- $_ := set $path_data "dest" $dest }}
             {{- end }}
@@ -724,6 +726,8 @@ proxy_set_header Proxy "";
         {{- if (not (hasKey $path_data "proto")) }}
             {{- $_ := set $path_data "proto" $proto }}
         {{- end }}
+
+        
 
         {{- $_ := set $paths $path $path_data }}
     {{- end }}
@@ -826,6 +830,9 @@ proxy_set_header Proxy "";
     {{- /* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
     {{- $vhost_root := groupByKeys $vhost_containers "Env.VIRTUAL_ROOT" | first | default "/var/www/public" }}
 
+    {{- /* Get RESTRICT_ACCESS_IP per vhost (not per path) */}}
+    {{- $restrict_ips := groupByKeys $vhost_containers "Env.RESTRICT_ACCESS_IP" | first | default "" | trim }}
+
     {{- $vhost_data = merge $vhost_data (dict
         "cert" $cert
         "cert_ok" $cert_ok
@@ -846,6 +853,7 @@ proxy_set_header Proxy "";
         "trust_default_cert" $trust_default_cert
         "upstream_name" $upstream_name
         "vhost_root" $vhost_root
+        "restrict_access_ips" $restrict_ips
     ) }}
     {{- $_ := set $globals.vhosts $hostname $vhost_data }}
 {{- end }}
@@ -1025,6 +1033,20 @@ server {
     {{- end }}
 
     server_name {{ $hostname }};
+
+    # Config RESTRICT_ACCESS_IP
+    {{- $restrict := $vhost.restrict_access_ips | default "" | trim }}
+    {{- if $restrict }}
+    {{- $clean := replace $restrict "," " " -1 }}
+    {{- range $ip := ($clean | sprigSplit " ") }}
+        {{- $t := trim $ip }}
+        {{- if $t }}
+    allow {{ $t }};
+        {{- end }}
+    {{- end }}
+    deny all;
+    {{- end }}
+
     {{- if $vhost.server_tokens }}
     server_tokens {{ $vhost.server_tokens }};
     {{- end }}

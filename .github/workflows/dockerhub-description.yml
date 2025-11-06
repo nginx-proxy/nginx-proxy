@@ -15,6 +15,7 @@ jobs:
   dockerHubDescription:
     name: Update Docker Hub Description
     runs-on: ubuntu-latest
+    if: github.repository == 'nginx-proxy/nginx-proxy'
 
     steps:
       - name: Checkout repository

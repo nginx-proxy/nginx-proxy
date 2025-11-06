@@ -15,6 +15,7 @@ on:
 jobs:
   multiarch-build:
     name: Build and publish ${{ matrix.flavor }} image with tag ${{ inputs.image_tag }}
+    if: github.repository == 'nginx-proxy/nginx-proxy'
     strategy:
       matrix:
         flavor: [alpine, debian, dockergen]

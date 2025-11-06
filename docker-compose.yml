@@ -1,16 +1,45 @@
+version: '3'
 services:
-  nginx-proxy:
-    image: nginxproxy/nginx-proxy
-    container_name: nginx-proxy
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.alpine
+    image: vuongtlt13/nginx-proxy
+    container_name: nginx
+    restart: unless-stopped
+    network_mode: host
     ports:
-      - "80:80"
+      - 80:80
+    #   - 443:443
+    #   - "127.0.0.1:8080:8080"
+    environment:
+      - LOG_JSON=true
+      - TERM=dumb
+      - CF_REFRESH_INTERVAL=* * * * *
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
 
-    # if you want to proxy based on host ports, you'll want to use the host network
-    # network_mode: "host"
+  whoami-admin:
+    image: traefik/whoami:v1.11
+    container_name: whoami-admin
+    command:
+      - --port=2003
+      - --name=${WHOAMI_NAME:-iamfoo}
+    # ports:
+    #   - "127.0.0.1:2003:2003"
+    environment:
+      - VIRTUAL_HOST=whoami-admin.local
+      - VIRTUAL_PORT=2003
+      - RESTRICT_ACCESS_IP=127.0.0.3
 
   whoami:
-    image: jwilder/whoami
+    image: traefik/whoami:v1.11
+    container_name: whoami
+    command:
+      - --port=2002
+      - --name=${WHOAMI_NAME:-iamfoo}
+    # ports:
+    #   - "127.0.0.1:2002:2002"
     environment:
-      - VIRTUAL_HOST=whoami.example
+      - VIRTUAL_HOST=whoami.local
+      - VIRTUAL_PORT=2002
