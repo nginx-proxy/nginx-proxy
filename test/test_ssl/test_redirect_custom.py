@@ -9,7 +9,7 @@ import pytest
     ("nginx-proxy.tld", "PATCH", 308),
     ("nginx-proxy.tld", "DELETE", 308),
     ("nginx-proxy.tld", "OPTIONS", 308),
-    ("nginx-proxy.tld", "CONNECT", 405),
+    ("nginx-proxy.tld", "CONNECT", 400),
     ("nginx-proxy.tld", "TRACE", 405),
     ("web2.nginx-proxy.tld", "GET", 301),
     ("web2.nginx-proxy.tld", "HEAD", 301),
@@ -18,7 +18,7 @@ import pytest
     ("web2.nginx-proxy.tld", "PATCH", 307),
     ("web2.nginx-proxy.tld", "DELETE", 307),
     ("web2.nginx-proxy.tld", "OPTIONS", 307),
-    ("web2.nginx-proxy.tld", "CONNECT", 405),
+    ("web2.nginx-proxy.tld", "CONNECT", 400),
     ("web2.nginx-proxy.tld", "TRACE", 405),
 ])
 def test_custom_redirect_by_method(
