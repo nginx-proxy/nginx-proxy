@@ -45,9 +45,9 @@ def test_build_nginx_proxy_tester(docker_build):
     assert docker_build == "nginx-proxy-tester-ci"
 
 def test_run_nginx_proxy_tester(docker_build):
-    # Run the container with 'pytest -v' command to output version info
+    # Run the container with 'pytest --version' command to output version info
     container = client.containers.run("nginx-proxy-tester-ci",
-        command = "pytest -V",
+        command = "pytest --version",
         detach = True,
     )
 
