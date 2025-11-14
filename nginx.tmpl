@@ -391,24 +391,28 @@ upstream {{ $vpath.upstream }} {
 
 {{- /* debug "endpoint" location template */}}
 {{- define "debug_location" }}
-    {{- $debug_paths := dict }}
-    {{- range $path, $vpath := .VHost.paths }}
-        {{- $tmp_ports := dict }}
-        {{- range $port, $containers := $vpath.ports }}
-            {{- $tmp_containers := list }}
-            {{- range $container := $containers }}
-                {{- $tmp_containers = dict "Name" $container.Name | append $tmp_containers }}
+    {{- $debug_external_ports := dict }}
+    {{- range $external_ports, $paths := .VHost.external_ports }}
+        {{- $tmp_paths := dict }}
+        {{- range $path, $vpath := $paths }}
+            {{- $tmp_ports := dict }}
+            {{- range $port, $containers := $vpath.ports }}
+                {{- $tmp_containers := list }}
+                {{- range $container := $containers }}
+                    {{- $tmp_containers = dict "Name" $container.Name | append $tmp_containers }}
+                {{- end }}
+                {{- $_ := set $tmp_ports $port $tmp_containers }}
             {{- end }}
-            {{- $_ := set $tmp_ports $port $tmp_containers }}
+            {{- $debug_vpath := deepCopy $vpath | merge (dict "ports" $tmp_ports) }}
+            {{- $_ := set $tmp_paths $path $debug_vpath }}
         {{- end }}
-        {{- $debug_vpath := deepCopy $vpath | merge (dict "ports" $tmp_ports) }}
-        {{- $_ := set $debug_paths $path $debug_vpath }}
+        {{- $_ := set $debug_external_ports $external_ports $tmp_paths }}
     {{- end }}
 
     {{- $debug_vhost := deepCopy .VHost }}
     {{- /* If it's a regexp, do not render the Hostname to the response to avoid rendering config breaking characters */}}
     {{- $_ := set $debug_vhost "hostname" (.VHost.is_regexp | ternary "Hostname is a regexp and unsafe to include in the debug response." .Hostname) }}
-    {{- $_ := set $debug_vhost "paths" $debug_paths }}
+    {{- $_ := set $debug_vhost "external_ports" $debug_external_ports }}
 
     {{- $debug_response := dict
         "global" .GlobalConfig
@@ -426,11 +430,11 @@ upstream {{ $vpath.upstream }} {
     {{- /*
          * The maximum line length in an nginx config is 4096 characters.
          * If we're nearing this limit (with headroom for the rest
-         * of the directive), strip vhost.paths from the response.
+         * of the directive), strip vhost.external_ports from the response.
          */}}
     {{- if gt (toJson $debug_response | len) 4000 }}
-        {{- $_ := unset $debug_vhost "paths" }}
-        {{- $_ := set $debug_response "warning" "Virtual paths configuration for this hostname is too large and has been stripped from response." }}
+        {{- $_ := unset $debug_vhost "external_ports" }}
+        {{- $_ := set $debug_response "warning" "External ports configuration for this hostname is too large and has been stripped from response." }}
     {{- end }}
 
     location  /nginx-proxy-debug {
@@ -614,7 +618,7 @@ proxy_set_header Proxy "";
 
     {{- range $hostname, $vhost := $parsedVhosts }}
         {{- $vhost_data := get $globals.vhosts $hostname | default (dict) }}
-        {{- $paths := $vhost_data.paths | default (dict) }}
+        {{- $external_ports := $vhost_data.external_ports | default (dict) }}
 
         {{- if (empty $vhost) }}
             {{ $vhost = dict "/" (dict) }}
@@ -623,16 +627,23 @@ proxy_set_header Proxy "";
         {{- range $path, $vpath := $vhost }}
             {{- if (empty $vpath) }}
                 {{- $vpath = dict
+                    "external_http_port" $globals.config.external_http_port
+                    "external_https_port" $globals.config.external_https_port
                     "dest" ""
                     "port" "default"
                     "proto" "http"
                 }}
             {{- end }}
 
+            {{- $external_http_port := $vpath.external_http_port | default $globals.config.external_http_port | toString }}
+            {{- $external_https_port := $vpath.external_https_port | default $globals.config.external_https_port | toString }}
+            {{- $path_external_ports := printf "%s,%s" $external_http_port $external_https_port }}
+
             {{- $dest := $vpath.dest | default "" }}
             {{- $port := $vpath.port | default "default" | toString }}
             {{- $proto := $vpath.proto | default "http" }}
 
+            {{- $paths := get $external_ports $path_external_ports | default (dict) }}
             {{- $path_data := get $paths $path | default (dict) }}
             {{- $path_ports := $path_data.ports | default (dict) }}
             {{- $path_port_containers := get $path_ports $port | default (list) | concat $containers }}
@@ -648,8 +659,10 @@ proxy_set_header Proxy "";
             {{- end }}
 
             {{- $_ := set $paths $path $path_data }}
+            {{- $_ := set $external_ports $path_external_ports $paths }}
         {{- end }}
-        {{- $_ := set $vhost_data "paths" $paths }}
+
+        {{- $_ := set $vhost_data "external_ports" $external_ports }}
         {{- $_ := set $globals.vhosts $hostname $vhost_data }}
     {{- end }}
 {{- end }}
@@ -675,14 +688,19 @@ proxy_set_header Proxy "";
     {{- end }}
 
     {{- $vhost_data := get $globals.vhosts $hostname | default (dict) }}
-    {{- $paths := $vhost_data.paths | default (dict) }}
+    {{- $external_ports := $vhost_data.external_ports | default (dict) }}
 
     {{- $tmp_paths := groupByWithDefault $containers "Env.VIRTUAL_PATH" "/" }}
 
     {{- range $path, $containers := $tmp_paths }}
+        {{- $external_http_port := groupByKeys $containers "Env.EXTERNAL_HTTP_PORT" | first | default $globals.config.external_http_port | toString }}
+        {{- $external_https_port := groupByKeys $containers "Env.EXTERNAL_HTTPS_PORT" | first | default $globals.config.external_https_port | toString }}
+        {{- $path_external_ports := printf "%s,%s" $external_http_port $external_https_port }}
+
         {{- $dest := groupByKeys $containers "Env.VIRTUAL_DEST" | first | default "" }}
         {{- $proto := groupByKeys $containers "Env.VIRTUAL_PROTO" | first | default "http" | trim }}
 
+        {{- $paths := get $external_ports $path_external_ports | default (dict) }}
         {{- $path_data := get $paths $path | default (dict) }}
         {{- $path_ports := $path_data.ports | default (dict) }}
         {{- range $port, $containers := groupByWithDefault $containers "Env.VIRTUAL_PORT" "default" }}
@@ -700,8 +718,10 @@ proxy_set_header Proxy "";
         {{- end }}
 
         {{- $_ := set $paths $path $path_data }}
+        {{- $_ := set $external_ports $path_external_ports $paths }}
     {{- end }}
-    {{- $_ := set $vhost_data "paths" $paths }}
+
+    {{- $_ := set $vhost_data "external_ports" $external_ports }}
     {{- $_ := set $globals.vhosts $hostname $vhost_data }}
 {{- end }}
 
@@ -712,31 +732,35 @@ proxy_set_header Proxy "";
 
     {{- $vhost_containers := list }}
 
-    {{- range $path, $vpath_data := $vhost_data.paths }}
-        {{- $vpath_containers := list }}
-        {{- range $port, $vport_containers := $vpath_data.ports }}
-            {{ $vpath_containers = concat $vpath_containers $vport_containers }}
+    {{- range $external_ports, $paths := $vhost_data.external_ports }}
+        {{- range $path, $vpath_data := $paths }}
+            {{- $vpath_containers := list }}
+            {{- range $port, $vport_containers := $vpath_data.ports }}
+                {{ $vpath_containers = concat $vpath_containers $vport_containers }}
+            {{- end }}
+
+            {{- /* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external". */}}
+            {{- $network_tag := groupByKeys $vpath_containers "Env.NETWORK_ACCESS" | first | default "external" }}
+
+            {{- $loadbalance := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.loadbalance" | keys | first }}
+            {{- $keepalive := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.keepalive" | keys | first | default "auto" }}
+
+            {{- $upstream := $upstream_name }}
+            {{- if (not (eq $path "/")) }}
+                {{- $sum := sha1 $path }}
+                {{- $upstream = printf "%s-%s" $upstream $sum }}
+            {{- end }}
+
+            {{- $_ := set $vpath_data "network_tag" $network_tag }}
+            {{- $_ := set $vpath_data "upstream" $upstream }}
+            {{- $_ := set $vpath_data "loadbalance" $loadbalance }}
+            {{- $_ := set $vpath_data "keepalive" $keepalive }}
+
+            {{- $_ := set $paths $path $vpath_data }}
+            {{- $_ := set $vhost_data.external_ports $external_ports $paths }}
+
+            {{ $vhost_containers = concat $vhost_containers $vpath_containers }}
         {{- end }}
-
-        {{- /* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external". */}}
-        {{- $network_tag := groupByKeys $vpath_containers "Env.NETWORK_ACCESS" | first | default "external" }}
-
-        {{- $loadbalance := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.loadbalance" | keys | first }}
-        {{- $keepalive := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.keepalive" | keys | first | default "auto" }}
-
-        {{- $upstream := $upstream_name }}
-        {{- if (not (eq $path "/")) }}
-            {{- $sum := sha1 $path }}
-            {{- $upstream = printf "%s-%s" $upstream $sum }}
-        {{- end }}
-
-        {{- $_ := set $vpath_data "network_tag" $network_tag }}
-        {{- $_ := set $vpath_data "upstream" $upstream }}
-        {{- $_ := set $vpath_data "loadbalance" $loadbalance }}
-        {{- $_ := set $vpath_data "keepalive" $keepalive }}
-        {{- $_ := set $vhost_data.paths $path $vpath_data }}
-
-        {{ $vhost_containers = concat $vhost_containers $vpath_containers }}
     {{- end }}
 
     {{- $userIdentifiedCert := groupByKeys $vhost_containers "Env.CERT_NAME" | first }}
@@ -924,24 +948,30 @@ server {
     {{- $default_server := when $vhost.default " default_server" "" }}
     {{- $proxy_protocol := when $globals.config.enable_proxy_protocol " proxy_protocol" "" }}
 
-    {{- range $path, $vpath := $vhost.paths }}
-# {{ $hostname }}{{ $path }}
-        {{ template "upstream" (dict "globals" $globals "Path" $path "VPath" $vpath) }}
-    {{- end }}
+    {{- range $external_ports, $paths := $vhost.external_ports }}
+        {{- $splitted_ports := mustRegexSplit "," $external_ports -1 }}
+        {{- $external_http_port := $splitted_ports | first }}
+        {{- $external_https_port := $splitted_ports | last }}
 
-    {{- if (eq $vhost.https_method "redirect") }}
+# {{ printf "external ports: http:%s / https:%s" $external_http_port $external_https_port }}
+        {{- range $path, $vpath := $paths }}
+# {{ $hostname }}{{ $path }}
+            {{ template "upstream" (dict "globals" $globals "Path" $path "VPath" $vpath) }}
+        {{- end }}
+
+        {{- if (eq $vhost.https_method "redirect") }}
 server {
     server_name {{ $hostname }};
-        {{- if $vhost.server_tokens }}
+            {{- if $vhost.server_tokens }}
     server_tokens {{ $vhost.server_tokens }};
-        {{- end }}
-    {{ template "access_log" (dict "Enable" $globals.config.enable_access_log) }}
-    listen {{ $globals.config.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
-        {{- if $globals.config.enable_ipv6 }}
-    listen [::]:{{ $globals.config.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
-        {{- end }}
+            {{- end }}
+        {{ template "access_log" (dict "Enable" $globals.config.enable_access_log) }}
+    listen {{ $external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
+            {{- if $globals.config.enable_ipv6 }}
+    listen [::]:{{ $external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
+            {{- end }}
 
-        {{- if (or $vhost.acme_http_challenge_legacy $vhost.acme_http_challenge_enabled) }}
+            {{- if (or $vhost.acme_http_challenge_legacy $vhost.acme_http_challenge_enabled) }}
     # Do not HTTPS redirect Let's Encrypt ACME challenge
     location ^~ /.well-known/acme-challenge/ {
         auth_basic off;
@@ -951,33 +981,33 @@ server {
         try_files $uri =404;
         break;
     }
-        {{- end }}
+            {{- end }}
 
-        {{- if $vhost.enable_debug_endpoint }}
-            {{ template "debug_location" (dict "GlobalConfig" $globals.config "Hostname" $hostname "VHost" $vhost) }}
-        {{- end }}
+            {{- if $vhost.enable_debug_endpoint }}
+                {{ template "debug_location" (dict "GlobalConfig" $globals.config "Hostname" $hostname "VHost" $vhost) }}
+            {{- end }}
 
     location / {
-        {{- $redirect_uri := "https://$host$request_uri" }}
-        {{- if ne $globals.config.external_https_port "443" }}
-            {{- $redirect_uri = printf "https://$host:%s$request_uri" $globals.config.external_https_port }}
-        {{- end}}
+            {{- $redirect_uri := "https://$host$request_uri" }}
+            {{- if ne $external_https_port "443" }}
+                {{- $redirect_uri = printf "https://$host:%s$request_uri" $external_https_port }}
+            {{- end}}
         if ($request_method ~ (OPTIONS|POST|PUT|PATCH|DELETE)) {
             return {{ $vhost.non_get_redirect }} {{ $redirect_uri }};
         }
         return 301 {{ $redirect_uri }};
     }
 }
-    {{- end }}
+        {{- end }}
 
 server {
-    {{- if $vhost.is_regexp }}
-        {{- if or
-            (printf "/etc/nginx/vhost.d/%s" $hostname | exists)
-            (printf "/etc/nginx/vhost.d/%s_location" $hostname | exists)
-            (printf "/etc/nginx/vhost.d/%s_location_override" $hostname | exists)
-            (printf "/etc/nginx/htpasswd/%s" $hostname | exists)
-        }}
+        {{- if $vhost.is_regexp }}
+            {{- if or
+                (printf "/etc/nginx/vhost.d/%s" $hostname | exists)
+                (printf "/etc/nginx/vhost.d/%s_location" $hostname | exists)
+                (printf "/etc/nginx/vhost.d/%s_location_override" $hostname | exists)
+                (printf "/etc/nginx/htpasswd/%s" $hostname | exists)
+            }}
     # https://github.com/nginx-proxy/nginx-proxy/issues/2529#issuecomment-2437609249
     # Support for vhost config file(s) named like a regexp ({{ $hostname }}) has been removed from nginx-proxy.
     # Please name your vhost config file(s) with the sha1 of the regexp instead ({{ $hostname }} -> {{ sha1 $hostname }}) :
@@ -985,24 +1015,24 @@ server {
     # - /etc/nginx/vhost.d/{{ sha1 $hostname }}_location
     # - /etc/nginx/vhost.d/{{ sha1 $hostname }}_location_override
     # - /etc/nginx/htpasswd/{{ sha1 $hostname }}
+            {{- end }}
         {{- end }}
-    {{- end }}
 
     server_name {{ $hostname }};
-    {{- if $vhost.server_tokens }}
+        {{- if $vhost.server_tokens }}
     server_tokens {{ $vhost.server_tokens }};
-    {{- end }}
-    {{ template "access_log" (dict "Enable" $globals.config.enable_access_log) }}
-    {{- if $vhost.http2_enabled }}
-    http2 on;
-    {{- end }}
-    {{- if or (eq $vhost.https_method "nohttps") (eq $vhost.https_method "noredirect") }}
-    listen {{ $globals.config.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
-        {{- if $globals.config.enable_ipv6 }}
-    listen [::]:{{ $globals.config.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
         {{- end }}
+        {{ template "access_log" (dict "Enable" $globals.config.enable_access_log) }}
+        {{- if $vhost.http2_enabled }}
+    http2 on;
+        {{- end }}
+        {{- if or (eq $vhost.https_method "nohttps") (eq $vhost.https_method "noredirect") }}
+    listen {{ $external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
+            {{- if $globals.config.enable_ipv6 }}
+    listen [::]:{{ $external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
+            {{- end }}
 
-        {{- if (and (eq $vhost.https_method "noredirect") $vhost.acme_http_challenge_enabled) }}
+            {{- if (and (eq $vhost.https_method "noredirect") $vhost.acme_http_challenge_enabled) }}
     location /.well-known/acme-challenge/ {
         auth_basic off;
         auth_request off;
@@ -1011,25 +1041,25 @@ server {
         try_files $uri =404;
         break;
     }
-        {{- end }}
-    {{- end }}
-    {{- if ne $vhost.https_method "nohttps" }}
-    listen {{ $globals.config.external_https_port }} ssl {{- $default_server }} {{- $proxy_protocol }};
-        {{- if $globals.config.enable_ipv6 }}
-    listen [::]:{{ $globals.config.external_https_port }} ssl {{- $default_server }} {{- $proxy_protocol }};
-        {{- end }}
-
-        {{- if $vhost.http3_enabled }}
-    http3 on;
-    add_header alt-svc 'h3=":{{ $globals.config.external_https_port }}"; ma=86400;';
-    listen {{ $globals.config.external_https_port }} quic {{- $default_server }} {{- $proxy_protocol }};
-            {{- if $globals.config.enable_ipv6 }}
-    listen [::]:{{ $globals.config.external_https_port }} quic {{- $default_server }} {{- $proxy_protocol }};
             {{- end }}
         {{- end }}
+        {{- if ne $vhost.https_method "nohttps" }}
+    listen {{ $external_https_port }} ssl {{- $default_server }} {{- $proxy_protocol }};
+            {{- if $globals.config.enable_ipv6 }}
+    listen [::]:{{ $external_https_port }} ssl {{- $default_server }} {{- $proxy_protocol }};
+            {{- end }}
 
-        {{- if $vhost.cert_ok }}
-            {{- template "ssl_policy" (dict "ssl_policy" $vhost.ssl_policy) }}
+            {{- if $vhost.http3_enabled }}
+    http3 on;
+    add_header alt-svc 'h3=":{{ $external_https_port }}"; ma=86400;';
+    listen {{ $external_https_port }} quic {{- $default_server }} {{- $proxy_protocol }};
+                {{- if $globals.config.enable_ipv6 }}
+    listen [::]:{{ $external_https_port }} quic {{- $default_server }} {{- $proxy_protocol }};
+                {{- end }}
+            {{- end }}
+
+            {{- if $vhost.cert_ok }}
+                {{- template "ssl_policy" (dict "ssl_policy" $vhost.ssl_policy) }}
 
     ssl_session_timeout 5m;
     ssl_session_cache shared:SSL:50m;
@@ -1038,77 +1068,78 @@ server {
     ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $vhost.cert) }};
     ssl_certificate_key /etc/nginx/certs/{{ (printf "%s.key" $vhost.cert) }};
 
-            {{- if (exists (printf "/etc/nginx/certs/%s.dhparam.pem" $vhost.cert)) }}
+                {{- if (exists (printf "/etc/nginx/certs/%s.dhparam.pem" $vhost.cert)) }}
     ssl_dhparam {{ printf "/etc/nginx/certs/%s.dhparam.pem" $vhost.cert }};
-            {{- end }}
+                {{- end }}
 
-            {{- if (exists (printf "/etc/nginx/certs/%s.chain.pem" $vhost.cert)) }}
+                {{- if (exists (printf "/etc/nginx/certs/%s.chain.pem" $vhost.cert)) }}
     ssl_stapling on;
     ssl_stapling_verify on;
     ssl_trusted_certificate {{ printf "/etc/nginx/certs/%s.chain.pem" $vhost.cert }};
-            {{- end }}
+                {{- end }}
 
-            {{- if (not (or (eq $vhost.https_method "noredirect") (eq $vhost.hsts "off"))) }}
+                {{- if (not (or (eq $vhost.https_method "noredirect") (eq $vhost.hsts "off"))) }}
     set $sts_header "";
     if ($https) {
         set $sts_header "{{ trim $vhost.hsts }}";
     }
     add_header Strict-Transport-Security $sts_header always;
-            {{- end }}
-        {{- else if not $vhost.trust_default_cert | and $globals.config.default_cert_ok }}
+                {{- end }}
+            {{- else if not $vhost.trust_default_cert | and $globals.config.default_cert_ok }}
     # No certificate found for this vhost, and the default certificate isn't trusted, so reject SSL handshake.
     ssl_reject_handshake on;
-        {{- else }}
+            {{- else }}
     # No certificate for this vhost nor default certificate found, so reject SSL handshake.
     ssl_reject_handshake on;
+            {{- end }}
         {{- end }}
-    {{- end }}
 
     {{- $vhostFileName :=  $vhost.is_regexp | ternary (sha1 $hostname) $hostname }}
 
-    {{- if (exists (printf "/etc/nginx/vhost.d/%s" $vhostFileName)) }}
+        {{- if (exists (printf "/etc/nginx/vhost.d/%s" $vhostFileName)) }}
     include {{ printf "/etc/nginx/vhost.d/%s" (replace $vhostFileName "*" "\\*" -1) }};
-    {{- else if (exists "/etc/nginx/vhost.d/default") }}
+        {{- else if (exists "/etc/nginx/vhost.d/default") }}
     include /etc/nginx/vhost.d/default;
-    {{- end }}
+        {{- end }}
 
-    {{/* SSL Client Certificate Validation */}}
-    {{/* If vhost(hash).ca.crt exists, include CA */}}
-    {{- if (exists (printf "/etc/nginx/certs/%s.ca.crt" $vhostFileName)) }}
+        {{/* SSL Client Certificate Validation */}}
+        {{/* If vhost(hash).ca.crt exists, include CA */}}
+        {{- if (exists (printf "/etc/nginx/certs/%s.ca.crt" $vhostFileName)) }}
     ssl_client_certificate {{ printf "/etc/nginx/certs/%s.ca.crt" $vhostFileName }};
     ssl_verify_client {{ $vhost.ssl_verify_client }};
-        {{/* If vhost(hash).crl.pem exists, include CRL */}}
-        {{- if (exists (printf "/etc/nginx/certs/%s.crl.pem" $vhostFileName)) }}
+            {{/* If vhost(hash).crl.pem exists, include CRL */}}
+            {{- if (exists (printf "/etc/nginx/certs/%s.crl.pem" $vhostFileName)) }}
     ssl_crl {{ printf "/etc/nginx/certs/%s.crl.pem" $vhostFileName }};
-        {{ end }}
-    {{/* Else if no vhost CA file exists, but a global ca.crt exists include it */}}
-    {{ else if (exists "/etc/nginx/certs/ca.crt") }}
+            {{ end }}
+        {{/* Else if no vhost CA file exists, but a global ca.crt exists include it */}}
+        {{ else if (exists "/etc/nginx/certs/ca.crt") }}
     ssl_client_certificate /etc/nginx/certs/ca.crt;
     ssl_verify_client {{ $vhost.ssl_verify_client }};
-        {{/* If no vhost CA file exists, but a global ca.crl.pem exists include it */}}
-        {{ if (exists "/etc/nginx/certs/ca.crl.pem")}}
+            {{/* If no vhost CA file exists, but a global ca.crl.pem exists include it */}}
+            {{ if (exists "/etc/nginx/certs/ca.crl.pem")}}
     ssl_crl /etc/nginx/certs/ca.crl.pem;
+            {{ end }}
         {{ end }}
-    {{ end }}
 
-    {{- if $vhost.enable_debug_endpoint }}
-        {{ template "debug_location" (dict "GlobalConfig" $globals.config "Hostname" $hostname "VHost" $vhost) }}
-    {{- end }}
+        {{- if $vhost.enable_debug_endpoint }}
+            {{ template "debug_location" (dict "GlobalConfig" $globals.config "Hostname" $hostname "VHost" $vhost) }}
+        {{- end }}
 
-    {{- range $path, $vpath := $vhost.paths }}
-        {{- template "location" (dict
-            "Path" $path
-            "Host" $vhostFileName
-            "HostIsRegexp" $vhost.is_regexp
-            "VhostRoot" $vhost.vhost_root
-            "VPath" $vpath
-        ) }}
-    {{- end }}
+        {{- range $path, $vpath := $paths }}
+            {{- template "location" (dict
+                "Path" $path
+                "Host" $vhostFileName
+                "HostIsRegexp" $vhost.is_regexp
+                "VhostRoot" $vhost.vhost_root
+                "VPath" $vpath
+            ) }}
+        {{- end }}
 
-    {{- if and (not (contains $vhost.paths "/")) (ne $globals.config.default_root_response "none")}}
+        {{- if and (not (contains $paths "/")) (ne $globals.config.default_root_response "none")}}
     location / {
         return {{ $globals.config.default_root_response }};
     }
-    {{- end }}
+        {{- end }}
 }
+    {{- end }}
 {{- end }}
