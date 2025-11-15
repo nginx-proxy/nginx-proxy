@@ -1,0 +1,43 @@
+services:
+  web:
+    image: web
+    expose:
+      - "81"
+      - "82"
+      - "83"
+      - "84"
+      - "881"
+      - "882"
+      - "883"
+      - "884"
+    environment:
+      WEB_PORTS: "81 82 83 84 881 882 883 884"
+      VIRTUAL_HOST_MULTIPORTS: |-
+        web1.nginx-proxy.tld:
+          external_http_port: 8080
+          external_https_port: 8443
+          "/":
+            port: 81
+          "/subpath":
+            dest: "/"
+            port: 881
+        web2.nginx-proxy.tld:
+          external_https_port: 8443
+          "/":
+            port: 82
+          "/subpath":
+            dest: "/"
+            port: 882
+        web3.nginx-proxy.tld:
+          external_http_port: 8080
+          "/":
+            port: 83
+          "/subpath":
+            dest: "/"
+            port: 883
+        web4.nginx-proxy.tld:
+          "/":
+            port: 84
+          "/subpath":
+            dest: "/"
+            port: 884
