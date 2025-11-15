@@ -621,12 +621,12 @@ proxy_set_header Proxy "";
         {{- end }}
 
         {{- $external_http_port := $vhost.external_http_port | default $globals.config.external_http_port | toString }}
-        {{- if not (hasKey $vhost_data "external_http_port") | and (ne $vhost_data.external_http_port $globals.config.external_http_port) }}
+        {{- if or (not (hasKey $vhost_data "external_http_port")) (eq $vhost_data.external_http_port $globals.config.external_http_port) }}
             {{- $_ := set $vhost_data "external_http_port" $external_http_port }}
         {{- end }}
 
         {{- $external_https_port := $vhost.external_https_port | default $globals.config.external_https_port | toString }}
-        {{- if not (hasKey $vhost_data "external_https_port") | and (ne $vhost_data.external_https_port $globals.config.external_https_port) }}
+        {{- if or (not (hasKey $vhost_data "external_https_port")) (eq $vhost_data.external_https_port $globals.config.external_https_port) }}
             {{- $_ := set $vhost_data "external_https_port" $external_https_port }}
         {{- end }}
 
@@ -693,12 +693,12 @@ proxy_set_header Proxy "";
     {{- $paths := $vhost_data.paths | default (dict) }}
 
     {{- $external_http_port := groupByKeys $containers "Env.EXTERNAL_HTTP_PORT" | first | default $globals.config.external_http_port | toString }}
-    {{- if not (hasKey $vhost_data "external_http_port") | and (ne $vhost_data.external_http_port $globals.config.external_http_port) }}
+    {{- if or (not (hasKey $vhost_data "external_http_port")) (eq $vhost_data.external_http_port $globals.config.external_http_port) }}
         {{- $_ := set $vhost_data "external_http_port" $external_http_port }}
     {{- end }}
 
     {{- $external_https_port := groupByKeys $containers "Env.EXTERNAL_HTTPS_PORT" | first | default $globals.config.external_https_port | toString }}
-    {{- if not (hasKey $vhost_data "external_https_port") | and (ne $vhost_data.external_https_port $globals.config.external_https_port) }}
+    {{- if or (not (hasKey $vhost_data "external_https_port")) (eq $vhost_data.external_https_port $globals.config.external_https_port) }}
         {{- $_ := set $vhost_data "external_https_port" $external_https_port }}
     {{- end }}
 
