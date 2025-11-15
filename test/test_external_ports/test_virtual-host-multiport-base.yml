@@ -1,0 +1,27 @@
+services:
+  web:
+    image: web
+    expose:
+      - "81"
+      - "82"
+      - "83"
+      - "84"
+    environment:
+      WEB_PORTS: "81 82 83 84"
+      VIRTUAL_HOST_MULTIPORTS: |-
+        web1.nginx-proxy.tld:
+          external_http_port: 8080
+          external_https_port: 8443
+          "/":
+            port: 81
+        web2.nginx-proxy.tld:
+          external_https_port: 8443
+          "/":
+            port: 82
+        web3.nginx-proxy.tld:
+          external_http_port: 8080
+          "/":
+            port: 83
+        web4.nginx-proxy.tld:
+          "/":
+            port: 84
