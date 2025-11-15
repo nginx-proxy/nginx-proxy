@@ -952,6 +952,7 @@ server {
 {{- end }}
 
 {{- range $hostname, $vhost := $globals.vhosts }}
+### hostname: {{ $hostname }} ###
     {{- $default_server := when $vhost.default " default_server" "" }}
     {{- $proxy_protocol := when $globals.config.enable_proxy_protocol " proxy_protocol" "" }}
 
@@ -960,9 +961,9 @@ server {
         {{- $external_http_port := $splitted_ports | first }}
         {{- $external_https_port := $splitted_ports | last }}
 
-# {{ printf "external ports: http:%s / https:%s" $external_http_port $external_https_port }}
+# external ports: http:{{ $external_http_port }}/https:{{ $external_https_port }}
         {{- range $path, $vpath := $paths }}
-# {{ $hostname }}{{ $path }}
+# path: {{ $hostname }}{{ $path }}
             {{ template "upstream" (dict "globals" $globals "Path" $path "VPath" $vpath) }}
         {{- end }}
 
