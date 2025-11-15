@@ -624,20 +624,27 @@ proxy_set_header Proxy "";
             {{ $vhost = dict "/" (dict) }}
         {{- end }}
 
+        {{- $vhost_external_http_port := $vhost.external_http_port | default $globals.config.external_http_port | toString }}
+        {{- $vhost_external_https_port := $vhost.external_https_port | default $globals.config.external_https_port | toString }}
+
         {{- range $path, $vpath := $vhost }}
+            {{- if eq $path "external_http_port" | or (eq $path "external_https_port") }}
+                {{- continue }}
+            {{- end }}
+
             {{- if (empty $vpath) }}
                 {{- $vpath = dict
-                    "external_http_port" $globals.config.external_http_port
-                    "external_https_port" $globals.config.external_https_port
+                    "external_http_port" $vhost_external_http_port
+                    "external_https_port" $vhost_external_https_port
                     "dest" ""
                     "port" "default"
                     "proto" "http"
                 }}
             {{- end }}
 
-            {{- $external_http_port := $vpath.external_http_port | default $globals.config.external_http_port | toString }}
-            {{- $external_https_port := $vpath.external_https_port | default $globals.config.external_https_port | toString }}
-            {{- $path_external_ports := printf "%s,%s" $external_http_port $external_https_port }}
+            {{- $path_external_http_port := $vpath.external_http_port | default $vhost_external_http_port | toString }}
+            {{- $path_external_https_port := $vpath.external_https_port | default $vhost_external_https_port | toString }}
+            {{- $path_external_ports := printf "%s,%s" $path_external_http_port $path_external_https_port }}
 
             {{- $dest := $vpath.dest | default "" }}
             {{- $port := $vpath.port | default "default" | toString }}
