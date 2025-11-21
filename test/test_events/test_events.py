@@ -66,7 +66,7 @@ def test_new_container_is_detected_vhost(web1, nginxproxy):
     assert "answer from port 81\n" == r.text
 
     web1.remove(force=True)
-    sleep(2)
+    sleep(1)
     r = nginxproxy.get("http://web1.nginx-proxy/port")
     assert r.status_code == 503
 
@@ -78,7 +78,22 @@ def test_new_container_is_detected_vpath(web2, nginxproxy):
     assert r.status_code in [404, 503]
 
     web2.remove(force=True)
-    sleep(2)
+    sleep(1)
     r = nginxproxy.get("http://nginx-proxy/web2/port")
     assert r.status_code == 503
 
+def test_docker_network_events_are_detected(web1, docker_compose, nginxproxy):
+    r = nginxproxy.get("http://web1.nginx-proxy/port")
+    assert r.status_code == 200
+    assert "answer from port 81\n" == r.text
+
+    docker_compose.networks.get("test_events-net").disconnect(web1)
+    sleep(1)
+    r = nginxproxy.get("http://web1.nginx-proxy/port")
+    assert r.status_code == 502
+
+    docker_compose.networks.get("test_events-net").connect(web1)
+    sleep(1)
+    r = nginxproxy.get("http://web1.nginx-proxy/port")
+    assert r.status_code == 200
+    assert "answer from port 81\n" == r.text
