@@ -32,7 +32,7 @@ jobs:
     if: (github.event_name == 'schedule' && github.repository == 'nginx-proxy/nginx-proxy') || (github.event_name != 'schedule')
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
