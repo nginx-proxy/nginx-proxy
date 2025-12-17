@@ -44,6 +44,31 @@ Note: providing a port number in `VIRTUAL_HOST` isn't suported, please see [virt
 The nginx-proxy images are available in two flavors.
 
 #### Debian based version
+### Virtual Host Aliases
+
+You can add aliases that will redirect (301) to the first entry in `VIRTUAL_HOST` by adding the `VIRTUAL_HOST_ALIAS` env var:
+
+    $ docker run -e VIRTUAL_HOST=example.com -e VIRTUAL_HOST_ALIAS=www.example.com,old.example.com ...
+
+This will setup the following redirects:
+- `http://www.example.com` &#8594; `http://example.com`
+- `http://old.example.com` &#8594; `http://example.com`
+
+If you are using [letsencrypt-nginx-proxy-companion](https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion) for SSL support, then you would run:
+
+    $ docker run    -e VIRTUAL_HOST=example.com \
+                    -e VIRTUAL_HOST_ALIAS=www.example.com,old.example.com
+                    -e LETSENCRYPT_HOST=example.com,www.example.com,old.example.com
+                    ...
+
+This will setup the following redirects:
+ - `http://example.com` &#8594; `https://example.com`
+ - `http://www.example.com` &#8594; `https://example.com`
+ - `http://old.example.com` &#8594; `https://example.com`
+ - `https://www.example.com` &#8594; `https://example.com`
+ - `https://old.example.com` &#8594; `https://example.com`
+
+
 
 This image is based on the nginx:mainline image, itself based on the debian slim image.
 
