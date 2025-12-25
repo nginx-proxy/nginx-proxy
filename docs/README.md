@@ -423,8 +423,7 @@ $host $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_s
 ### Custom log format
 
 If you want to use a custom access log format, you can set `LOG_FORMAT=xxx` on the proxy container.
-If running [separate containers](#separate-containers) `LOG_FORMAT=xxx` is set on the
-docker-gen container.
+If running [separate containers](#separate-containers) `LOG_FORMAT=xxx` should be set on the docker-gen container instead.
 
 With docker compose take care to escape the `$` character with `$$` to avoid variable interpolation. Example: `$remote_addr` becomes `$$remote_addr`.
 
