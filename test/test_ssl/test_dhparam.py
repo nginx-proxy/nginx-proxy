@@ -75,7 +75,7 @@ def negotiate_cipher(sut_container, additional_params='', grep='Cipher is'):
         # `text=True` prevents the need to compare against byte strings.
         # `stderr=subprocess.PIPE` removes the output to stderr being interleaved with test case status (output during exceptions).
         return subprocess.check_output(
-            f"echo '' | openssl s_client -connect {host} -tls1_2 {additional_params} | grep '{grep}'",
+            f"echo '' | openssl s_client -connect {host} -tls1_2 {additional_params} | grep -E '{grep}'",
             shell=True,
             text=True,
             stderr=subprocess.PIPE,
@@ -95,8 +95,10 @@ def can_negotiate_dhe_ciphersuite(sut_container, dh_bits=4096, additional_params
     r = negotiate_cipher(sut_container, openssl_params)
     assert "New, TLSv1.2, Cipher is DHE-RSA-AES256-GCM-SHA384\n" == r
 
-    r2 = negotiate_cipher(sut_container, openssl_params, "Server Temp Key")
-    assert f"Server Temp Key: DH, {dh_bits} bits" in r2
+    # openssl << 3.5.0 returns 'Server Temp Key'
+    # openssl >= 3.5.0 returns 'Peer Temp Key'
+    r2 = negotiate_cipher(sut_container, openssl_params, "(Server|Peer) Temp Key")
+    assert f"Temp Key: DH, {dh_bits} bits" in r2
 
 
 def cannot_negotiate_dhe_ciphersuite(sut_container):
@@ -108,7 +110,9 @@ def cannot_negotiate_dhe_ciphersuite(sut_container):
     r2 = negotiate_cipher(sut_container)
     assert "New, TLSv1.2, Cipher is ECDHE-RSA-AES256-GCM-SHA384\n" == r2
 
-    r3 = negotiate_cipher(sut_container, grep="Server Temp Key")
+    # openssl << 3.5.0 returns 'Server Temp Key'
+    # openssl >= 3.5.0 returns 'Peer Temp Key'
+    r3 = negotiate_cipher(sut_container, grep="(Server|Peer) Temp Key")
     assert "X25519" in r3
 
 
