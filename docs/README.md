@@ -942,6 +942,8 @@ docker run --detach \
     --volume /path/to/custom-vhost-config.conf:/etc/nginx/vhost.d/app.example.com:ro \
     nginxproxy/nginx-proxy
 ```
+#### Per-VIRTUAL_HOST http location
+To add settings on a per-`VIRTUAL_HOST` basis but for the http part, add your configuration file under `/etc/nginx/vhost.d` just like the previous section except with the suffix `_http`. This allow you to add configuration before the https redirection like the acme challenge. This is mostly usefull for all others 'not supporting https redirect' `.well-known` URIs.
 
 </details>
 
