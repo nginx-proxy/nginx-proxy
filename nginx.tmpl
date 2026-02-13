@@ -796,6 +796,9 @@ proxy_set_header Proxy "";
     {{- /* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
     {{- $vhost_root := groupByKeys $vhost_containers "Env.VIRTUAL_ROOT" | first | default "/var/www/public" }}
 
+    {{- /* Get the LETSENCRYPT_CERTNAME By containers */}}
+    {{- $letsencrypt_certname := groupByKeys $vhost_containers "Env.LETSENCRYPT_CERTNAME" | first | default "" }}
+
     {{- $vhost_data = merge $vhost_data (dict
         "cert" $cert
         "cert_ok" $cert_ok
@@ -815,6 +818,7 @@ proxy_set_header Proxy "";
         "trust_default_cert" $trust_default_cert
         "upstream_name" $upstream_name
         "vhost_root" $vhost_root
+        "letsencrypt_certname" $letsencrypt_certname
     ) }}
     {{- $_ := set $globals.vhosts $hostname $vhost_data }}
 {{- end }}
@@ -1028,24 +1032,31 @@ server {
             {{- end }}
         {{- end }}
 
-        {{- if $vhost.cert_ok }}
+    {{- if (or ($vhost.cert_ok) (exists (printf "/etc/letsencrypt/live/%s/cert.pem" $vhost.letsencrypt_certname))) }}
             {{- template "ssl_policy" (dict "ssl_policy" $vhost.ssl_policy) }}
 
     ssl_session_timeout 5m;
     ssl_session_cache shared:SSL:50m;
     ssl_session_tickets off;
 
+            {{- if (exists (printf "/etc/letsencrypt/live/%s/cert.pem" $vhost.letsencrypt_certname)) }}
+    ssl_certificate {{ printf "/etc/letsencrypt/live/%s/cert.pem" $vhost.letsencrypt_certname }};
+    ssl_certificate_key {{ printf "/etc/letsencrypt/live/%s/privkey.pem" $vhost.letsencrypt_certname }};
+    ssl_trusted_certificate {{ printf "/etc/letsencrypt/live/%s/fullchain.pem" $vhost.letsencrypt_certname }};
+            {{- else }}
+
     ssl_certificate /etc/nginx/certs/{{ (printf "%s.crt" $vhost.cert) }};
     ssl_certificate_key /etc/nginx/certs/{{ (printf "%s.key" $vhost.cert) }};
 
-            {{- if (exists (printf "/etc/nginx/certs/%s.dhparam.pem" $vhost.cert)) }}
+                {{- if (exists (printf "/etc/nginx/certs/%s.dhparam.pem" $vhost.cert)) }}
     ssl_dhparam {{ printf "/etc/nginx/certs/%s.dhparam.pem" $vhost.cert }};
-            {{- end }}
+                {{- end }}
 
-            {{- if (exists (printf "/etc/nginx/certs/%s.chain.pem" $vhost.cert)) }}
+                {{- if (exists (printf "/etc/nginx/certs/%s.chain.pem" $vhost.cert)) }}
     ssl_stapling on;
     ssl_stapling_verify on;
     ssl_trusted_certificate {{ printf "/etc/nginx/certs/%s.chain.pem" $vhost.cert }};
+                {{- end }}
             {{- end }}
 
             {{- if (not (or (eq $vhost.https_method "noredirect") (eq $vhost.hsts "off"))) }}
