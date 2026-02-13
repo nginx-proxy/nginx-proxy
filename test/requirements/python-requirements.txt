@@ -1,6 +1,6 @@
 backoff==2.2.1
 docker==7.1.0
-packaging==25.0
+packaging==26.0
 pytest==9.0.2
 pytest-ignore-flaky==2.2.1
 requests==2.32.5
