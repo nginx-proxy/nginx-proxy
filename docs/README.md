@@ -1525,7 +1525,7 @@ services:
 (on the CLI, using [`jq`](https://jqlang.github.io/jq/) to format the output of `curl` is recommended)
 
 ```console
-curl -s -H "Host: test.nginx-proxy.tld" localhost/nginx-proxy-debug | jq
+curl -s -H "Host: test.nginx-proxy.tld" localhost/nginx-proxy-debug | jq
 ```
 
 ```json
