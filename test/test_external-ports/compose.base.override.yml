@@ -1,0 +1,12 @@
+services:
+  nginx-proxy:
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ${PYTEST_MODULE_PATH}/certs:/etc/nginx/certs:ro
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+      - "8443:8443"
+      - "8000:8000"
+      - "4443:4443"
