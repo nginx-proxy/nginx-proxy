@@ -18,7 +18,7 @@ docker run --detach \
     --name nginx-proxy \
     --publish 80:80 \
     --volume /var/run/docker.sock:/tmp/docker.sock:ro \
-    nginxproxy/nginx-proxy:1.9
+    nginxproxy/nginx-proxy:1.10
 ```
 
 Then start any containers (here an nginx container) you want proxied with an env var `VIRTUAL_HOST=subdomain.yourdomain.com`
@@ -48,7 +48,7 @@ The nginx-proxy images are available in two flavors.
 This image is based on the nginx:mainline image, itself based on the debian slim image.
 
 ```shell
-docker pull nginxproxy/nginx-proxy:1.9
+docker pull nginxproxy/nginx-proxy:1.10
 ```
 
 #### Alpine based version (`-alpine` suffix)
@@ -56,7 +56,7 @@ docker pull nginxproxy/nginx-proxy:1.9
 This image is based on the nginx:alpine image.
 
 ```shell
-docker pull nginxproxy/nginx-proxy:1.9-alpine
+docker pull nginxproxy/nginx-proxy:1.10-alpine
 ```
 
 > [!IMPORTANT]
