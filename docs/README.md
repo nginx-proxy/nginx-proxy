@@ -1525,7 +1525,7 @@ services:
 (on the CLI, using [`jq`](https://jqlang.github.io/jq/) to format the output of `curl` is recommended)
 
 ```console
-curl -s -H "Host: test.nginx-proxy.tld" localhost/nginx-proxy-debug | jq
+curl -s -H "Host: test.nginx-proxy.tld" localhost/nginx-proxy-debug | jq
 ```
 
 ```json
@@ -1549,7 +1549,7 @@ curl -s -H "Host: test.nginx-proxy.tld" localhost/nginx-proxy-debug | jq
     "https_method": "redirect",
     "log_format": null,
     "log_format_escape": null,
-    "nginx_proxy_version": "1.9.0",
+    "nginx_proxy_version": "1.10.0",
     "resolvers": "127.0.0.11",
     "sha1_upstream_name": false,
     "ssl_policy": "Mozilla-Intermediate",

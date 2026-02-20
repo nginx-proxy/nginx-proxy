@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
-FROM docker.io/nginxproxy/docker-gen:0.16.1-debian AS docker-gen
+FROM docker.io/nginxproxy/docker-gen:0.16.2-debian AS docker-gen
 
-FROM docker.io/nginxproxy/forego:0.18.4-debian AS forego
+FROM docker.io/nginxproxy/forego:0.18.5-debian AS forego
 
 # Build the final image
-FROM docker.io/library/nginx:1.29.4
+FROM docker.io/library/nginx:1.29.5
 
 ARG NGINX_PROXY_VERSION
 # Add DOCKER_GEN_VERSION environment variable because 
