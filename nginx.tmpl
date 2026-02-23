@@ -620,7 +620,21 @@ proxy_set_header Proxy "";
             {{ $vhost = dict "/" (dict) }}
         {{- end }}
 
+        {{- $external_http_port := $vhost.external_http_port | default $globals.config.external_http_port | toString }}
+        {{- if or (not (hasKey $vhost_data "external_http_port")) (eq $vhost_data.external_http_port $globals.config.external_http_port) }}
+            {{- $_ := set $vhost_data "external_http_port" $external_http_port }}
+        {{- end }}
+
+        {{- $external_https_port := $vhost.external_https_port | default $globals.config.external_https_port | toString }}
+        {{- if or (not (hasKey $vhost_data "external_https_port")) (eq $vhost_data.external_https_port $globals.config.external_https_port) }}
+            {{- $_ := set $vhost_data "external_https_port" $external_https_port }}
+        {{- end }}
+
         {{- range $path, $vpath := $vhost }}
+            {{- if not (hasPrefix "/" $path) }}
+                {{- continue }}
+            {{- end }}
+
             {{- if (empty $vpath) }}
                 {{- $vpath = dict
                     "dest" ""
@@ -649,6 +663,7 @@ proxy_set_header Proxy "";
 
             {{- $_ := set $paths $path $path_data }}
         {{- end }}
+
         {{- $_ := set $vhost_data "paths" $paths }}
         {{- $_ := set $globals.vhosts $hostname $vhost_data }}
     {{- end }}
@@ -676,6 +691,16 @@ proxy_set_header Proxy "";
 
     {{- $vhost_data := get $globals.vhosts $hostname | default (dict) }}
     {{- $paths := $vhost_data.paths | default (dict) }}
+
+    {{- $external_http_port := groupByKeys $containers "Env.EXTERNAL_HTTP_PORT" | first | default $globals.config.external_http_port | toString }}
+    {{- if or (not (hasKey $vhost_data "external_http_port")) (eq $vhost_data.external_http_port $globals.config.external_http_port) }}
+        {{- $_ := set $vhost_data "external_http_port" $external_http_port }}
+    {{- end }}
+
+    {{- $external_https_port := groupByKeys $containers "Env.EXTERNAL_HTTPS_PORT" | first | default $globals.config.external_https_port | toString }}
+    {{- if or (not (hasKey $vhost_data "external_https_port")) (eq $vhost_data.external_https_port $globals.config.external_https_port) }}
+        {{- $_ := set $vhost_data "external_https_port" $external_https_port }}
+    {{- end }}
 
     {{- $tmp_paths := groupByWithDefault $containers "Env.VIRTUAL_PATH" "/" }}
 
@@ -936,9 +961,9 @@ server {
     server_tokens {{ $vhost.server_tokens }};
         {{- end }}
     {{ template "access_log" (dict "Enable" $globals.config.enable_access_log) }}
-    listen {{ $globals.config.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
+    listen {{ $vhost.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
         {{- if $globals.config.enable_ipv6 }}
-    listen [::]:{{ $globals.config.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
+    listen [::]:{{ $vhost.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
         {{- end }}
 
         {{- if (or $vhost.acme_http_challenge_legacy $vhost.acme_http_challenge_enabled) }}
@@ -959,8 +984,8 @@ server {
 
     location / {
         {{- $redirect_uri := "https://$host$request_uri" }}
-        {{- if ne $globals.config.external_https_port "443" }}
-            {{- $redirect_uri = printf "https://$host:%s$request_uri" $globals.config.external_https_port }}
+        {{- if ne $vhost.external_https_port "443" }}
+            {{- $redirect_uri = printf "https://$host:%s$request_uri" $vhost.external_https_port }}
         {{- end}}
         if ($request_method ~ (OPTIONS|POST|PUT|PATCH|DELETE)) {
             return {{ $vhost.non_get_redirect }} {{ $redirect_uri }};
@@ -997,9 +1022,9 @@ server {
     http2 on;
     {{- end }}
     {{- if or (eq $vhost.https_method "nohttps") (eq $vhost.https_method "noredirect") }}
-    listen {{ $globals.config.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
+    listen {{ $vhost.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
         {{- if $globals.config.enable_ipv6 }}
-    listen [::]:{{ $globals.config.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
+    listen [::]:{{ $vhost.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
         {{- end }}
 
         {{- if (and (eq $vhost.https_method "noredirect") $vhost.acme_http_challenge_enabled) }}
@@ -1014,17 +1039,17 @@ server {
         {{- end }}
     {{- end }}
     {{- if ne $vhost.https_method "nohttps" }}
-    listen {{ $globals.config.external_https_port }} ssl {{- $default_server }} {{- $proxy_protocol }};
+    listen {{ $vhost.external_https_port }} ssl {{- $default_server }} {{- $proxy_protocol }};
         {{- if $globals.config.enable_ipv6 }}
-    listen [::]:{{ $globals.config.external_https_port }} ssl {{- $default_server }} {{- $proxy_protocol }};
+    listen [::]:{{ $vhost.external_https_port }} ssl {{- $default_server }} {{- $proxy_protocol }};
         {{- end }}
 
         {{- if $vhost.http3_enabled }}
     http3 on;
-    add_header alt-svc 'h3=":{{ $globals.config.external_https_port }}"; ma=86400;';
-    listen {{ $globals.config.external_https_port }} quic {{- $default_server }} {{- $proxy_protocol }};
+    add_header alt-svc 'h3=":{{ $vhost.external_https_port }}"; ma=86400;';
+    listen {{ $vhost.external_https_port }} quic {{- $default_server }} {{- $proxy_protocol }};
             {{- if $globals.config.enable_ipv6 }}
-    listen [::]:{{ $globals.config.external_https_port }} quic {{- $default_server }} {{- $proxy_protocol }};
+    listen [::]:{{ $vhost.external_https_port }} quic {{- $default_server }} {{- $proxy_protocol }};
             {{- end }}
         {{- end }}
 
