@@ -6,6 +6,7 @@ import platform
 import re
 import shlex
 import socket
+import ssl
 import subprocess
 import time
 from io import StringIO
@@ -67,6 +68,24 @@ def ipv6(force_ipv6: bool = True):
     FORCE_CONTAINER_IPV6 = False
 
 
+class NginxProxyAdapter(requests.adapters.HTTPAdapter):
+    """
+    This is a dedicated HTTPAdapter to allow changes to the default SSL context
+    It is needed with Python >= 3.13 where the default SSL context makes our
+    HTTPS tests fail
+    Made after https://stackoverflow.com/a/78265028
+    """
+    def init_poolmanager(self, connections, maxsize, block=False):
+        ctx = ssl.create_default_context()
+        # This setting was added to the default context as of Python 3.13
+        # We need to disable it to avoid HTTPS tests failures
+        ctx.verify_flags &= ~ssl.VerifyFlags.VERIFY_X509_STRICT
+        # This one wasn't changed but is now incompatible when the request is
+        # made with 'verify = False', causing the error:
+        # ValueError: Cannot set verify_mode to CERT_NONE when check_hostname is enabled
+        ctx.check_hostname = False
+        return super().init_poolmanager(connections, maxsize, block, ssl_context=ctx)
+
 class RequestsForDocker:
     """
     Proxy for calling methods of the requests module.
@@ -75,6 +94,8 @@ class RequestsForDocker:
     """
     def __init__(self):
         self.session = requests.Session()
+        # See docstring for NginxProxyAdapter
+        self.session.mount("https://", NginxProxyAdapter())
         if CA_ROOT_CERTIFICATE.is_file():
             self.session.verify = CA_ROOT_CERTIFICATE.as_posix()
 
