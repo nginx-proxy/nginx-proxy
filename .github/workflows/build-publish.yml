@@ -46,7 +46,7 @@ jobs:
 
       - name: Get Docker tags
         id: docker_meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: |
             ghcr.io/nginx-proxy/nginx-proxy
