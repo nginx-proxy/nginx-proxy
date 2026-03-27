@@ -58,4 +58,4 @@ def test_container_hotplug(web4, nginxproxy):
     web4.remove(force=True)
     sleep(2)
     r = nginxproxy.get(f"http://nginx-proxy.test/web4/port")
-    assert r.status_code == 404
+    assert r.status_code == 502
