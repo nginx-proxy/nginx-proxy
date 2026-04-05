@@ -29,6 +29,8 @@ COPY --from=docker-gen /usr/local/bin/docker-gen /usr/local/bin/docker-gen
 
 COPY network_internal.conf /etc/nginx/
 
+HEALTHCHECK --start-period=30s --interval=1m --timeout=1s CMD curl -sI http://localhost/ || exit 1
+
 COPY app nginx.tmpl LICENSE /app/
 WORKDIR /app/
 
