@@ -1,4 +1,4 @@
-FROM nginx:1.11.10
+FROM nginx:1.24.0
 MAINTAINER Jason Wilder mail@jasonwilder.com
 
 # Install wget and install/updates certificates
@@ -7,7 +7,8 @@ RUN apt-get update \
     ca-certificates \
     wget \
     curl \
-    python \
+    python3 \
+    python3-pip \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/*
 
@@ -30,9 +31,10 @@ WORKDIR /app/
 
 ENV DOCKER_HOST unix:///tmp/docker.sock
 
-RUN curl -O https://bootstrap.pypa.io/get-pip.py
-RUN python get-pip.py
-RUN pip install awscli
+RUN curl -O https://bootstrap.pypa.io/get-pip.py \
+ && python3 get-pip.py --break-system-packages \
+ && pip3 install awscli --break-system-packages \
+ && rm get-pip.py
 
 # VOLUME ["/etc/nginx/certs"]
 
