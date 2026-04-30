@@ -1,7 +1,7 @@
 backoff==2.2.1
 docker==7.1.0
 packaging==26.2
-pytest==9.0.2
+pytest==9.0.3
 pytest-ignore-flaky==2.2.1
 requests==2.33.1
 urllib3==2.6.3
