@@ -92,6 +92,9 @@ For each hostname entry, `external_http_port`, `external_https_port`, `path`, `p
 
 The `external_http_port` and `external_https_port` options define the external port on which the virtual host is accessible. See [Per-container external ports](#per-container-external-ports) for more details and examples.
 
+> [!NOTE]
+> When multiple containers share the same hostname using different configuration methods (e.g., one using `VIRTUAL_HOST_MULTIPORTS` and another using `VIRTUAL_HOST` with `EXTERNAL_*_PORT`), the external port settings from `VIRTUAL_HOST_MULTIPORTS` take precedence for the entire virtual host. This means all paths under that hostname will use the external ports defined in `VIRTUAL_HOST_MULTIPORTS`, even paths from containers that specified different values via `EXTERNAL_*_PORT` environment variables.
+
 #### Multiple ports routed to different hostnames
 
 The following example use an hypothetical container running services over HTTP on port 80, 8000 and 9000:

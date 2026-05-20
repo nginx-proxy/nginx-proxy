@@ -1,0 +1,25 @@
+services:
+  multiports-container:
+    image: web
+    expose:
+      - "81"
+    environment:
+      WEB_PORTS: "81"
+      VIRTUAL_HOST_MULTIPORTS: |-
+        shared.nginx-proxy.tld:
+          external_https_port: 9443
+          "/multiports":
+            dest: "/"
+            port: 81
+
+  virtualhost-container:
+    image: web
+    expose:
+      - "82"
+    environment:
+      WEB_PORTS: "82"
+      VIRTUAL_HOST: shared.nginx-proxy.tld
+      VIRTUAL_PATH: "/virtualhost"
+      VIRTUAL_DEST: "/"
+      VIRTUAL_PORT: "82"
+      EXTERNAL_HTTPS_PORT: "8443"  # This should be IGNORED - MULTIPORTS takes precedence
