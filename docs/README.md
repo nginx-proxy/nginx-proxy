@@ -73,18 +73,24 @@ The expected format is the following:
 
 ```yaml
 hostname:
+  external_http_port: int
+  external_https_port: int
   path:
     port: int
     proto: string
     dest: string
 ```
 
-For each hostname entry, `path`, `port`, `proto` and `dest` are optional and are assigned default values when missing:
+For each hostname entry, `external_http_port`, `external_https_port`, `path`, `port`, `proto` and `dest` are optional and are assigned default values when missing:
 
+- `external_http_port` = global `HTTP_PORT` value (default: 80)
+- `external_https_port` = global `HTTPS_PORT` value (default: 443)
 - `path` = "/"
 - `port` = default port
 - `proto` = "http"
 - `dest` = ""
+
+The `external_http_port` and `external_https_port` options define the external port on which the virtual host is accessible. See [Per-container external ports](#per-container-external-ports) for more details and examples.
 
 #### Multiple ports routed to different hostnames
 
@@ -243,6 +249,60 @@ docker run --detach \
     --volume /var/run/docker.sock:/tmp/docker.sock:ro \
     nginxproxy/nginx-proxy
 ```
+
+#### Per-container external ports
+
+In addition to the global `HTTP_PORT` and `HTTPS_PORT` settings, you can configure custom external ports on a per-container basis using the `EXTERNAL_HTTP_PORT` and/or `EXTERNAL_HTTPS_PORT` environment variables on the proxied containers. This is useful when you want specific services to be accessed on non-standard ports while others use the default ports.
+
+For example, to expose a service on port 8448 for HTTPS:
+
+```yaml
+services:
+  myapp:
+    image: myapp:latest
+    environment:
+      VIRTUAL_HOST: "example.org"
+      VIRTUAL_PORT: "8448"
+      EXTERNAL_HTTPS_PORT: "8448"
+```
+
+This configuration will make the service accessible at `https://example.org:8448` and route traffic to the container's port 8448.
+
+When using [`VIRTUAL_HOST_MULTIPORTS`](#multiple-ports), you can also specify `external_http_port` and/or `external_https_port` at the virtual host level. These settings apply to all paths under that virtual host:
+
+```yaml
+services:
+  synapse:
+    image: synapse:latest
+    environment:
+      VIRTUAL_HOST_MULTIPORTS: |-
+        example.org:
+          external_https_port: 8448
+          "/":
+            port: 8448
+          "/path":
+            port: 80
+        matrix.example.org:
+          "/":
+            port: 8080
+```
+
+This will result in:
+- `https://example.org:8448/` → `synapse:8448`
+- `https://example.org:8448/path` → `synapse:80`
+- `https://matrix.example.org/` → `synapse:8080` (uses default HTTPS port 443)
+
+The `external_http_port` and `external_https_port` options in `VIRTUAL_HOST_MULTIPORTS` take precedence over the `EXTERNAL_HTTP_PORT` and `EXTERNAL_HTTPS_PORT` environment variables for that specific virtual host.
+
+> [!NOTE]
+> **Port Sharing Between Virtual Hosts**
+>
+> Multiple virtual hosts can share the same external port. Nginx uses the `server_name` directive to differentiate between them and route requests to the correct backend container. For example, both `web1.example.com` and `web2.example.com` can use `EXTERNAL_HTTPS_PORT: 8443`, and nginx will correctly route `https://web1.example.com:8443` to web1 and `https://web2.example.com:8443` to web2.
+>
+> However, be aware of these limitations:
+> - Only one virtual host per port can be set as the [`DEFAULT_HOST`](#default-host)
+> - Do not configure the same port for both HTTP and HTTPS on the same virtual host (e.g., `EXTERNAL_HTTP_PORT: 8080` and `EXTERNAL_HTTPS_PORT: 8080` together would cause conflicts)
+> - Make sure the nginx-proxy container has the necessary port mappings (`--publish` flags) for all custom external ports used by your virtual hosts
 
 ### Multiple Networks
 
@@ -1395,6 +1455,8 @@ Configuration available on each proxied container, either by environment variabl
 | [`CERT_NAME`](#san-certificates) | n/a | no default value |
 | n/a | [`com.github.nginx-proxy.nginx-proxy.debug-endpoint`](#debug-endpoint) | global (proxy) value |
 | [`ENABLE_HTTP_ON_MISSING_CERT`](#default-and-missing-certificate) | n/a | global (proxy) value |
+| [`EXTERNAL_HTTP_PORT`](#per-container-external-ports) | n/a | global (proxy) `HTTP_PORT` value |
+| [`EXTERNAL_HTTPS_PORT`](#per-container-external-ports) | n/a | global (proxy) `HTTPS_PORT` value |
 | [`HSTS`](#how-ssl-support-works) | n/a | global (proxy) value |
 | n/a | [`com.github.nginx-proxy.nginx-proxy.http2.enable`](#http2-support) | global (proxy) value |
 | n/a | [`com.github.nginx-proxy.nginx-proxy.http3.enable`](#http3-support) | global (proxy) value |
