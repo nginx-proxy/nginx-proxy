@@ -1,0 +1,15 @@
+services:
+  nginx-proxy:
+    environment:
+      ENABLE_VIRTUAL_CONFIG: "true"
+
+  web:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: web.nginx-proxy.tld
+      VIRTUAL_CLIENT_MAX_BODY_SIZE: "200m"
+      VIRTUAL_KEEPALIVE_TIMEOUT: "60s"
+      VIRTUAL_PROXY_BUFFERING: "off"
