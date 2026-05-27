@@ -1,0 +1,21 @@
+services:
+  nginx-proxy:
+    environment:
+      ENABLE_VIRTUAL_CONFIG: "true"
+      # Valid directive
+      VIRTUAL_CLIENT_MAX_BODY_SIZE: "100m"
+      # Invalid values that should be silently ignored (format validation)
+      VIRTUAL_KEEPALIVE_TIMEOUT: "invalid_value"
+      VIRTUAL_KEEPALIVE_REQUESTS: "not_a_number"
+      VIRTUAL_PROXY_BUFFERING: "maybe"
+
+  web:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: web.nginx-proxy.tld
+      # Invalid per-vhost directives
+      VIRTUAL_CLIENT_HEADER_BUFFER_SIZE: "not_a_size"
+      VIRTUAL_REAL_IP_RECURSIVE: "yes_or_no"
