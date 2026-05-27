@@ -12,6 +12,7 @@
 - [HTTP/2 and HTTP/3](#http2-and-http3)
 - [Headers](#headers)
 - [Custom Nginx Configuration](#custom-nginx-configuration)
+  - [Virtual nginx directive configuration via environment variables](#virtual-nginx-directive-configuration-via-environment-variables)
 - [TCP and UDP stream](#tcp-and-udp-stream)
 - [Unhashed vs SHA1 upstream names](#unhashed-vs-sha1-upstream-names)
 - [Filtering containers](#filtering-containers)
@@ -977,6 +978,87 @@ services:
 > nginx reads configuration from `/etc/nginx/conf.d` directory in alphabetical order.
 > Note that the configuration managed by nginx-proxy is placed at `/etc/nginx/conf.d/default.conf`.
 
+### Virtual nginx directive configuration via environment variables
+
+Instead of mounting custom configuration files, a number of common nginx directives can be configured directly via environment variables. This feature must first be enabled on the **proxy container** by setting `ENABLE_VIRTUAL_CONFIG=true`.
+
+With this feature enabled, each directive can be set globally (affecting all virtual hosts) by setting the corresponding environment variable on the proxy container, or per virtual host by setting it on the proxied container. The environment variable name is `VIRTUAL_<DIRECTIVE_UPPERCASE>`, where `<DIRECTIVE_UPPERCASE>` is the nginx directive name in upper case with underscores.
+
+For example, to set `client_max_body_size` globally:
+
+```yaml
+services:
+  proxy:
+    image: nginxproxy/nginx-proxy
+    environment:
+      - ENABLE_VIRTUAL_CONFIG=true
+      - VIRTUAL_CLIENT_MAX_BODY_SIZE=100m
+```
+
+Or per virtual host on the proxied container:
+
+```yaml
+services:
+  app:
+    image: my-app
+    environment:
+      - VIRTUAL_HOST=app.example.com
+      - VIRTUAL_CLIENT_MAX_BODY_SIZE=500m
+```
+
+Directives that can appear multiple times in nginx (e.g. `set_real_ip_from`) can be specified as a semicolon-separated list:
+
+```yaml
+environment:
+  - VIRTUAL_SET_REAL_IP_FROM=10.0.0.0/8;172.16.0.0/12;192.168.0.0/16
+```
+
+This will emit one `set_real_ip_from` directive per value.
+
+> [!IMPORTANT]
+> All values are validated against a format pattern before being emitted. Values that do not match the expected nginx syntax are silently ignored. Refer to the [nginx documentation](https://nginx.org/en/docs/) for the accepted syntax of each directive.
+
+The following directives are supported:
+
+| Environment variable | nginx directive | Accepted format |
+|---|---|---|
+| `VIRTUAL_CLIENT_BODY_BUFFER_SIZE` | [`client_body_buffer_size`](https://nginx.org/en/docs/http/ngx_http_core_module.html#client_body_buffer_size) | size (`1k`, `2m`, …) |
+| `VIRTUAL_CLIENT_BODY_TIMEOUT` | [`client_body_timeout`](https://nginx.org/en/docs/http/ngx_http_core_module.html#client_body_timeout) | time (`60s`, `1m`, …) |
+| `VIRTUAL_CLIENT_HEADER_BUFFER_SIZE` | [`client_header_buffer_size`](https://nginx.org/en/docs/http/ngx_http_core_module.html#client_header_buffer_size) | size |
+| `VIRTUAL_CLIENT_HEADER_TIMEOUT` | [`client_header_timeout`](https://nginx.org/en/docs/http/ngx_http_core_module.html#client_header_timeout) | time |
+| `VIRTUAL_CLIENT_MAX_BODY_SIZE` | [`client_max_body_size`](https://nginx.org/en/docs/http/ngx_http_core_module.html#client_max_body_size) | size |
+| `VIRTUAL_IGNORE_INVALID_HEADERS` | [`ignore_invalid_headers`](https://nginx.org/en/docs/http/ngx_http_core_module.html#ignore_invalid_headers) | `on` or `off` |
+| `VIRTUAL_KEEPALIVE_REQUESTS` | [`keepalive_requests`](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#keepalive_requests) | integer |
+| `VIRTUAL_KEEPALIVE_TIMEOUT` | [`keepalive_timeout`](https://nginx.org/en/docs/http/ngx_http_core_module.html#keepalive_timeout) | time |
+| `VIRTUAL_LARGE_CLIENT_HEADER_BUFFERS` | [`large_client_header_buffers`](https://nginx.org/en/docs/http/ngx_http_core_module.html#large_client_header_buffers) | `<number> <size>` (e.g. `4 8k`) |
+| `VIRTUAL_PROXY_BUFFER_SIZE` | [`proxy_buffer_size`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffer_size) | size |
+| `VIRTUAL_PROXY_BUFFERING` | [`proxy_buffering`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffering) | `on` or `off` |
+| `VIRTUAL_PROXY_BUFFERS` | [`proxy_buffers`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffers) | `<number> <size>` |
+| `VIRTUAL_PROXY_BUSY_BUFFERS_SIZE` | [`proxy_busy_buffers_size`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_busy_buffers_size) | size |
+| `VIRTUAL_PROXY_CONNECT_TIMEOUT` | [`proxy_connect_timeout`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_connect_timeout) | time |
+| `VIRTUAL_PROXY_INTERCEPT_ERRORS` | [`proxy_intercept_errors`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_intercept_errors) | `on` or `off` |
+| `VIRTUAL_PROXY_MAX_TEMP_FILE_SIZE` | [`proxy_max_temp_file_size`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_max_temp_file_size) | size |
+| `VIRTUAL_PROXY_NEXT_UPSTREAM_TIMEOUT` | [`proxy_next_upstream_timeout`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_next_upstream_timeout) | time |
+| `VIRTUAL_PROXY_NEXT_UPSTREAM_TRIES` | [`proxy_next_upstream_tries`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_next_upstream_tries) | integer |
+| `VIRTUAL_PROXY_READ_TIMEOUT` | [`proxy_read_timeout`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_read_timeout) | time |
+| `VIRTUAL_PROXY_REQUEST_BUFFERING` | [`proxy_request_buffering`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_request_buffering) | `on` or `off` |
+| `VIRTUAL_PROXY_SEND_TIMEOUT` | [`proxy_send_timeout`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_send_timeout) | time |
+| `VIRTUAL_PROXY_SSL_SERVER_NAME` | [`proxy_ssl_server_name`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ssl_server_name) | `on` or `off` |
+| `VIRTUAL_PROXY_SSL_SESSION_REUSE` | [`proxy_ssl_session_reuse`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ssl_session_reuse) | `on` or `off` |
+| `VIRTUAL_PROXY_SSL_VERIFY` | [`proxy_ssl_verify`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ssl_verify) | `on` or `off` |
+| `VIRTUAL_PROXY_SSL_VERIFY_DEPTH` | [`proxy_ssl_verify_depth`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ssl_verify_depth) | integer |
+| `VIRTUAL_PROXY_TEMP_FILE_WRITE_SIZE` | [`proxy_temp_file_write_size`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_temp_file_write_size) | size |
+| `VIRTUAL_REAL_IP_HEADER` | [`real_ip_header`](https://nginx.org/en/docs/http/ngx_http_realip_module.html#real_ip_header) | header name (e.g. `X-Forwarded-For`) |
+| `VIRTUAL_REAL_IP_RECURSIVE` | [`real_ip_recursive`](https://nginx.org/en/docs/http/ngx_http_realip_module.html#real_ip_recursive) | `on` or `off` |
+| `VIRTUAL_SEND_TIMEOUT` | [`send_timeout`](https://nginx.org/en/docs/http/ngx_http_core_module.html#send_timeout) | time |
+| `VIRTUAL_SET_REAL_IP_FROM` | [`set_real_ip_from`](https://nginx.org/en/docs/http/ngx_http_realip_module.html#set_real_ip_from) | IP address or CIDR (semicolon-separated for multiple values) |
+| `VIRTUAL_UNDERSCORES_IN_HEADERS` | [`underscores_in_headers`](https://nginx.org/en/docs/http/ngx_http_core_module.html#underscores_in_headers) | `on` or `off` |
+
+> [!NOTE]
+> Global directives (proxy container) are placed in the nginx `http` block. Per-vhost directives (proxied container) are placed inside the `server` block of the respective virtual host.
+
+⬆️ [back to table of contents](#table-of-contents)
+
 ### Per-VIRTUAL_HOST
 
 To add settings on a per-`VIRTUAL_HOST` basis, add your configuration file under `/etc/nginx/vhost.d`. Unlike in the proxy-wide case, which allows multiple config files with any name ending in `.conf`, the per-`VIRTUAL_HOST` file must be named exactly after the `VIRTUAL_HOST`, or if `VIRTUAL_HOST` is a regex, after the sha1 hash of the regex.
@@ -1420,6 +1502,7 @@ Configuration available either on the nginx-proxy container, or the docker-gen c
 | [`DISABLE_ACCESS_LOGS`](#disable-access-logs) | `false` |
 | [`ENABLE_HTTP_ON_MISSING_CERT`](#default-and-missing-certificate) | `true` |
 | [`ENABLE_HTTP2`](#http2-support) | `true` |
+| [`ENABLE_VIRTUAL_CONFIG`](#virtual-nginx-directive-configuration-via-environment-variables) | `false` |
 | [`ENABLE_HTTP3`](#http3-support) | `false` |
 | [`ENABLE_IPV6`](#listening-on-ipv6) | `false` |
 | [`ENABLE_PROXY_PROTOCOL`](#proxy-protocol-support) | `false` |
@@ -1472,6 +1555,7 @@ Configuration available on each proxied container, either by environment variabl
 | [`SSL_POLICY`](#how-ssl-support-works) | n/a | global (proxy) value |
 | n/a | [`com.github.nginx-proxy.nginx-proxy.ssl_verify_client`](#optional-ssl_verify_client) | `on` |
 | n/a | [`com.github.nginx-proxy.nginx-proxy.trust-default-cert`](#default-and-missing-certificate) | global (proxy) value |
+| [`VIRTUAL_<DIRECTIVE>`](#virtual-nginx-directive-configuration-via-environment-variables) | n/a | no default value |
 | [`VIRTUAL_DEST`](#virtual_dest) | n/a | `empty string` |
 | [`VIRTUAL_HOST`](#virtual-hosts-and-ports) | n/a | no default value |
 | [`VIRTUAL_HOST_MULTIPORTS`](#multiple-ports) | n/a | no default value |
