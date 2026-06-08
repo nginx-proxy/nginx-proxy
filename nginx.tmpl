@@ -987,9 +987,11 @@ server {
         {{- if ne $vhost.external_https_port "443" }}
             {{- $redirect_uri = printf "https://$host:%s$request_uri" $vhost.external_https_port }}
         {{- end}}
+        {{- if ne $vhost.non_get_redirect "301" }}
         if ($request_method ~ (OPTIONS|POST|PUT|PATCH|DELETE)) {
             return {{ $vhost.non_get_redirect }} {{ $redirect_uri }};
         }
+        {{- end}}
         return 301 {{ $redirect_uri }};
     }
 }
