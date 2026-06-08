@@ -961,6 +961,9 @@ server {
     server_tokens {{ $vhost.server_tokens }};
         {{- end }}
     {{ template "access_log" (dict "Enable" $globals.config.enable_access_log) }}
+        {{- if $vhost.http2_enabled }}
+    http2 on;
+        {{- end }}
     listen {{ $vhost.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
         {{- if $globals.config.enable_ipv6 }}
     listen [::]:{{ $vhost.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
