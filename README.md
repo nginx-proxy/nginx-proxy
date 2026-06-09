@@ -1,3 +1,23 @@
+<a href="https://zerossl.com">
+<picture>
+  <!-- Dark mode -->
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="https://github.com/nginx-proxy/nginx-proxy/blob/main/docs/img/nginx-proxy_dark_theme.png" />
+  <!-- Light mode -->
+  <source
+    media="(prefers-color-scheme: light)"
+    srcset="https://github.com/nginx-proxy/nginx-proxy/blob/main/docs/img/nginx-proxy_light_theme.png" />
+  <!-- Fallback for environments without media queries -->
+  <img
+    alt="ZeroSSL"
+    src="https://github.com/nginx-proxy/nginx-proxy/blob/main/docs/img/nginx-proxy_light_theme.png"
+    height="auto" />
+</picture>
+</a>
+
+# nginx-proxy
+
 [![Test](https://github.com/nginx-proxy/nginx-proxy/actions/workflows/test.yml/badge.svg)](https://github.com/nginx-proxy/nginx-proxy/actions/workflows/test.yml)
 [![GitHub release](https://img.shields.io/github/v/release/nginx-proxy/nginx-proxy)](https://github.com/nginx-proxy/nginx-proxy/releases)
 [![nginx 1.31.1](https://img.shields.io/badge/nginx-1.31.1-brightgreen.svg?logo=nginx)](https://nginx.org/en/CHANGES)
