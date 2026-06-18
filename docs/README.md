@@ -801,6 +801,20 @@ docker run --detach \
     nginxproxy/nginx-proxy
 ```
 
+### Custom DNS Resolvers
+
+nginx needs DNS resolvers to resolve names at runtime (for example for OCSP stapling). By default, nginx-proxy autodetects them from the proxy container's `/etc/resolv.conf` (typically Docker's embedded DNS server, e.g. `127.0.0.11`).
+
+You can override the autodetection by setting the `RESOLVERS` environment variable on the proxy container to a space-separated list of DNS servers. When `RESOLVERS` is set, its value is used as-is and the autodetection is skipped:
+
+```console
+docker run --detach \
+    --publish 80:80 \
+    --env RESOLVERS=8.8.8.8 \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    nginxproxy/nginx-proxy
+```
+
 ### Scoped IPv6 Resolvers
 
 Nginx does not support scoped IPv6 resolvers. In [docker-entrypoint.sh](https://github.com/nginx-proxy/nginx-proxy/blob/main/app/docker-entrypoint.sh) the resolvers are parsed from resolv.conf, but any scoped IPv6 addreses will be removed.
@@ -1433,7 +1447,7 @@ Configuration available either on the nginx-proxy container, or the docker-gen c
 | [`NGINX_CONTAINER_LABEL`](#network-segregation) | `com.github.nginx-proxy.nginx-proxy.nginx` |
 | [`NON_GET_REDIRECT`](#how-ssl-support-works) | `301` |
 | [`PREFER_IPV6_NETWORK`](#ipv6-docker-networks) | `false` |
-| `RESOLVERS` | no default value |
+| [`RESOLVERS`](#custom-dns-resolvers) | no default value |
 | [`SHA1_UPSTREAM_NAME`](#unhashed-vs-sha1-upstream-names) | `false` |
 | [`SSL_POLICY`](#how-ssl-support-works) | `Mozilla-Intermediate` |
 | [`TRUST_DEFAULT_CERT`](#default-and-missing-certificate) | `true` |

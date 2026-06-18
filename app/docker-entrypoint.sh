@@ -53,6 +53,13 @@ function _check_unix_socket() {
 }
 
 function _resolvers() {
+	# Honor a user-provided RESOLVERS value and only autodetect the DNS resolvers
+	# from /etc/resolv.conf when it has not been set (see issue #2699).
+	if [[ -n ${RESOLVERS:-} ]]; then
+		export RESOLVERS
+		return
+	fi
+
 	# Compute the DNS resolvers for use in the templates - if the IP contains ":", it's IPv6 and must be enclosed in []
 	RESOLVERS=$(awk '$1 == "nameserver" {print ($2 ~ ":")? "["$2"]": $2}' ORS=' ' /etc/resolv.conf | sed 's/ *$//g'); export RESOLVERS
 
