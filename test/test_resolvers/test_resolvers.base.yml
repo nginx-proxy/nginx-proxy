@@ -1,0 +1,17 @@
+services:
+  # Proxy with a user-provided RESOLVERS value: it must be honored as-is.
+  resolvers-custom:
+    image: nginxproxy/nginx-proxy:test
+    container_name: resolvers-custom
+    environment:
+      RESOLVERS: 8.8.8.8
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+
+  # Proxy without RESOLVERS: the entrypoint must autodetect from /etc/resolv.conf
+  # (Docker's embedded DNS server, 127.0.0.11, on a user-defined network).
+  resolvers-auto:
+    image: nginxproxy/nginx-proxy:test
+    container_name: resolvers-auto
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
