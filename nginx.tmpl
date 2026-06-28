@@ -809,6 +809,9 @@ proxy_set_header Proxy "";
     {{- /* Get the SERVER_TOKENS defined by containers w/ the same vhost, falling back to "". */}}
     {{- $server_tokens := groupByKeys $vhost_containers "Env.SERVER_TOKENS" | first | default "" | trim }}
 
+    {{- /* Get the X_ROBOTS_TAG defined by containers w/ the same vhost, falling back to "". */}}
+    {{- $x_robots_tag := groupByKeys $vhost_containers "Env.X_ROBOTS_TAG" | first | default "" | trim }}
+
     {{- /* Get the SSL_POLICY defined by containers w/ the same vhost, falling back to empty string (use default). */}}
     {{- $ssl_policy := groupByKeys $vhost_containers "Env.SSL_POLICY" | first | default "" }}
 
@@ -835,6 +838,7 @@ proxy_set_header Proxy "";
         "acme_http_challenge_legacy" $acme_http_challenge_legacy
         "acme_http_challenge_enabled" $acme_http_challenge_enabled
         "server_tokens" $server_tokens
+        "x_robots_tag" $x_robots_tag
         "ssl_policy" $ssl_policy
         "ssl_verify_client" $ssl_verify_client
         "trust_default_cert" $trust_default_cert
@@ -960,6 +964,9 @@ server {
         {{- if $vhost.server_tokens }}
     server_tokens {{ $vhost.server_tokens }};
         {{- end }}
+        {{- if $vhost.x_robots_tag }}
+    add_header X-Robots-Tag "{{ $vhost.x_robots_tag }}" always;
+        {{- end }}
     {{ template "access_log" (dict "Enable" $globals.config.enable_access_log) }}
         {{- if $vhost.http2_enabled }}
     http2 on;
@@ -1021,6 +1028,9 @@ server {
     server_name {{ $hostname }};
     {{- if $vhost.server_tokens }}
     server_tokens {{ $vhost.server_tokens }};
+    {{- end }}
+    {{- if $vhost.x_robots_tag }}
+    add_header X-Robots-Tag "{{ $vhost.x_robots_tag }}" always;
     {{- end }}
     {{ template "access_log" (dict "Enable" $globals.config.enable_access_log) }}
     {{- if $vhost.http2_enabled }}
