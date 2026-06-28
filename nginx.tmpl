@@ -315,6 +315,9 @@
         # neither /etc/nginx/fastcgi.conf nor /etc/nginx/fastcgi_params found, fastcgi won't work
             {{- end }}
         root {{ trim .VhostRoot }};
+            {{- if $vpath.index }}
+        index {{ $vpath.index }};
+            {{- end }}
         fastcgi_pass {{ trim $upstream }};
             {{- if ne $keepalive "disabled" }}
         fastcgi_keep_conn on;
@@ -707,6 +710,7 @@ proxy_set_header Proxy "";
     {{- range $path, $containers := $tmp_paths }}
         {{- $dest := groupByKeys $containers "Env.VIRTUAL_DEST" | first | default "" }}
         {{- $proto := groupByKeys $containers "Env.VIRTUAL_PROTO" | first | default "http" | trim }}
+        {{- $index := groupByKeys $containers "Env.VIRTUAL_INDEX" | first | default "" | trim }}
 
         {{- $path_data := get $paths $path | default (dict) }}
         {{- $path_ports := $path_data.ports | default (dict) }}
@@ -722,6 +726,10 @@ proxy_set_header Proxy "";
 
         {{- if (not (hasKey $path_data "proto")) }}
             {{- $_ := set $path_data "proto" $proto }}
+        {{- end }}
+
+        {{- if (not (hasKey $path_data "index")) }}
+            {{- $_ := set $path_data "index" $index }}
         {{- end }}
 
         {{- $_ := set $paths $path $path_data }}
