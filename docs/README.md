@@ -594,7 +594,11 @@ If your certificate(s) supports multiple domain names, you can start a container
 
 ### OCSP Stapling
 
-To enable OCSP Stapling for a domain, `nginx-proxy` looks for a PEM certificate containing the trusted CA certificate chain at `/etc/nginx/certs/<domain>.chain.pem`, where `<domain>` is the domain name in the `VIRTUAL_HOST` directive. The format of this file is a concatenation of the public PEM CA certificates starting with the intermediate CA most near the SSL certificate, down to the root CA. This is often referred to as the "SSL Certificate Chain". If found, this filename is passed to the NGINX [`ssl_trusted_certificate` directive](http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_trusted_certificate) and OCSP Stapling is enabled.
+OCSP Stapling is disabled by default.
+
+Set `ENABLE_OCSP_STAPLING=true` on the `nginx-proxy` container to enable it globally, or set the `com.github.nginx-proxy.nginx-proxy.ocsp-stapling.enable` label (`true`/`false`) on backend containers to enable or disable it per virtual host. The container label overrides the global setting.
+
+When OCSP Stapling is enabled for a virtual host, `nginx-proxy` looks for a PEM certificate containing the trusted CA certificate chain at `/etc/nginx/certs/<domain>.chain.pem`, where `<domain>` is the domain name in the `VIRTUAL_HOST` directive. The format of this file is a concatenation of the public PEM CA certificates starting with the intermediate CA most near the SSL certificate, down to the root CA. This is often referred to as the "SSL Certificate Chain". If found, this filename is passed to the NGINX [`ssl_trusted_certificate` directive](http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_trusted_certificate), and OCSP Stapling is enabled for that virtual host.
 
 ### How SSL Support Works
 
@@ -1444,6 +1448,7 @@ Configuration available either on the nginx-proxy container, or the docker-gen c
 | [`ENABLE_HTTP2`](#http2-support) | `true` |
 | [`ENABLE_HTTP3`](#http3-support) | `false` |
 | [`ENABLE_IPV6`](#listening-on-ipv6) | `false` |
+| [`ENABLE_OCSP_STAPLING`](#ocsp-stapling) | `false` |
 | [`ENABLE_PROXY_PROTOCOL`](#proxy-protocol-support) | `false` |
 | [`HTTP_PORT`](#custom-external-httphttps-ports) | `80` |
 | [`HTTPS_PORT`](#custom-external-httphttps-ports) | `443` |
@@ -1490,6 +1495,7 @@ Configuration available on each proxied container, either by environment variabl
 | n/a | [`com.github.nginx-proxy.nginx-proxy.loadbalance`](#upstream-server-http-load-balancing-support) | no default value |
 | [`NETWORK_ACCESS`](#internet-vs-local-network-access) | n/a | `external` |
 | n/a | [`com.github.nginx-proxy.nginx-proxy.non-get-redirect`](#how-ssl-support-works) | global (proxy) value |
+| n/a | [`com.github.nginx-proxy.nginx-proxy.ocsp-stapling.enable`](#ocsp-stapling) | global (proxy) value |
 | [`SERVER_TOKENS`](#per-virtual_host-server_tokens-configuration) | n/a | no default value |
 | [`SSL_POLICY`](#how-ssl-support-works) | n/a | global (proxy) value |
 | n/a | [`com.github.nginx-proxy.nginx-proxy.ssl_verify_client`](#optional-ssl_verify_client) | `on` |
