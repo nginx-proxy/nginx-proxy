@@ -1299,9 +1299,9 @@ See the [Docker CLI documentation](https://docs.docker.com/reference/cli/docker/
 
 ## Separate Containers
 
-nginx-proxy can also be run as two separate containers using the [nginxproxy/docker-gen](https://hub.docker.com/r/nginxproxy/docker-gen) image and the official [nginx](https://registry.hub.docker.com/_/nginx/) image.
+nginx-proxy can also be run as two separate containers using the [nginxproxy/nginx-proxy:dockergen](https://hub.docker.com/repository/docker/nginxproxy/nginx-proxy/tags/dockergen) image and the official [nginx](https://registry.hub.docker.com/_/nginx/) image.
 
-You may want to do this to prevent having the docker socket bound to a publicly exposed container service.
+You may want to do this to prevent having the docker socket bound to a publicly exposed container service (you should run the docker-gen container in an [internal network](https://docs.docker.com/reference/cli/docker/network/create/#internal), unreachable from the outside).
 
 You can demo this pattern with docker compose:
 
@@ -1316,27 +1316,32 @@ Example output:
 I'm 5b129ab83266
 ```
 
-To run nginx proxy as a separate container you'll need to have [nginx.tmpl](https://github.com/nginx-proxy/nginx-proxy/blob/main/nginx.tmpl) on your host system.
-
-First start nginx with a volume mounted to `/etc/nginx/conf.d`:
+First start nginx with a volume mounted to `/etc/nginx/conf.d` and the label `com.github.nginx-proxy.nginx-proxy.nginx`:
 
 ```console
 docker run --detach \
     --name nginx \
     --publish 80:80 \
-    --volume /tmp/nginx:/etc/nginx/conf.d \
+    --volume /tmp/nginx/conf.d:/etc/nginx/conf.d \
+    --label "com.github.nginx-proxy.nginx-proxy.nginx" \
     nginx
 ```
 
-Then start the docker-gen container with the shared volume and template:
+Create an internal network to isolate the docker-gen container:
+
+```console
+docker network create --internal nginx-gen
+```
+
+Then start the docker-gen container on the internal network, with the shared volume:
 
 ```console
 docker run --detach \
     --name docker-gen \
     --volumes-from nginx \
     --volume /var/run/docker.sock:/tmp/docker.sock:ro \
-    --volume $(pwd):/etc/docker-gen/templates \
-    nginxproxy/docker-gen -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    --network nginx-gen \
+    nginxproxy/nginx-proxy:dockergen
 ```
 
 Finally, start your containers with `VIRTUAL_HOST` environment variables.
@@ -1345,39 +1350,42 @@ Finally, start your containers with `VIRTUAL_HOST` environment variables.
 docker run --env VIRTUAL_HOST=foo.bar.com  ...
 ```
 
-### Network segregation
-
-To allow for network segregation of the nginx and docker-gen containers, the label `com.github.nginx-proxy.nginx-proxy.nginx` must be applied to the nginx container, otherwise it is assumed that nginx and docker-gen share the same network:
+You can also customise the label being used by docker-gen to find the nginx container with the `NGINX_CONTAINER_LABEL` environment variable (on the docker-gen container):
 
 ```console
-docker run --detach \
-    --name nginx \
-    --publish 80:80 \
-    --label "com.github.nginx-proxy.nginx-proxy.nginx" \
-    --volume /tmp/nginx:/etc/nginx/conf.d \
-    nginx
-```
-
-Network segregation make it possible to run the docker-gen container in an [internal network](https://docs.docker.com/reference/cli/docker/network/create/#internal), unreachable from the outside.
-
-You can also customise the label being used by docker-gen to find the nginx container with the `NGINX_CONTAINER_LABEL`environment variable (on the docker-gen container):
-
-```console
-docker run --detach \
-    --name docker-gen \
-    --volumes-from nginx \
-    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
-    --volume $(pwd):/etc/docker-gen/templates \
-    --env "NGINX_CONTAINER_LABEL=com.github.foobarbuzz" \
-    nginxproxy/docker-gen -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
-
 docker run --detach \
     --name nginx \
     --publish 80:80 \
     --label "com.github.foobarbuzz" \
-    --volume "/tmp/nginx:/etc/nginx/conf.d" \
+    --volume "/tmp/nginx/conf.d:/etc/nginx/conf.d" \
     nginx
+
+docker network create --internal nginx-gen
+
+docker run --detach \
+    --name docker-gen \
+    --volumes-from nginx \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    --network nginx-gen \
+    --env "NGINX_CONTAINER_LABEL=com.github.foobarbuzz" \
+    nginxproxy/nginx-proxy:dockergen
 ```
+
+> [!WARNING]
+> When `nginx` and `docker-gen` run in separate containers, they **must share the same files** used by template `exists` checks and generated `include` directives.
+> `/etc/nginx/conf.d` is the bare minimum required for nginx-proxy to work, but you may also want to share `/etc/nginx/certs`, `/etc/nginx/vhost.d`, `/etc/nginx/htpasswd`, and `/usr/share/nginx/html` if you use the features that require them.
+> If these paths are not shared, `docker-gen` may render a config that does not match what `nginx` can actually read.
+
+Recommended shared volumes between `nginx` and `docker-gen`:
+
+| Container path | Why it must be shared | docker-gen access |
+| --- | --- | --- |
+| `/etc/nginx/conf.d` | `docker-gen` writes generated vhost config files that `nginx` loads. | read-write |
+| `/etc/nginx/certs` | Template checks certificate files (`*.crt`, `*.key`, `*.chain.pem`, `*.dhparam.pem`, etc.). | read-only |
+| `/etc/nginx/vhost.d` | Template checks and includes per-vhost/per-location override files. | read-only |
+| `/etc/nginx/htpasswd` | Template checks and includes basic auth files. | read-only |
+| `/usr/share/nginx/html` | Template may use this path for ACME challenge files and fallback error pages. | read-only |
+
 
 ⬆️ [back to table of contents](#table-of-contents)
 
