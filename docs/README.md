@@ -1299,9 +1299,9 @@ See the [Docker CLI documentation](https://docs.docker.com/reference/cli/docker/
 
 ## Separate Containers
 
-nginx-proxy can also be run as two separate containers using the [nginxproxy/nginx-proxy:dockergen](https://hub.docker.com/repository/docker/nginxproxy/nginx-proxy/tags/dockergen) image and the official [nginx](https://registry.hub.docker.com/_/nginx/) image.
+nginx-proxy can also be run as two separate containers using the [nginxproxy/nginx-proxy:dockergen](https://hub.docker.com/r/nginxproxy/nginx-proxy/tags?name=dockergen) image and the official [nginx](https://registry.hub.docker.com/_/nginx/) image. This image is a stripped down version of the main nginx-proxy image that only contains the `docker-gen` binary and the `nginx.tmpl` template file. It does not contain nginx itself, so it must be run alongside an nginx container. Its follow the same release tags as the other images, suffixing the tag with `-dockergen` (eg `nginxproxy/nginx-proxy:1.11-dockergen`).
 
-You may want to do this to prevent having the docker socket bound to a publicly exposed container service (you should run the docker-gen container in an [internal network](https://docs.docker.com/reference/cli/docker/network/create/#internal), unreachable from the outside).
+You may want to use this setup to prevent having the docker socket bound to a publicly exposed container service (you should run the docker-gen container in an [internal network](https://docs.docker.com/reference/cli/docker/network/create/#internal), unreachable from the outside), or to use a custom nginx image (for example, one that includes additional modules).
 
 You can demo this pattern with docker compose:
 
