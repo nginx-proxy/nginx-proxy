@@ -11,13 +11,13 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    labels:
+      - "com.github.nginx-proxy.nginx-proxy.nginx"
 
   nginx-proxy-dockergen:
-    image: nginxproxy/docker-gen
-    command: -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    image: nginxproxy/nginx-proxy:test-dockergen
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ../../nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl
       - nginx_conf:/etc/nginx/conf.d
 
   web:

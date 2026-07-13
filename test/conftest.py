@@ -392,10 +392,10 @@ def docker_compose_down(compose_files: List[str], project_name: str):
 def wait_for_nginxproxy_to_be_ready():
     """
     Wait for logs of running containers started from image nginxproxy/nginx-proxy:test and/or
-    nginxproxy/docker-gen:latest to contain the substring "Watching docker events"
+    nginxproxy/nginx-proxy:test-dockergen to contain the substring "Watching docker events"
     """
     nginx_proxy_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "nginxproxy/nginx-proxy:test"})
-    docker_gen_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "nginxproxy/docker-gen:latest"})
+    docker_gen_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "nginxproxy/nginx-proxy:test-dockergen"})
 
     containers = nginx_proxy_containers + docker_gen_containers
 
