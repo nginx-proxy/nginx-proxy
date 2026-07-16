@@ -374,6 +374,14 @@ If you would like to connect to FastCGI backend, set `VIRTUAL_PROTO=fastcgi` on 
 
 If you use fastcgi,you can set `VIRTUAL_ROOT=xxx` for your root directory
 
+#### FastCGI Index File
+
+If you use fastcgi, you can set `VIRTUAL_INDEX=index.php` to define the index file nginx
+serves when a directory is requested (it sets the nginx [`index`](https://nginx.org/en/docs/http/ngx_http_index_module.html#index)
+directive inside the location block). Multiple space-separated file names are allowed, e.g.
+`VIRTUAL_INDEX=index.php index.html`. This setting only has an effect for FastCGI backends
+(it is paired with `VIRTUAL_ROOT`); for `proxy_pass`/uwsgi/grpc upstreams it has no effect.
+
 ### Upstream Server HTTP Load Balancing Support
 
 If you have multiple containers with the same `VIRTUAL_HOST` and `VIRTUAL_PATH` settings, nginx will spread the load across all of them. To change the load balancing algorithm from nginx's default (round-robin), set the `com.github.nginx-proxy.nginx-proxy.loadbalance` label on one or more of your application containers to the desired load balancing directive. See the [`ngx_http_upstream_module` documentation](https://nginx.org/en/docs/http/ngx_http_upstream_module.html) for available directives.
@@ -1497,6 +1505,7 @@ Configuration available on each proxied container, either by environment variabl
 | [`VIRTUAL_DEST`](#virtual_dest) | n/a | `empty string` |
 | [`VIRTUAL_HOST`](#virtual-hosts-and-ports) | n/a | no default value |
 | [`VIRTUAL_HOST_MULTIPORTS`](#multiple-ports) | n/a | no default value |
+| [`VIRTUAL_INDEX`](#fastcgi-index-file) | n/a | `empty string` |
 | [`VIRTUAL_PATH`](#path-based-routing) | n/a | `/` |
 | [`VIRTUAL_PORT`](#virtual-ports) | n/a | no default value |
 | [`VIRTUAL_PROTO`](#upstream-backend-features) | n/a | `http` |
