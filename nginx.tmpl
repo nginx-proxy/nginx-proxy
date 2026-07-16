@@ -965,6 +965,9 @@ server {
     server_tokens {{ $vhost.server_tokens }};
         {{- end }}
     {{ template "access_log" (dict "Enable" $globals.config.enable_access_log) }}
+        {{- if $vhost.http2_enabled }}
+    http2 on;
+        {{- end }}
     listen {{ $vhost.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
         {{- if $globals.config.enable_ipv6 }}
     listen [::]:{{ $vhost.external_http_port }} {{- $default_server }} {{- $proxy_protocol }};
@@ -991,9 +994,11 @@ server {
         {{- if ne $vhost.external_https_port "443" }}
             {{- $redirect_uri = printf "https://$host:%s$request_uri" $vhost.external_https_port }}
         {{- end}}
+        {{- if ne $vhost.non_get_redirect "301" }}
         if ($request_method ~ (OPTIONS|POST|PUT|PATCH|DELETE)) {
             return {{ $vhost.non_get_redirect }} {{ $redirect_uri }};
         }
+        {{- end}}
         return 301 {{ $redirect_uri }};
     }
 }

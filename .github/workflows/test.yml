@@ -27,7 +27,7 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v6
@@ -46,8 +46,11 @@ jobs:
       - name: Build Docker web server image
         run: make build-webserver
 
-      - name: Build Docker nginx proxy test image
+      - name: Build Docker nginx-proxy:test image
         run: make build-nginx-proxy-test-${{ matrix.base_docker_image }}
+      
+      - name: Build Docker nginx-proxy:test-dockergen image
+        run: make build-nginx-proxy-test-dockergen
 
       - name: Run tests
         run: pytest --ignore-flaky

@@ -53,6 +53,13 @@ function _check_unix_socket() {
 }
 
 function _resolvers() {
+	# Honor a user-provided RESOLVERS value and only autodetect the DNS resolvers
+	# from /etc/resolv.conf when it has not been set (see issue #2699).
+	if [[ -n ${RESOLVERS:-} ]]; then
+		export RESOLVERS
+		return
+	fi
+
 	# Compute the DNS resolvers for use in the templates - if the IP contains ":", it's IPv6 and must be enclosed in []
 	RESOLVERS=$(awk '$1 == "nameserver" {print ($2 ~ ":")? "["$2"]": $2}' ORS=' ' /etc/resolv.conf | sed 's/ *$//g'); export RESOLVERS
 
@@ -101,7 +108,7 @@ function _setup_dhparam() {
 }
 
 # Run the init logic if the default CMD was provided
-if [[ $* == 'forego start -r' ]]; then
+if [[ $* == 'forego start -r' ]] || [[ $* =~ 'docker-gen -watch' ]]; then
 	_print_version
 	
 	_check_unix_socket
@@ -116,6 +123,13 @@ if [[ $* == 'forego start -r' ]]; then
 			Warning: The default value of TRUST_DOWNSTREAM_PROXY might change to "false" in a future version of nginx-proxy. If you require TRUST_DOWNSTREAM_PROXY to be enabled, explicitly set it to "true".
 		EOT
 	fi
+
+	# Replace $NGINX_CONTAINER_LABEL in the command line arguments with the actual value of the environment variable
+	for ((i=1; i<=$#; i++)); do
+		if [[ ${!i} =~ "\$NGINX_CONTAINER_LABEL" && -n "$NGINX_CONTAINER_LABEL" ]]; then
+			set -- "${@:1:i-1}" "${!i/\$NGINX_CONTAINER_LABEL/${NGINX_CONTAINER_LABEL}}" "${@:i+1}"
+		fi
+	done
 fi
 
 exec "$@"

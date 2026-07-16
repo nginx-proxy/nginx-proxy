@@ -14,14 +14,14 @@ on:
 
 jobs:
   multiarch-build:
-    name: Build and publish ${{ matrix.base }} image with tag ${{ inputs.image_tag }}
+    name: Build and publish ${{ matrix.flavor }} image with tag ${{ inputs.image_tag }}
     strategy:
       matrix:
-        base: [alpine, debian]
+        flavor: [alpine, debian, dockergen]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -31,7 +31,7 @@ jobs:
 
       - name: Retrieve docker-gen version
         id: docker-gen_version
-        run: sed -n -e 's;^FROM docker.io/nginxproxy/docker-gen:\([0-9.]*\).*;VERSION=\1;p' Dockerfile.${{ matrix.base }} >> "$GITHUB_OUTPUT"
+        run: sed -n -e 's;^FROM docker.io/nginxproxy/docker-gen:\([0-9.]*\).*;VERSION=\1;p' Dockerfile.${{ matrix.flavor }} >> "$GITHUB_OUTPUT"
 
       - name: Get Docker tags
         id: docker_meta
@@ -40,8 +40,9 @@ jobs:
           images: |
             nginxproxy/nginx-proxy
           tags: |
-            type=raw,value=${{ inputs.image_tag }},enable=${{ matrix.base == 'debian' }}
-            type=raw,value=${{ inputs.image_tag }},suffix=-alpine,enable=${{ matrix.base == 'alpine' }}
+            type=raw,value=${{ inputs.image_tag }},enable=${{ matrix.flavor == 'debian' }}
+            type=raw,value=${{ inputs.image_tag }},suffix=-alpine,enable=${{ matrix.flavor == 'alpine' }}
+            type=raw,value=${{ inputs.image_tag }},suffix=-dockergen,enable=${{ matrix.flavor == 'dockergen' }}
           labels: |
             org.opencontainers.image.authors=Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag), Jason Wilder
             org.opencontainers.image.version=${{ steps.nginx-proxy_version.outputs.VERSION }}
@@ -72,7 +73,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: Dockerfile.${{ matrix.base }}
+          file: Dockerfile.${{ matrix.flavor }}
           build-args: |
             NGINX_PROXY_VERSION=${{ steps.nginx-proxy_version.outputs.VERSION }}
             DOCKER_GEN_VERSION=${{ steps.docker-gen_version.outputs.VERSION }}
