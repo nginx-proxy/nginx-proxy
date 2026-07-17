@@ -1202,6 +1202,10 @@ location / {
 
 Per virtual-host `servers_tokens` directive can be configured by passing appropriate value to the `SERVER_TOKENS` environment variable. Please see the [nginx http_core module configuration](https://nginx.org/en/docs/http/ngx_http_core_module.html#server_tokens) for more details.
 
+### Per-VIRTUAL_HOST `X-Robots-Tag` configuration
+
+Set the `X_ROBOTS_TAG` environment variable on a proxied container to add an [`X-Robots-Tag`](https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag#xrobotstag) response header to every response for that virtual host. This is useful for keeping staging sites out of search engines, e.g. `X_ROBOTS_TAG="noindex, nofollow"`. The value is emitted verbatim with the `always` flag so it is also sent on error responses.
+
 ### Custom error page
 
 To override the default error page displayed on 50x errors, mount your custom HTML error page inside the container at `/usr/share/nginx/html/errors/50x.html`:
@@ -1501,6 +1505,7 @@ Configuration available on each proxied container, either by environment variabl
 | [`VIRTUAL_PORT`](#virtual-ports) | n/a | no default value |
 | [`VIRTUAL_PROTO`](#upstream-backend-features) | n/a | `http` |
 | [`VIRTUAL_ROOT`](#fastcgi-file-root-directory) | n/a | `/var/www/public` |
+| [`X_ROBOTS_TAG`](#per-virtual_host-x-robots-tag-configuration) | n/a | no default value |
 
 ### Configuration by files
 
