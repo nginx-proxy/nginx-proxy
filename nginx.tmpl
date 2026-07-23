@@ -25,6 +25,7 @@
 {{- $_ := set $config "enable_ipv6" ($globals.Env.ENABLE_IPV6 | default "false" | parseBool) }}
 {{- $_ := set $config "prefer_ipv6_network" ($globals.Env.PREFER_IPV6_NETWORK | default "false" | parseBool) }}
 {{- $_ := set $config "ssl_policy" ($globals.Env.SSL_POLICY | default "Mozilla-Intermediate") }}
+{{- $_ := set $config "enable_ocsp_stapling" ($globals.Env.ENABLE_OCSP_STAPLING | default "false") }}
 {{- $_ := set $config "enable_debug_endpoint" ($globals.Env.DEBUG_ENDPOINT | default "false") }}
 {{- $_ := set $config "hsts" ($globals.Env.HSTS | default "max-age=31536000") }}
 {{- $_ := set $config "acme_http_challenge" ($globals.Env.ACME_HTTP_CHALLENGE_LOCATION | default "true") }}
@@ -785,8 +786,11 @@ proxy_set_header Proxy "";
     {{- $cert := or $userIdentifiedCert $vhostCert $parentVhostCert $defaultCert }}
     {{- $cert_ok := and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)) }}
 
+    {{- $ocsp_stapling_enabled := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.ocsp-stapling.enable" | keys | first | default $globals.config.enable_ocsp_stapling | parseBool }}
+
     {{- $enable_debug_endpoint := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.debug-endpoint" | keys | first | default $globals.config.enable_debug_endpoint | parseBool }}
     {{- $default := eq $globals.config.default_host $hostname }}
+
     {{- $https_method := groupByKeys $vhost_containers "Env.HTTPS_METHOD" | first | default $globals.config.https_method }}
     {{- $enable_http_on_missing_cert := groupByKeys $vhost_containers "Env.ENABLE_HTTP_ON_MISSING_CERT" | first | default $globals.config.enable_http_on_missing_cert | parseBool }}
     {{- /* When no trusted certs (default and/or vhost) are present we want to ensure that HTTP is enabled; hence switching from 'nohttp' or 'redirect' to 'noredirect' */}}
@@ -794,6 +798,7 @@ proxy_set_header Proxy "";
     {{- if and $https_method_disable_http (not $cert_ok) $enable_http_on_missing_cert }}
         {{- $https_method = "noredirect" }}
     {{- end }}
+    
     {{- $non_get_redirect := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.non-get-redirect" | keys | first | default $globals.config.non_get_redirect }}
 
     {{- $http2_enabled := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http2.enable" | keys | first | default $globals.config.enable_http2 | parseBool }}
@@ -824,6 +829,7 @@ proxy_set_header Proxy "";
     {{- $vhost_data = merge $vhost_data (dict
         "cert" $cert
         "cert_ok" $cert_ok
+        "ocsp_stapling_enabled" $ocsp_stapling_enabled
         "enable_debug_endpoint" $enable_debug_endpoint
         "default" $default
         "hsts" $hsts
@@ -1072,7 +1078,7 @@ server {
     ssl_dhparam {{ printf "/etc/nginx/certs/%s.dhparam.pem" $vhost.cert }};
             {{- end }}
 
-            {{- if (exists (printf "/etc/nginx/certs/%s.chain.pem" $vhost.cert)) }}
+            {{- if and $vhost.ocsp_stapling_enabled (exists (printf "/etc/nginx/certs/%s.chain.pem" $vhost.cert)) }}
     ssl_stapling on;
     ssl_stapling_verify on;
     ssl_trusted_certificate {{ printf "/etc/nginx/certs/%s.chain.pem" $vhost.cert }};
