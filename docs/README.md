@@ -997,6 +997,8 @@ To add settings on a per-`VIRTUAL_HOST` basis, add your configuration file under
 
 In order to allow virtual hosts to be dynamically configured as backends are added and removed, it makes the most sense to mount an external directory as `/etc/nginx/vhost.d` as opposed to using derived images or mounting individual configuration files.
 
+These files are also included in the HTTP server block that performs the HTTPS redirect (when `HTTPS_METHOD=redirect`), so you can apply custom configuration (such as response headers) to the redirect responses as well, not just to the main HTTPS server block.
+
 For example, if you have a virtual host named `app.example.com`, you could provide a custom configuration for that host as follows:
 
 1. create your virtual host config file:

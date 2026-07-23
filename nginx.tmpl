@@ -948,6 +948,7 @@ server {
 {{- range $hostname, $vhost := $globals.vhosts }}
     {{- $default_server := when $vhost.default " default_server" "" }}
     {{- $proxy_protocol := when $globals.config.enable_proxy_protocol " proxy_protocol" "" }}
+    {{- $vhostFileName := $vhost.is_regexp | ternary (sha1 $hostname) $hostname }}
 
     {{- range $path, $vpath := $vhost.paths }}
 # {{ $hostname }}{{ $path }}
@@ -981,6 +982,12 @@ server {
     }
         {{- end }}
 
+        {{- if (exists (printf "/etc/nginx/vhost.d/%s" $vhostFileName)) }}
+    include {{ printf "/etc/nginx/vhost.d/%s" (replace $vhostFileName "*" "\\*" -1) }};
+        {{- else if (exists "/etc/nginx/vhost.d/default") }}
+    include /etc/nginx/vhost.d/default;
+        {{- end }}
+
         {{- if $vhost.enable_debug_endpoint }}
             {{ template "debug_location" (dict "GlobalConfig" $globals.config "Hostname" $hostname "VHost" $vhost) }}
         {{- end }}
@@ -995,6 +1002,13 @@ server {
             return {{ $vhost.non_get_redirect }} {{ $redirect_uri }};
         }
         {{- end}}
+
+        {{- if (exists (printf "/etc/nginx/vhost.d/%s_location" $vhostFileName)) }}
+        include {{ printf "/etc/nginx/vhost.d/%s_location" (replace $vhostFileName "*" "\\*" -1) }};
+        {{- else if (exists "/etc/nginx/vhost.d/default_location") }}
+        include /etc/nginx/vhost.d/default_location;
+        {{- end }}
+
         return 301 {{ $redirect_uri }};
     }
 }
@@ -1093,8 +1107,6 @@ server {
     ssl_reject_handshake on;
         {{- end }}
     {{- end }}
-
-    {{- $vhostFileName :=  $vhost.is_regexp | ternary (sha1 $hostname) $hostname }}
 
     {{- if (exists (printf "/etc/nginx/vhost.d/%s" $vhostFileName)) }}
     include {{ printf "/etc/nginx/vhost.d/%s" (replace $vhostFileName "*" "\\*" -1) }};
