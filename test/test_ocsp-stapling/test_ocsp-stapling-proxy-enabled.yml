@@ -1,0 +1,22 @@
+services:
+  nginx-proxy:
+    environment:
+      ENABLE_OCSP_STAPLING: "true"
+
+  ocsp-proxy-enabled-default:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: ocsp-proxy-enabled-default.nginx-proxy.tld
+
+  ocsp-proxy-enabled-vhost-disabled:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: ocsp-proxy-enabled-vhost-disabled.nginx-proxy.tld
+    labels:
+      com.github.nginx-proxy.nginx-proxy.ocsp-stapling.enable: "false"
