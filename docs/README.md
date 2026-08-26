@@ -331,6 +331,12 @@ In this example, the `my-nginx-proxy` container will be connected to `my-network
 
 Proxyed containers running in host network mode **must** use the [`VIRTUAL_PORT`](#virtual-ports) environment variable, as this is the only way for `nginx-proxy` to get the correct port (or a port at all) for those containers.
 
+### Shared network namespaces
+
+`nginx-proxy` supports proxying containers that share the network namespace of another container (`network_mode: "container:name-or-id"`, or `network_mode: "service:name"` with Docker Compose). Those containers do not carry network information of their own, so `nginx-proxy` uses the networks of the container owning the namespace to reach them. The owning container must be reachable from `nginx-proxy` (see [Multiple Networks](#multiple-networks)).
+
+For port selection, only the exposed ports of the proxied container itself are considered, never those of the container owning the namespace. Note that the Docker engine rejects create-time port exposure (`--expose` / Docker Compose `expose:`) together with a container type network mode, so the proxied container's exposed ports can only come from its image's `EXPOSE` instructions. The standard fallback behavior applies: a single exposed port is used as-is, anything else requires the [`VIRTUAL_PORT`](#virtual-ports) environment variable.
+
 ### Internet vs. Local Network Access
 
 If you allow traffic from the public internet to access your `nginx-proxy` container, you may want to restrict some containers to the internal network only, so they cannot be accessed from the public internet. On containers that should be restricted to the internal network, you should set the environment variable `NETWORK_ACCESS=internal`. By default, the _internal_ network is defined as `127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16`. To change the list of networks considered internal, mount a file on the `nginx-proxy` at `/etc/nginx/network_internal.conf` with these contents, edited to suit your needs:
