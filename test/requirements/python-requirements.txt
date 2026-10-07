@@ -4,4 +4,4 @@ packaging==26.3
 pytest==9.1.1
 pytest-ignore-flaky==2.2.1
 requests==2.34.2
-urllib3==2.7.0
+urllib3==2.8.0
