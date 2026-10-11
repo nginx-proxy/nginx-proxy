@@ -108,7 +108,7 @@ function _setup_dhparam() {
 }
 
 # Run the init logic if the default CMD was provided
-if [[ $* == 'forego start -r' ]] || [[ $* =~ 'docker-gen -watch' ]]; then
+if [[ $* == 'forego start -r -f /app/Procfile' ]] || [[ $* =~ 'docker-gen -watch' ]]; then
 	_print_version
 	
 	_check_unix_socket
