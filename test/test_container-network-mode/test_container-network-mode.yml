@@ -1,0 +1,24 @@
+services:
+  netns-owner:
+    # Reuses the base image of the web test image (no extra image is pulled).
+    image: python:3-alpine
+    command: tail -f /dev/null
+
+  netns-joiner-default-port:
+    image: web
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: "netns-joiner-default-port.nginx-proxy.tld"
+    network_mode: service:netns-owner
+    depends_on:
+      - netns-owner
+
+  netns-joiner-custom-port:
+    image: web
+    environment:
+      WEB_PORTS: "8080"
+      VIRTUAL_HOST: "netns-joiner-custom-port.nginx-proxy.tld"
+      VIRTUAL_PORT: "8080"
+    network_mode: service:netns-owner
+    depends_on:
+      - netns-owner

@@ -86,8 +86,20 @@
 {{- define "container_ip" }}
     {{- $ipv4 := "" }}
     {{- $ipv6 := "" }}
+    {{- $container := $.container }}
+    {{- /*
+         * Containers sharing another container's network namespace
+         * use the networks of the container owning the namespace instead.
+         */}}
+    {{- if hasPrefix "container:" $container.NetworkMode }}
+        {{- $netContainer := where $.globals.containers "ID" (trimPrefix "container:" $container.NetworkMode) | first }}
+        {{- if $netContainer }}
+    #     shares the network namespace of container {{ $netContainer.Name }}
+            {{- $container = $netContainer }}
+        {{- end }}
+    {{- end }}
     #     networks:
-    {{- range sortObjectsByKeysAsc $.container.Networks "Name" }}
+    {{- range sortObjectsByKeysAsc $container.Networks "Name" }}
         {{- /*
              * TODO: Only ignore the "ingress" network for Swarm tasks (in case
              * the user is not using Swarm mode and names a network "ingress").
