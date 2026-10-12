@@ -73,6 +73,98 @@
 {{- end }}
 
 {{- /*
+     * External (non-Docker) upstream targets.
+     *
+     * docker-gen only ever discovers real Docker containers, so there is no
+     * per-target container to read VIRTUAL_HOST/etc. from for a backend that
+     * isn't itself a container (e.g. a process running directly on the
+     * Docker host). Rather than requiring a dummy/"zombie" container per
+     * external target purely to carry that configuration (see
+     * https://github.com/nginx-proxy/nginx-proxy/pull/1100), this declares
+     * them via a single YAML-encoded environment variable set on THIS
+     * container (the one running docker-gen) - not per target - and
+     * synthesizes one fake "container" entry per declared upstream address so
+     * each flows through the exact same env-var-driven vhost logic a real
+     * container's environment would (mirroring how multiple real containers
+     * can share one VIRTUAL_HOST).
+     *
+     * Schema (YAML mapping, hostname -> config):
+     *   some.example.com:
+     *     upstreams:                       # required: one or more literal ip:port
+     *       - "192.168.1.10:9100"           # entries. Multiple entries all land as
+     *       - "192.168.1.11:9100"           # separate "server" lines in the same
+     *                                        # upstream block, load-balanced same as
+     *                                        # multiple real containers sharing one
+     *                                        # VIRTUAL_HOST.
+     *
+     * Every key other than "upstreams" is passed through as-is into the
+     * synthetic container's Env, so any environment variable this template
+     * already understands for real containers (or gains in the future)
+     * works here too with no extra code - EXCEPT settings read via
+     * groupByLabel (Docker *label*-based per-container overrides, e.g. the
+     * com.github.nginx-proxy.nginx-proxy.loadbalance/keepalive/http2.enable/
+     * etc. labels): groupByLabel hard-asserts its input to *RuntimeContainer
+     * and errors on anything else, so external entries are filtered out of
+     * every groupByLabel call further down (see $vpath_real_containers /
+     * $vhost_real_containers) and always fall back to the global default
+     * for those specific settings.
+     */}}
+{{- $externalUpstreams := fromYaml ($globals.Env.EXTERNAL_UPSTREAMS | default "{}") }}
+{{- if and (empty $externalUpstreams) (ne ($globals.Env.EXTERNAL_UPSTREAMS | default "") "") }}
+# /!\ WARNING: the EXTERNAL_UPSTREAMS environment variable is not a valid YAML string.
+{{- end }}
+{{- if not (empty $externalUpstreams) }}
+    {{- $externalContainers := list }}
+    {{- range $hostname, $target := $externalUpstreams }}
+        {{- if or (not (hasKey $target "upstreams")) (eq (len $target.upstreams) 0) }}
+# /!\ WARNING: EXTERNAL_UPSTREAMS entry "{{ $hostname }}" is missing the required non-empty "upstreams" list, skipping.
+            {{- continue }}
+        {{- end }}
+        {{- /*
+             * Flat "Env.KEY" string keys, not a nested Env sub-dict: docker-gen's
+             * deepGet helper (used by groupByKeys/groupBy/groupByMulti to read
+             * "Env.SOMEVAR" off each container) resolves a single MapIndex hop
+             * fine, but a value fetched via MapIndex from a map[string]interface{}
+             * comes back as reflect.Kind() Interface, not Map, and deepGet only
+             * auto-unwraps Pointer - so a real nested dict breaks one level too
+             * deep. Flat dotted keys hit deepGet's "no such key, try joining the
+             * remaining path" fallback instead, which resolves in one hop.
+             */}}
+        {{- range $addr := $target.upstreams }}
+            {{- $container := dict
+                "Name" (printf "external:%s" $hostname)
+                "IsExternal" true
+                "ExternalAddr" $addr
+                "Env.VIRTUAL_HOST" $hostname
+            }}
+            {{- range $key, $value := $target }}
+                {{- if ne $key "upstreams" }}
+                    {{- $_ := set $container (printf "Env.%s" $key) ($value | toString) }}
+                {{- end }}
+            {{- end }}
+            {{- $externalContainers = append $externalContainers $container }}
+        {{- end }}
+    {{- end }}
+    {{- /*
+         * Not `concat $globals.containers $externalContainers`: $globals.containers
+         * is a *[]RuntimeContainer (pointer-to-slice), and sprig's concat type-switches
+         * on reflect.Kind() without indirecting through pointers first, so it fails with
+         * "Cannot concat type ptr as list". Go's `range` action DOES auto-indirect through
+         * a pointer-to-slice (a text/template builtin, unrelated to sprig), so looping and
+         * appending sidesteps the bug. Confirmed by actually running docker-gen - not
+         * visible from reading either library's source alone.
+         */}}
+    {{- $allContainers := list }}
+    {{- range $globals.containers }}
+        {{- $allContainers = append $allContainers . }}
+    {{- end }}
+    {{- range $externalContainers }}
+        {{- $allContainers = append $allContainers . }}
+    {{- end }}
+    {{- $_ := set $globals "containers" $allContainers }}
+{{- end }}
+
+{{- /*
      * Template used as a function to get a container's IP address.  This
      * template only outputs debug comments; the IP address is "returned" by
      * storing the value in the provided dot dict.
@@ -362,15 +454,29 @@ upstream {{ $vpath.upstream }} {
     {{- end }}
     {{- range $port, $containers := $vpath.ports }}
         {{- range $container := $containers }}
-    # Container: {{ $container.Name }}
-            {{- $args := dict "globals" $.globals "container" $container }}
-            {{- template "container_ip" $args }}
-            {{- $ip := $args.ip }}
-            {{- $args = dict "container" $container "path" $path "port" $port }}
-            {{- template "container_port" $args }}
-            {{- if $ip }}
+            {{- /*
+                 * A plain "$container.IsExternal" would error out for a real
+                 * *RuntimeContainer (it has no such field, and unlike the
+                 * deepGet-based helpers used elsewhere in this file, Go's
+                 * native template field access does not tolerate a missing
+                 * field) - route through "where" instead, which is safe.
+                 */}}
+            {{- if where (list $container) "IsExternal" true }}
+    # External (non-Docker) upstream target, see the "External upstream
+    # targets" comment near the top of this file.
                 {{- $servers = add1 $servers }}
+    server {{ $container.ExternalAddr }};
+            {{- else }}
+    # Container: {{ $container.Name }}
+                {{- $args := dict "globals" $.globals "container" $container }}
+                {{- template "container_ip" $args }}
+                {{- $ip := $args.ip }}
+                {{- $args = dict "container" $container "path" $path "port" $port }}
+                {{- template "container_port" $args }}
+                {{- if $ip }}
+                    {{- $servers = add1 $servers }}
     server {{ $ip }}:{{ $args.port }};
+                {{- end }}
             {{- end }}
         {{- end }}
     {{- end }}
@@ -737,6 +843,8 @@ proxy_set_header Proxy "";
     {{- $upstream_name := or $is_regexp $globals.config.sha1_upstream_name | ternary (sha1 $hostname) $hostname }}
 
     {{- $vhost_containers := list }}
+    {{- /* See the "External upstream targets" comment near the top of this file. */}}
+    {{- $vhost_real_containers := list }}
 
     {{- range $path, $vpath_data := $vhost_data.paths }}
         {{- $vpath_containers := list }}
@@ -747,8 +855,14 @@ proxy_set_header Proxy "";
         {{- /* Get the NETWORK_ACCESS defined by containers w/ the same vhost, falling back to "external". */}}
         {{- $network_tag := groupByKeys $vpath_containers "Env.NETWORK_ACCESS" | first | default "external" }}
 
-        {{- $loadbalance := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.loadbalance" | keys | first }}
-        {{- $keepalive := groupByLabel $vpath_containers "com.github.nginx-proxy.nginx-proxy.keepalive" | keys | first | default "auto" }}
+        {{- /*
+             * groupByLabel only accepts *RuntimeContainer (see the "External
+             * upstream targets" comment near the top of this file), so
+             * external entries must be filtered out before every call.
+             */}}
+        {{- $vpath_real_containers := where $vpath_containers "IsExternal" nil }}
+        {{- $loadbalance := groupByLabel $vpath_real_containers "com.github.nginx-proxy.nginx-proxy.loadbalance" | keys | first }}
+        {{- $keepalive := groupByLabel $vpath_real_containers "com.github.nginx-proxy.nginx-proxy.keepalive" | keys | first | default "auto" }}
 
         {{- $upstream := $upstream_name }}
         {{- if (not (eq $path "/")) }}
@@ -763,6 +877,7 @@ proxy_set_header Proxy "";
         {{- $_ := set $vhost_data.paths $path $vpath_data }}
 
         {{ $vhost_containers = concat $vhost_containers $vpath_containers }}
+        {{ $vhost_real_containers = concat $vhost_real_containers $vpath_real_containers }}
     {{- end }}
 
     {{- $userIdentifiedCert := groupByKeys $vhost_containers "Env.CERT_NAME" | first }}
@@ -780,17 +895,16 @@ proxy_set_header Proxy "";
         {{- end }}
     {{- end }}
 
-    {{- $trust_default_cert := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.trust-default-cert" | keys | first | default $globals.config.trust_default_cert | parseBool }}
+    {{- $trust_default_cert := groupByLabel $vhost_real_containers "com.github.nginx-proxy.nginx-proxy.trust-default-cert" | keys | first | default $globals.config.trust_default_cert | parseBool }}
     {{- $defaultCert := and $trust_default_cert $globals.config.default_cert_ok | ternary "default" "" }}
 
     {{- $cert := or $userIdentifiedCert $vhostCert $parentVhostCert $defaultCert }}
     {{- $cert_ok := and (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert)) }}
 
-    {{- $ocsp_stapling_enabled := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.ocsp-stapling.enable" | keys | first | default $globals.config.enable_ocsp_stapling | parseBool }}
+    {{- $ocsp_stapling_enabled := groupByLabel $vhost_real_containers "com.github.nginx-proxy.nginx-proxy.ocsp-stapling.enable" | keys | first | default $globals.config.enable_ocsp_stapling | parseBool }}
 
-    {{- $enable_debug_endpoint := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.debug-endpoint" | keys | first | default $globals.config.enable_debug_endpoint | parseBool }}
+    {{- $enable_debug_endpoint := groupByLabel $vhost_real_containers "com.github.nginx-proxy.nginx-proxy.debug-endpoint" | keys | first | default $globals.config.enable_debug_endpoint | parseBool }}
     {{- $default := eq $globals.config.default_host $hostname }}
-
     {{- $https_method := groupByKeys $vhost_containers "Env.HTTPS_METHOD" | first | default $globals.config.https_method }}
     {{- $enable_http_on_missing_cert := groupByKeys $vhost_containers "Env.ENABLE_HTTP_ON_MISSING_CERT" | first | default $globals.config.enable_http_on_missing_cert | parseBool }}
     {{- /* When no trusted certs (default and/or vhost) are present we want to ensure that HTTP is enabled; hence switching from 'nohttp' or 'redirect' to 'noredirect' */}}
@@ -798,11 +912,10 @@ proxy_set_header Proxy "";
     {{- if and $https_method_disable_http (not $cert_ok) $enable_http_on_missing_cert }}
         {{- $https_method = "noredirect" }}
     {{- end }}
-    
-    {{- $non_get_redirect := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.non-get-redirect" | keys | first | default $globals.config.non_get_redirect }}
+    {{- $non_get_redirect := groupByLabel $vhost_real_containers "com.github.nginx-proxy.nginx-proxy.non-get-redirect" | keys | first | default $globals.config.non_get_redirect }}
 
-    {{- $http2_enabled := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http2.enable" | keys | first | default $globals.config.enable_http2 | parseBool }}
-    {{- $http3_enabled := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.http3.enable" | keys | first | default $globals.config.enable_http3 | parseBool }}
+    {{- $http2_enabled := groupByLabel $vhost_real_containers "com.github.nginx-proxy.nginx-proxy.http2.enable" | keys | first | default $globals.config.enable_http2 | parseBool }}
+    {{- $http3_enabled := groupByLabel $vhost_real_containers "com.github.nginx-proxy.nginx-proxy.http3.enable" | keys | first | default $globals.config.enable_http3 | parseBool }}
 
     {{- $acme_http_challenge := groupByKeys $vhost_containers "Env.ACME_HTTP_CHALLENGE_LOCATION" | first | default $globals.config.acme_http_challenge }}
     {{- $acme_http_challenge_legacy := eq $acme_http_challenge "legacy" }}
@@ -818,7 +931,7 @@ proxy_set_header Proxy "";
     {{- $ssl_policy := groupByKeys $vhost_containers "Env.SSL_POLICY" | first | default "" }}
 
     {{- /* Get ssl_verify_client defined by containers w/ the same vhost, falling back to "on" */}}
-    {{- $ssl_verify_client := groupByLabel $vhost_containers "com.github.nginx-proxy.nginx-proxy.ssl_verify_client" | keys | first | default "on" }}
+    {{- $ssl_verify_client := groupByLabel $vhost_real_containers "com.github.nginx-proxy.nginx-proxy.ssl_verify_client" | keys | first | default "on" }}
 
     {{- /* Get the HSTS defined by containers w/ the same vhost, falling back to "max-age=31536000". */}}
     {{- $hsts := groupByKeys $vhost_containers "Env.HSTS" | first | default $globals.config.hsts }}
