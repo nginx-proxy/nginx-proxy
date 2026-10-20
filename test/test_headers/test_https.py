@@ -103,10 +103,11 @@ def test_no_host_server_tokens_off(docker_compose, nginxproxy):
 
 
 def test_server_tokens_on(docker_compose, nginxproxy):
+    # Fork: nginx.conf sets server_tokens off globally, so the version is hidden by default.
     r = nginxproxy.get("https://web.nginx-proxy.tld/headers")
     assert r.status_code == 200
     assert "Host: web.nginx-proxy.tld" in r.text
-    assert r.headers["Server"].startswith("nginx/")
+    assert r.headers["Server"] == "nginx"
 
 
 def test_server_tokens_off(docker_compose, nginxproxy):
