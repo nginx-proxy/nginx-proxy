@@ -110,7 +110,17 @@ function _setup_dhparam() {
 function _update_cloudflare_real_ip() {
     # Generate /etc/nginx/conf.d/cloudflare.conf if updater exists
     if [[ -x /app/scripts/update-cloudflare-real-ip.sh ]]; then
-        /app/scripts/update-cloudflare-real-ip.sh || echo 'Warning: failed to update Cloudflare real IP configuration' >&2
+        # rc 3 = unchanged; on error the existing file (if any) is kept as-is.
+        # A file from a previous run already exists: fail fast, cron refreshes it later.
+        local rc=0
+        if [[ -f /etc/nginx/conf.d/cloudflare.conf ]]; then
+            CF_FETCH_RETRIES=0 CF_FETCH_MAX_TIME=10 /app/scripts/update-cloudflare-real-ip.sh || rc=$?
+        else
+            /app/scripts/update-cloudflare-real-ip.sh || rc=$?
+        fi
+        if [[ $rc -ne 0 && $rc -ne 3 ]]; then
+            echo 'Warning: failed to update Cloudflare real IP configuration, keeping existing one' >&2
+        fi
     fi
 }
 
@@ -134,7 +144,11 @@ function _setup_cf_cron() {
 
     mkdir -p /etc/crontabs
     touch /var/log/cron.log
-    echo "${schedule} bash /app/scripts/refresh-cloudflare-and-reload.sh >> /var/log/cron.log 2>&1" > /etc/crontabs/root
+    {
+        echo "${schedule} bash /app/scripts/refresh-cloudflare-and-reload.sh >> /var/log/cron.log 2>&1"
+        # Startup fetch failed and there is no file yet: retry every 10 minutes until it exists.
+        echo "*/10 * * * * [ -f /etc/nginx/conf.d/cloudflare.conf ] || bash /app/scripts/refresh-cloudflare-and-reload.sh >> /var/log/cron.log 2>&1"
+    } > /etc/crontabs/root
 }
 
 # Run the init logic if the default CMD was provided
