@@ -172,7 +172,9 @@
     #     exposed ports (first ten):{{ range $index, $address := (sortObjectsByKeysAsc $.container.Addresses "Port") }}{{ if lt $index 10 }} {{ $address.Port }}/{{ $address.Proto }}{{ end }}{{ else }} (none){{ end }}
     {{- $default_port := when (eq (len $.container.Addresses) 1) (first $.container.Addresses).Port "80" }}
     #     default port: {{ $default_port }}
-    {{- $port := eq $.port "default" | ternary $default_port $.port }}
+    {{- /* A space in VIRTUAL_PORT is copied into `server ip:port` and nginx refuses to start. */}}
+    {{- $requested := trim $.port }}
+    {{- $port := eq $requested "default" | ternary $default_port $requested }}
     #     using port: {{ $port }}
     {{- $addr_obj := where $.container.Addresses "Port" $port | first }}
     {{- if and $addr_obj $addr_obj.HostPort }}
