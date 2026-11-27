@@ -896,7 +896,9 @@ server {
     server_name _; # This is just an invalid value which will never trigger on a real hostname.
     server_tokens off;
     {{ template "access_log" (dict "Enable" $globals.config.enable_access_log) }}
+    {{- if parseBool $globals.config.enable_http2 }}
     http2 on;
+    {{- end }}
         {{- if $fallback_http }}
     listen {{ $globals.config.external_http_port }} {{- $proxy_protocol }}; {{- /* Do not add `default_server` (see comment above). */}}
                 {{- if $globals.config.enable_ipv6 }}
