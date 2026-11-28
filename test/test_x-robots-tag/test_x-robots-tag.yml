@@ -1,0 +1,17 @@
+services:
+  robots-set:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: robots-set.nginx-proxy.tld
+      X_ROBOTS_TAG: "noindex, nofollow"
+
+  robots-unset:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: robots-unset.nginx-proxy.tld
