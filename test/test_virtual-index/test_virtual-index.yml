@@ -1,0 +1,21 @@
+services:
+  index-set:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: index-set.nginx-proxy.tld
+      VIRTUAL_PROTO: fastcgi
+      VIRTUAL_ROOT: /var/www/public
+      VIRTUAL_INDEX: index.php
+
+  index-unset:
+    image: web
+    expose:
+      - "80"
+    environment:
+      WEB_PORTS: "80"
+      VIRTUAL_HOST: index-unset.nginx-proxy.tld
+      VIRTUAL_PROTO: fastcgi
+      VIRTUAL_ROOT: /var/www/public
