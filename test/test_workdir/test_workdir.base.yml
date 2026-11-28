@@ -1,0 +1,10 @@
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy:test
+    container_name: nginx-proxy
+    # Reproduce the WORKDIR override from a downstream Dockerfile such as:
+    #   FROM nginxproxy/nginx-proxy
+    #   WORKDIR /etc/nginx
+    working_dir: /etc/nginx
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
