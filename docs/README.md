@@ -409,6 +409,35 @@ services:
       replicas: 4
 ```
 
+### External (non-Docker) upstream targets
+
+`nginx-proxy`/`docker-gen` can only discover real Docker containers, so there's normally no way to proxy a target that isn't a container itself — e.g. a process running directly on the Docker host (`node_exporter`, some legacy daemon, etc). The `EXTERNAL_UPSTREAMS` environment variable, set once on the `nginx-proxy` container (or the `docker-gen` container in a [separate containers setup](#separate-containers)) — not per target — adds that capability without requiring a dummy/"zombie" container per external target purely to carry configuration (see [#1100](https://github.com/nginx-proxy/nginx-proxy/issues/1100)).
+
+`EXTERNAL_UPSTREAMS` is a YAML mapping of hostname to configuration:
+
+```yaml
+some.example.com:
+  upstreams:
+    - "192.168.1.10:9100"
+    - "192.168.1.11:9100"
+```
+
+`upstreams` is required and must be a non-empty list of literal `ip:port` addresses. Multiple entries under the same hostname all land as separate `server` lines in the same `upstream {}` block, load balanced the same way multiple real containers sharing one `VIRTUAL_HOST` are. A hostname can also be shared between an `EXTERNAL_UPSTREAMS` entry and one or more real containers with a matching `VIRTUAL_HOST` — both are merged into the same `upstream {}` block.
+
+Every key other than `upstreams` is passed through as if it were set on a container's environment, so any environment variable this template already supports for real containers (or gains in the future) works here too, for example:
+
+```yaml
+some.example.com:
+  upstreams:
+    - "192.168.1.10:9100"
+  HSTS: "off"
+```
+
+> [!NOTE]
+> Docker *label*-based per-container settings (`com.github.nginx-proxy.nginx-proxy.loadbalance`, `keepalive`, `trust-default-cert`, `ocsp-stapling.enable`, `debug-endpoint`, `non-get-redirect`, `http2.enable`, `http3.enable`, `ssl_verify_client`) cannot be set through `EXTERNAL_UPSTREAMS`, since there's no container to attach a label to — these always fall back to their global (proxy) default for external entries. Everything else (`HSTS`, `SSL_POLICY`, etc.) works normally.
+>
+> Cert automation (e.g. `acme-companion`) for non-container targets is outside the scope of this feature and does not work through `EXTERNAL_UPSTREAMS`: `acme-companion` discovers hosts by scanning real Docker containers for `ACME_HOST` (and writes its own service data file keyed off of them), and never sees these synthetic entries. Obtaining a certificate for an external target has to be handled independently of `nginx-proxy` container discovery.
+
 ### Upstream Server HTTP Keep-Alive Support
 
 By default `nginx-proxy` will enable HTTP keep-alive between itself and backend server(s) and set the maximum number of idle connections to twice the number of servers listed in the corresponding `upstream{}` block, [per nginx recommendation](https://www.nginx.com/blog/avoiding-top-10-nginx-configuration-mistakes/#no-keepalives). To manually set the maximum number of idle connections or disable HTTP keep-alive entirely, use the `com.github.nginx-proxy.nginx-proxy.keepalive` label on the server's container (setting it to `disabled` will disable HTTP keep-alive).
@@ -1450,6 +1479,7 @@ Configuration available either on the nginx-proxy container, or the docker-gen c
 | [`ENABLE_IPV6`](#listening-on-ipv6) | `false` |
 | [`ENABLE_OCSP_STAPLING`](#ocsp-stapling) | `false` |
 | [`ENABLE_PROXY_PROTOCOL`](#proxy-protocol-support) | `false` |
+| [`EXTERNAL_UPSTREAMS`](#external-non-docker-upstream-targets) | no default value |
 | [`HTTP_PORT`](#custom-external-httphttps-ports) | `80` |
 | [`HTTPS_PORT`](#custom-external-httphttps-ports) | `443` |
 | [`HTTPS_METHOD`](#how-ssl-support-works) | `redirect` |
