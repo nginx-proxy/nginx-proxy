@@ -389,22 +389,237 @@ def docker_compose_down(compose_files: List[str], project_name: str):
     __prepare_and_execute_compose_cmd(compose_files, project_name, cmd="down --volumes")
 
 
-def wait_for_nginxproxy_to_be_ready():
-    """
-    Wait for logs of running containers started from image nginxproxy/nginx-proxy:test and/or
-    nginxproxy/nginx-proxy:test-dockergen to contain the substring "Watching docker events"
-    """
-    nginx_proxy_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "nginxproxy/nginx-proxy:test"})
-    docker_gen_containers = docker_client.containers.list(filters={"status": "running", "ancestor": "nginxproxy/nginx-proxy:test-dockergen"})
+DEFAULT_NGINX_CONTAINER_LABEL = "com.github.nginx-proxy.nginx-proxy.nginx"
 
-    containers = nginx_proxy_containers + docker_gen_containers
+
+def _container_image(container: Container) -> str:
+    return container.attrs.get("Config", {}).get("Image", "")
+
+
+def _container_environment(container: Container) -> dict:
+    environment = {}
+    for value in container.attrs.get("Config", {}).get("Env") or []:
+        name, separator, content = value.partition("=")
+        if separator:
+            environment[name] = content
+    return environment
+
+
+def _nginx_worker_pids(container: Container) -> set[str]:
+    """Return the PIDs of nginx workers currently running in a container."""
+    process_list = container.top(ps_args="-eo pid,args")
+    titles = process_list.get("Titles", [])
+    try:
+        pid_index = titles.index("PID")
+        command_index = titles.index("COMMAND")
+    except ValueError as error:
+        raise RuntimeError(
+            f"Unexpected process list returned by {container.name}: {titles}"
+        ) from error
+
+    return {
+        process[pid_index]
+        for process in process_list.get("Processes", [])
+        if "nginx: worker process" in process[command_index]
+    }
+
+
+def _exec_result(result) -> tuple[int, bytes]:
+    """Normalize docker-py's ExecResult and legacy tuple return values."""
+    if hasattr(result, "exit_code"):
+        return result.exit_code, result.output
+    return result
+
+
+def _container_log_tail(container: Container, lines: int = 30) -> str:
+    try:
+        logs = container.logs(tail=lines).decode("utf-8", "replace")
+    except Exception as error:
+        return f"unable to read logs: {error}"
+    return logs
+
+
+def _container_is_running(container: Container) -> bool:
+    try:
+        container.reload()
+    except docker.errors.NotFound:
+        return False
+    return container.attrs.get("State", {}).get("Running", False)
+
+
+def _wait_for_docker_gen(
+        container: Container,
+        deadline: float,
+        interval: float
+) -> bool:
+    while time.monotonic() < deadline:
+        if b"Watching docker events" in container.logs():
+            logging.debug(f"docker-gen ready in {container.name}")
+            return True
+        if not _container_is_running(container):
+            logging.debug(
+                f"ignoring {container.name}: it exited before docker-gen became ready"
+            )
+            return False
+        time.sleep(interval)
+    raise RuntimeError(
+        f"Timed out waiting for docker-gen in {container.name} to watch events.\n"
+        f"Recent logs:\n{_container_log_tail(container)}"
+    )
+
+
+def _wait_for_web_container(container: Container, deadline: float, interval: float):
+    ports = _container_environment(container).get("WEB_PORTS", "").split()
+    if not ports:
+        return
+
+    probe = (
+        "import socket, sys; "
+        "connections = [socket.create_connection(('127.0.0.1', int(port)), 0.2) "
+        "for port in sys.argv[1:]]; "
+        "[connection.close() for connection in connections]"
+    )
+    output = b""
+    while time.monotonic() < deadline:
+        if not _container_is_running(container):
+            raise RuntimeError(
+                f"Backend container {container.name} exited before becoming ready.\n"
+                f"Recent logs:\n{_container_log_tail(container)}"
+            )
+        exit_code, output = _exec_result(
+            container.exec_run(["python3", "-c", probe, *ports])
+        )
+        if exit_code == 0:
+            logging.debug(
+                f"backend ready in {container.name} on ports {ports}"
+            )
+            return
+        time.sleep(interval)
+    raise RuntimeError(
+        f"Timed out waiting for backend {container.name} to listen on ports {ports}. "
+        f"Probe output: {output.decode('utf-8', 'replace')}\n"
+        f"Recent logs:\n{_container_log_tail(container)}"
+    )
+
+
+def _reload_nginx_and_wait(container: Container, deadline: float, interval: float):
+    test_output = b""
+    workers = set()
+    while time.monotonic() < deadline:
+        exit_code, test_output = _exec_result(container.exec_run(["nginx", "-t"]))
+        if exit_code == 0:
+            workers = _nginx_worker_pids(container)
+            if workers:
+                break
+        time.sleep(interval)
+    else:
+        raise RuntimeError(
+            f"Timed out waiting for nginx in {container.name} to become valid and start workers. "
+            f"nginx -t output: {test_output.decode('utf-8', 'replace')}\n"
+            f"Recent logs:\n{_container_log_tail(container)}"
+        )
+
+    exit_code, reload_output = _exec_result(container.exec_run(["nginx", "-s", "reload"]))
+    if exit_code != 0:
+        raise RuntimeError(
+            f"Failed to reload nginx in {container.name}: "
+            f"{reload_output.decode('utf-8', 'replace')}\n"
+            f"Recent logs:\n{_container_log_tail(container)}"
+        )
+
+    while time.monotonic() < deadline:
+        new_workers = _nginx_worker_pids(container) - workers
+        if new_workers:
+            logging.debug(
+                f"nginx reloaded in {container.name}; new workers: {sorted(new_workers)}"
+            )
+            return
+        time.sleep(interval)
+    raise RuntimeError(
+        f"Timed out waiting for new nginx workers after reloading {container.name}.\n"
+        f"Recent logs:\n{_container_log_tail(container)}"
+    )
+
+
+def wait_for_nginxproxy_to_be_ready(
+        project_name: str,
+        timeout: float = 30.0,
+        interval: float = 0.1
+):
+    """Wait until docker-gen's initial config is loaded by new nginx workers."""
+    containers = docker_client.containers.list(filters={
+        "status": "running",
+        "label": f"com.docker.compose.project={project_name}",
+    })
+    docker_gen_containers = []
+    nginx_containers = []
+    nginx_container_labels = set()
 
     for container in containers:
-        logging.debug(f"waiting for container {container.name} to be ready")
-        for line in container.logs(stream=True):
-            if b"Watching docker events" in line:
-                logging.debug(f"{container.name} ready")
-                break
+        image = _container_image(container)
+        if image == "nginxproxy/nginx-proxy:test-dockergen":
+            docker_gen_containers.append(container)
+            nginx_container_labels.add(
+                _container_environment(container).get(
+                    "NGINX_CONTAINER_LABEL", DEFAULT_NGINX_CONTAINER_LABEL
+                )
+            )
+        elif image == "nginxproxy/nginx-proxy:test":
+            docker_gen_containers.append(container)
+            nginx_containers.append(container)
+
+    for container in containers:
+        labels = container.attrs.get("Config", {}).get("Labels") or {}
+        if any(label in labels for label in nginx_container_labels):
+            nginx_containers.append(container)
+
+    docker_gen_containers = list({
+        container.id: container for container in docker_gen_containers
+    }.values())
+    nginx_containers = list({
+        container.id: container for container in nginx_containers
+    }.values())
+    if not docker_gen_containers or not nginx_containers:
+        raise RuntimeError(
+            f"Could not find both docker-gen and nginx containers for Compose project "
+            f"{project_name}: docker-gen={[c.name for c in docker_gen_containers]}, "
+            f"nginx={[c.name for c in nginx_containers]}"
+        )
+
+    deadline = time.monotonic() + timeout
+    ready_docker_gen_containers = []
+    for container in docker_gen_containers:
+        if _wait_for_docker_gen(container, deadline, interval):
+            ready_docker_gen_containers.append(container)
+
+    ready_docker_gen_ids = {
+        container.id for container in ready_docker_gen_containers
+    }
+    has_ready_separate_docker_gen = any(
+        _container_image(container) == "nginxproxy/nginx-proxy:test-dockergen"
+        for container in ready_docker_gen_containers
+    )
+    nginx_containers = [
+        container for container in nginx_containers
+        if (
+            container.id in ready_docker_gen_ids
+            or (
+                has_ready_separate_docker_gen
+                and _container_image(container) != "nginxproxy/nginx-proxy:test"
+            )
+        )
+    ]
+    if not ready_docker_gen_containers or not nginx_containers:
+        raise RuntimeError(
+            f"No running docker-gen/nginx pair became ready for Compose project "
+            f"{project_name}"
+        )
+
+    for container in containers:
+        if _container_image(container) == "web":
+            _wait_for_web_container(container, deadline, interval)
+    for container in nginx_containers:
+        _reload_nginx_and_wait(container, deadline, interval)
 
 
 @pytest.fixture
@@ -560,8 +775,7 @@ class DockerComposer(contextlib.AbstractContextManager):
         try:
             docker_compose_up(docker_compose_files, project_name)
             self._networks = connect_to_all_networks()
-            wait_for_nginxproxy_to_be_ready()
-            time.sleep(3)  # give time to containers to be ready
+            wait_for_nginxproxy_to_be_ready(project_name)
 
         except KeyboardInterrupt:
             logging.warning("KeyboardInterrupt detected! Force cleanup...")
@@ -575,10 +789,13 @@ class DockerComposer(contextlib.AbstractContextManager):
             pytest.fail(f"Docker Compose setup failed due to Docker API error: {e.explanation}")
 
         except RuntimeError as e:
-            logging.error(f"RuntimeEror encountered in: {project_name}")
+            logging.error(f"RuntimeError encountered in: {project_name}")
             logging.debug(f"Full error message: {str(e)}")
             self._down()  # Ensure proper cleanup even on failure
-            pytest.fail(f"Docker Compose setup failed due to RuntimeError in: {project_name}")
+            pytest.fail(
+                f"Docker Compose setup failed in {project_name}: {e}",
+                pytrace=False,
+            )
 
 
 ###############################################################################
